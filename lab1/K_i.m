@@ -1,9 +1,8 @@
 function Theta = K_i(x, y, z)
 
-L_1 = .4;
-L_2 = .5;
-d_1 = .2;
-
+global L_1
+global L_2
+global d_1
 
 Theta = [ acos(x / sqrt(x^2 + y^2)) - acos((L_1^2 + x^2 + y^2 - L_2^2) / (2*L_1*sqrt(x^2 + y^2)));
           acos((x^2 + y^2 - L_1^2 - L_2^2) / (2 * L_1 * L_2));
