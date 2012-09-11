@@ -5,7 +5,7 @@ L_2 = .5;
 L_3     = .1
 
 X_cart = K_f(theta_1, theta_2, L_3)
-Theta1 = K_i(X_cart(1), X_cart(2), X_cart(3))
+Theta = K_i(X_cart(1), X_cart(2), X_cart(3))
 
 % if size(Theta,1) > 3
 %     X_cart2 = K_f(Theta(4), Theta(5), Theta(6))
