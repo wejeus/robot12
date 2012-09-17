@@ -75,28 +75,26 @@ v_norm = v / norm(v);
 v_min  = inf;
 Theta_old = Theta_start;
 
-%while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') > 0.01)
-while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') <= norm(end_point - K_f(Theta_old(1), Theta_old(2), Theta_old(3))'))
+% calculate a speed limit on the path by calculating a trajectory with a
+% low velocity first
+while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') > 0.01)
     J_inv = inv(jacobian(Theta_i));
-    %Theta_i = Theta_i + J_inv * v' .* 0.1;
+    Theta_i = Theta_i + J_inv * v' .* 0.1;
     speed = J_inv * v_norm';
     
     next = min((pi/180)*50/abs(speed(1)), (pi/180)*50/abs(speed(2)));
     v_min = min(next, v_min);
-    theta_next = Theta_i + J_inv * (v_min*v_norm)' .* 0.1;
-    
-    while(~valid_configuration(theta_next, start_point, v)) 
-        v_min = v_min - 0.01;
-        theta_next = Theta_i + J_inv * (v_min*v_norm)' .* 0.1;
-    end
-    Theta_old = Theta_i;
-    Theta_i   = theta_next;
 end
 
-% adapt speed so that we can end up at the end position
-length = norm(start_point - end_point);
-steps = ceil (length / (v_min * 0.1));
-v_min = length / steps / 0.1;
+% v_min is now the maximal speed that is approximately allowed on this
+% path.
+
+% To end up at end_point we have to adapt this speed first.
+% We can end up at the end_position if there is an integer number of steps
+% so that end_point = start_point + steps * v_min * v
+length = norm(start_point - end_point); % length of the complete line
+steps = ceil (length / (v_min * 0.1)); % number of steps (sample points)
+v_min = length / steps / 0.1; % new velocity that allows us to end up close to the end_point
 
 % set speed
 v = v_min * v_norm;
@@ -136,7 +134,8 @@ end
 X_cart = rob_sim(trajectory',2);
 
 % ---- Check weld ----
-check_weld(X_cart)
+ [success time mean_vel std_vel max_dev] = check_weld(X_cart)
+
 
 % ---- Plot trajectory (x,y,z & theta_1,theta_2,L_3) ----
 figure()
