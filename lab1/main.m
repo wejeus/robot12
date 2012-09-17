@@ -137,3 +137,45 @@ X_cart = rob_sim(trajectory',2);
 
 % ---- Check weld ----
 check_weld(X_cart)
+
+% ---- Plot trajectory (x,y,z & theta_1,theta_2,L_3) ----
+figure()
+time = 0:0.1:length(X_cart)*0.1-0.1;
+
+% plot x, y, z
+subplot(6,2,1)
+hold on
+xlabel('Time (s)')
+ylabel('X-coordinate (m)')
+plot(time, X_cart(:,1)')
+
+subplot(6,2,3)
+hold on
+xlabel('Time (s)')
+ylabel('Y-coordinate (m)')
+plot(time, X_cart(:,2)')
+
+subplot(6,2,5)
+hold on
+xlabel('Time (s)')
+ylabel('Z-coordinate (m)')
+plot(time, X_cart(:,3)')
+
+% plot theta_1, theta_2, L_3
+subplot(6,2,2)
+hold on
+xlabel('Time (s)')
+ylabel('Theta_1-coordinate (degrees)')
+plot(time(1:length(trajectory)), trajectory(1,:))
+
+subplot(6,2,4)
+hold on
+xlabel('Time (s)')
+ylabel('Theta_2-coordinate (degrees)')
+plot(time(1:length(trajectory)), trajectory(2,:))
+
+subplot(6,2,6)
+hold on
+xlabel('Time (s)')
+ylabel('L3-coordinate (m)')
+plot(time(1:length(trajectory)), trajectory(3,:))
