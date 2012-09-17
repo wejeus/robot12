@@ -49,19 +49,24 @@ start_point = [0.1 0.3 0];
 end_point   = [-0.5 0.1 0];
 Theta_start = K_i(start_point(1), start_point(2), start_point(3));
 Theta_end   = K_i(end_point(1), end_point(2), end_point(3));
+
 v = (end_point - start_point) / 50;
 
 % ---- move to start pos ---- 
 Theta_i = Theta_start;
-move    = 35;
 d1      = 0;
+margin                  = 15; % tune this to change trajectory from init to start.
+stepsToLowerManipulator = 20;
 
-for j=1:move
+for j=1:stepsToLowerManipulator + margin
+    
     trajectory(1,j) = 180/pi * Theta_i(1);
     trajectory(2,j) = 180/pi * Theta_i(2);
     trajectory(3,j) = d1;
-    if move - j < 20
-        d1 = d1+0.01;
+    
+    % increase d1 when there is 20 steps left to start pos
+    if stepsToLowerManipulator + margin - j < stepsToLowerManipulator
+        d1 = d1 + 0.01;
     end
 end
 
@@ -74,7 +79,7 @@ Theta_old = Theta_start;
 while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') <= norm(end_point - K_f(Theta_old(1), Theta_old(2), Theta_old(3))'))
     J_inv = inv(jacobian(Theta_i));
     %Theta_i = Theta_i + J_inv * v' .* 0.1;
-    speed = J_inv*v_norm';
+    speed = J_inv * v_norm';
     
     next = min((pi/180)*50/abs(speed(1)), (pi/180)*50/abs(speed(2)));
     v_min = min(next, v_min);
@@ -85,15 +90,15 @@ while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') <= norm(end_poi
         theta_next = Theta_i + J_inv * (v_min*v_norm)' .* 0.1;
     end
     Theta_old = Theta_i;
-    Theta_i = theta_next;
+    Theta_i   = theta_next;
 end
 
-v = v_min * v_norm
+v = v_min * v_norm;
 v_orig = v;
 
-%% ---- generate trajectory with optimal speed ----
-i = move+1;
-Theta_i = Theta_start;
+%% ---- generate trajectory with "optimal" speed ----
+i = stepsToLowerManipulator + margin + 1;
+Theta_i   = Theta_start;
 Theta_old = Theta_i;
 
 while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') <= norm(end_point - K_f(Theta_old(1), Theta_old(2), Theta_old(3))'))
@@ -104,18 +109,14 @@ while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') <= norm(end_poi
     trajectory(1,i) = 180/pi * Theta_i(1);
     trajectory(2,i) = 180/pi * Theta_i(2);
     trajectory(3,i) = Theta_i(3);
-    i=i+1;
+    i = i + 1;
     
-    currentPosOnLine = (K_f(Theta_i(1), Theta_i(2), Theta_i(3))' - start_point);
-    
-    v_normal = (cross(v_orig / norm(v_orig), [0 0 1]));
-    
-    error = (currentPosOnLine * v_normal')
-    v = v_orig - 10 * error * v_normal;
-    
-    v = v / norm(v) * v_min;
-    
-
+    % correct error
+    currentPosOnLine = K_f(Theta_i(1), Theta_i(2), Theta_i(3))' - start_point;
+    v_normal         = cross(v_orig / norm(v_orig), [0 0 1]);
+    error            = currentPosOnLine * v_normal';
+    v                = v_orig - 10 * error * v_normal;
+    v                = v / norm(v) * v_min;
 end
 
 % ---- Simulate trajectory ----
