@@ -100,7 +100,9 @@ end
 
 v_min
 v
+
 v = v_min * v_norm
+v_orig = v;
 
 %%
 i=move+21;
@@ -111,16 +113,25 @@ while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') <= norm(end_poi
     J_inv = inv(jacobian(Theta_i));
     Theta_old = Theta_i;
     Theta_i = Theta_i + J_inv * v' .* 0.1;
+    
     trajectory(1,i) = 180/pi * Theta_i(1);
     trajectory(2,i) = 180/pi * Theta_i(2);
     trajectory(3,i) = Theta_i(3);
     i=i+1;
-    if i==595
-        break
-    end
+    
+    currentPosOnLine = (K_f(Theta_i(1), Theta_i(2), Theta_i(3))' - start_point);
+    
+    v_normal = (cross(v_orig / norm(v_orig), [0 0 1]));
+    
+    error = (currentPosOnLine * v_normal')
+    v = v_orig - 10 * error * v_normal;
+    
+    v = v / norm(v) * v_min;
+    
+
 end
 
 
-X_cart = rob_sim(trajectory',2);
+X_cart = rob_sim(trajectory',1);
 
-check_weld
+check_weld(X_cart)
