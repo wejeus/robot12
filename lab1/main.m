@@ -15,7 +15,7 @@ L_3 = .1;
 
 
 
-%calc cartesian coordinates
+% calc cartesian coordinates
 X_cart = K_f(theta_1, theta_2, L_3);
 
 % calc joint space coordinates
@@ -44,38 +44,28 @@ J = [ -L_1 * sin(theta_1) - L_2 * sin(theta_1 + theta_2), -L_2 * sin(theta_1 + t
 % --- Simulation ---
 % ------------------
 
-% create trajectory from [0.1 0.3 0] to [-0.5 0.1 0]
-
-%%
+%% ---- set star/end points ----
 start_point = [0.1 0.3 0];
 end_point   = [-0.5 0.1 0];
-
-v = (end_point - start_point) / 50;
 Theta_start = K_i(start_point(1), start_point(2), start_point(3));
 Theta_end   = K_i(end_point(1), end_point(2), end_point(3));
-trajectory = [];
-Theta_i = Theta_start;
+v = (end_point - start_point) / 50;
 
-move = 60;
-% move to start
+% ---- move to start pos ---- 
+Theta_i = Theta_start;
+move    = 35;
+d1      = 0;
+
 for j=1:move
     trajectory(1,j) = 180/pi * Theta_i(1);
     trajectory(2,j) = 180/pi * Theta_i(2);
-    trajectory(3,j) = 0;
+    trajectory(3,j) = d1;
+    if move - j < 20
+        d1 = d1+0.01;
+    end
 end
 
-% lower manipulator
-d1=0;
-for j=move+1:move+21
-    trajectory(1,j) = 180/pi * Theta_start(1);
-    trajectory(2,j) = 180/pi * Theta_start(2);
-    trajectory(3,j) = d1;
-    d1 = d1+0.01;
-end    
-
-
-
-
+% ---- calc optimal speed ---- 
 v_norm = v / norm(v);
 v_min  = inf;
 Theta_old = Theta_start;
@@ -98,14 +88,11 @@ while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') <= norm(end_poi
     Theta_i = theta_next;
 end
 
-v_min
-v
-
 v = v_min * v_norm
 v_orig = v;
 
-%%
-i=move+21;
+%% ---- generate trajectory with optimal speed ----
+i = move+1;
 Theta_i = Theta_start;
 Theta_old = Theta_i;
 
@@ -131,7 +118,8 @@ while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') <= norm(end_poi
 
 end
 
+% ---- Simulate trajectory ----
+X_cart = rob_sim(trajectory',2);
 
-X_cart = rob_sim(trajectory',1);
-
+% ---- Check weld ----
 check_weld(X_cart)
