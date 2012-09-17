@@ -53,30 +53,74 @@ end_point   = [-0.5 0.1 0];
 v = (end_point - start_point) / 50;
 Theta_start = K_i(start_point(1), start_point(2), start_point(3));
 Theta_end   = K_i(end_point(1), end_point(2), end_point(3));
-trajectory  = Theta_start;
-i=103;
+trajectory = [];
 Theta_i = Theta_start;
 
-t=[];
-for j=1:100
+move = 60;
+% move to start
+for j=1:move
     trajectory(1,j) = 180/pi * Theta_i(1);
     trajectory(2,j) = 180/pi * Theta_i(2);
     trajectory(3,j) = 0;
 end
 
-%%
+% lower manipulator
+d1=0;
+for j=move+1:move+21
+    trajectory(1,j) = 180/pi * Theta_start(1);
+    trajectory(2,j) = 180/pi * Theta_start(2);
+    trajectory(3,j) = d1;
+    d1 = d1+0.01;
+end    
 
-while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') > 0.01)
+
+
+
+v_norm = v / norm(v);
+v_min  = inf;
+Theta_old = Theta_start;
+
+%while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') > 0.01)
+while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') <= norm(end_point - K_f(Theta_old(1), Theta_old(2), Theta_old(3))'))
     J_inv = inv(jacobian(Theta_i));
+    %Theta_i = Theta_i + J_inv * v' .* 0.1;
+    speed = J_inv*v_norm';
+    
+    next = min((pi/180)*50/abs(speed(1)), (pi/180)*50/abs(speed(2)));
+    v_min = min(next, v_min);
+    theta_next = Theta_i + J_inv * (v_min*v_norm)' .* 0.1;
+    
+    while(~valid_configuration(theta_next, start_point, v)) 
+        v_min = v_min - 0.01;
+        theta_next = Theta_i + J_inv * (v_min*v_norm)' .* 0.1;
+    end
+    Theta_old = Theta_i;
+    Theta_i = theta_next;
+end
+
+v_min
+v
+v = v_min * v_norm
+
+%%
+i=move+21;
+Theta_i = Theta_start;
+Theta_old = Theta_i;
+
+while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') <= norm(end_point - K_f(Theta_old(1), Theta_old(2), Theta_old(3))'))
+    J_inv = inv(jacobian(Theta_i));
+    Theta_old = Theta_i;
     Theta_i = Theta_i + J_inv * v' .* 0.1;
     trajectory(1,i) = 180/pi * Theta_i(1);
     trajectory(2,i) = 180/pi * Theta_i(2);
     trajectory(3,i) = Theta_i(3);
     i=i+1;
+    if i==595
+        break
+    end
 end
 
-trajectory(1,102) = 180/pi * Theta_start(1);
-trajectory(2,102) = 180/pi * Theta_start(2);
-trajectory(3,102) = Theta_start(3);
 
-X_cart = rob_sim(trajectory',2)
+X_cart = rob_sim(trajectory',2);
+
+check_weld
