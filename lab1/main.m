@@ -56,7 +56,7 @@ v = (end_point - start_point) / 50;
 Theta_i = Theta_start;
 d1      = 0;
 margin                  = 15; % tune this to change trajectory from init to start.
-stepsToLowerManipulator = 20;
+stepsToLowerManipulator = 21;
 
 for j=1:stepsToLowerManipulator + margin
     
@@ -93,15 +93,28 @@ while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') <= norm(end_poi
     Theta_i   = theta_next;
 end
 
+% adapt speed so that we can end up at the end position
+length = norm(start_point - end_point);
+steps = ceil (length / (v_min * 0.1));
+v_min = length / steps / 0.1;
+
+% set speed
 v = v_min * v_norm;
 v_orig = v;
+
 
 %% ---- generate trajectory with "optimal" speed ----
 i = stepsToLowerManipulator + margin + 1;
 Theta_i   = Theta_start;
 Theta_old = Theta_i;
 
-while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') <= norm(end_point - K_f(Theta_old(1), Theta_old(2), Theta_old(3))'))
+% set start configuration (theta) first
+trajectory(1,i) = 180/pi * Theta_i(1);
+trajectory(2,i) = 180/pi * Theta_i(2);
+trajectory(3,i) = Theta_i(3);
+i = i + 1;
+
+while(norm(end_point - K_f(Theta_i(1), Theta_i(2), Theta_i(3))') > 0.005)
     J_inv = inv(jacobian(Theta_i));
     Theta_old = Theta_i;
     Theta_i = Theta_i + J_inv * v' .* 0.1;
