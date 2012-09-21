@@ -19,14 +19,8 @@ Default installation is using an old version of 'rosdep' installed using pip. Re
 
 CREATING 'msg' AND 'srv'
 The respective type must be created in folders named 'msg' and 'srv' respectivly (in the root of the package). msgs are just simple text files with a field type and field name per line. The field types you can use are:
+See: http://www.ros.org/wiki/msg?action=show&redirect=ROS%2FMessage_Description_Language
 
-* int8, int16, int32, int64 (plus uint*)
-* float32, float64
-* string
-* time, duration
-* other msg files
-* variable-length array[] and fixed-length array[C] 
-* Header, the header contains a timestamp and coordinate frame information
 
 'srv' files are just like msg files, except they contain two parts: a request and a response. The two parts are separated by a '---' line. Example (request comes first then response):
 

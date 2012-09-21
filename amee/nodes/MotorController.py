@@ -5,16 +5,35 @@
 
 import roslib; roslib.load_manifest('amee')
 import rospy
+import math, operator
 from std_msgs.msg import String, Int32
-from amee.msg import Velocity
+from amee.msg import Movement
 from robo.msg import Encoder, Motor
 from turtlesim.msg import Velocity as V
 
 
 # Send custom msg: rostopic pub -1 /MotorController/Velocity amee/Velocity -- 1.0 1.0
+# You should be able to
 
-pubMotor = {}
-pubEncoderInterval = {}
+# 1. Rotate a certain angle A on the spot 
+# 2. Move straight a distance D
+# 3. Move to a certain position (x,y) wrt to the statring position (forward at the start is the x-direction)
+# 4. Control robot using a device such as keyboard or joystick
+
+# The wheel base (distance between wheels) is 0.5m and the wheel radii is 0.1m.
+
+NODE_NAME = "MotorController"
+MOVE_STRAIGHT = 1
+MOVE_ROTATE = 2
+MOVE_COORDINATE = 3
+
+WHEEL_RADIUS = 0.1
+
+mPublisherMotor = {}
+mPublisherEncoderInterval = {}
+mEncoderCurrent = (0.0, 0.0, 0.0)
+mEncoderPrevious  = (0.0, 0.0, 0.0)
+
 
 RIGHT = -2.0
 LEFT = 2.0
@@ -38,38 +57,85 @@ def determine(linear, angular):
             rightWheel = FORWARD
     return (leftWheel, rightWheel)
 
+
+def norm(vector):
+    return math.sqrt(sum(map(lambda coord: coord*coord, vector)))
+
+def dot_product(vector1, vector2):
+    if len(vector1) != len(vector2):
+        raise Exception("Vector size mismatch")
+    return sum(map(operator.mul, vector1, vector2))
+
+# Move to a 2 dimensional point
+def move_coordinate(point=(0,0)):
+    rospy.loginfo(NODE_NAME + ' MOVE_COORDINATE')
+    ref_vec = (0,1) # Reference vector, set to coordinate axis in direction of robot
+    distance = norm(point)
+    angle = math.acos(dot_product(ref_vec, point) / norm(ref_vec)*norm(point))
+    move_rotate(angle)
+    move_straight(distance)
+
+def calc_error():
+    (curTime, curLeft, curRight) = mEncoderCurrent
+    (prevTime, prevLeft, prevRight) = mEncoderPrevious
+    deltaTime = (curTime - prevTime) / 1000
+    return ((curLeft - prevLeft) + (curRight - curRight)) / deltaTime
+
+def move_straight(distance):
+    rospy.loginfo(NODE_NAME + ' MOVE_STRAIGHT')
+    curDistance = 0.0
+
+    while curDistance < distance:
+        error = calc_error()
+        C = 2*math.pi*WHEEL_RADIUS
+        mPublisherMotor.pub(1.0, 1.0)
+
+    return
+
+def move_rotate(angle):
+    rospy.loginfo(NODE_NAME + ' MOVE_ROTATE')
+    return
+
 # TODO: Should this take a (singleshot) velocity change or a vector point to travel to?
 def handle_static_change(msg):
-    (left, right) = determine(msg.linear, msg.angular)
-    rospy.loginfo(rospy.get_name() + " Determined (static) change -> left: %s, right: %s", left, right)
-    pubMotor.publish(Motor(left, right))
+    if msg.type == MOVE_STRAIGHT:
+        move_straight(msg.distance)
+        return
+    elif msg.type == MOVE_ROTATE:
+        move_rotate(msg.angle)
+        return
+    elif msg.type == MOVE_COORDINATE:
+        move_coordinate((msg.x, msg.y))
+        return
+    else:
+        rospy.loginfo(NODE_NAME + ' UNKNOWN_MOVEMENT')
+
+    # (left, right) = determine(msg.linear, msg.angular)
+    # rospy.loginfo(rospy.get_name() + " Determined (static) change -> left: %s, right: %s", left, right)
+    # pubMotor.publish(Motor(left, right))
 
 def handle_keyboard_change(msg):
     (left, right) = determine(msg.linear, msg.angular)
     rospy.loginfo(rospy.get_name() + " Determined (keyboard) change -> left: %s, right: %s", left, right)
     pubMotor.publish(Motor(left, right))
 
-def handle_encoder(msg):
-    timestamp = msg.timestamp
-    left = msg.left
-    right = msg.right
-    #rospy.loginfo(rospy.get_name() + " Encoder got: %s %s %s", timestamp, left, right)
-    # TODO: Handle trajectory error
 
+def handle_encoder(msg):
+    mEncoderPrevious = mEncoderCurrent
+    mEncoderCurrent = (msg.timestamp, msg.left, msg.right)
 
 if __name__ == '__main__':
-    rospy.loginfo(rospy.get_name() + " is starting up...")
+    # Name of this node
+    rospy.init_node(NODE_NAME)
+    rospy.loginfo(NODE_NAME + " is starting up...")
     
-    try: 
-        # Name of this node
-        rospy.init_node('MotorController')
-
+    try:
         # Init publishers
-        pubMotor = rospy.Publisher('/serial/motor_speed', Motor)
-        pubEncoderInterval = rospy.Publisher('/serial/encoder_interval', Int32)
+        mPublisherMotor = rospy.Publisher('/serial/motor_speed', Motor)
+        mPublisherEncoderInterval = rospy.Publisher('/serial/encoder_interval', Int32)
 
         # The TOPIC we want to listen to
-        rospy.Subscriber("/MotorController/Velocity", Velocity, handle_static_change)
+        rospy.Subscriber("/MotorController/Movement", Movement, handle_static_change)
         rospy.Subscriber("/turtle1/command_velocity", V, handle_keyboard_change)
         rospy.Subscriber("/serial/encoder", Encoder, handle_encoder)
        
