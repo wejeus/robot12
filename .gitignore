@@ -3,3 +3,4 @@
 amee/msg_gen/*
 *.pyc
 amee/src/amee
+amee/build
