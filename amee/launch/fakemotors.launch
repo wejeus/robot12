@@ -1,0 +1,8 @@
+<launch>
+
+    <group ns="robo">
+        <node pkg="robo" name="FakeMotors" type="FakeMotors"/>
+        <node pkg="robo" name="FakeMotorsTest" type="FakeMotorsTest"/>
+    </group>
+
+</launch>

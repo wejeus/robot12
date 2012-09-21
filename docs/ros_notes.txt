@@ -1,0 +1,38 @@
+ROS NOTES
+
+rospack
+roscreate-pkg   = ros+create-pkg : generates all the files needed to create a ROS package
+rospack         = ros+pack(age) : provides information related to ROS packages
+rosstack        = ros+stack : provides information related to ROS stacks 
+rosdep          = ros+dep(endencies) : a tool to install package dependencies
+rosmake         = ros+make : makes (compiles) a ROS package 
+roscore         = ros+core : master (provides name service for ROS) + rosout (stdout/stderr) + parameter server (parameter server will be introduced later)
+rosnode         = ros+node : ROS tool to get information about a node.
+rosrun          = ros+run : runs a node from a given package. 
+
+SETUP
+$ export ROS_HOSTNAME=localhost
+$ export ROS_MASTER_URI=http://localhost:11311
+
+NOTES
+Default installation is using an old version of 'rosdep' installed using pip. Remove and use the one installed through apt. Same with 'rospkg'
+
+CREATING 'msg' AND 'srv'
+The respective type must be created in folders named 'msg' and 'srv' respectivly (in the root of the package). msgs are just simple text files with a field type and field name per line. The field types you can use are:
+
+* int8, int16, int32, int64 (plus uint*)
+* float32, float64
+* string
+* time, duration
+* other msg files
+* variable-length array[] and fixed-length array[C] 
+* Header, the header contains a timestamp and coordinate frame information
+
+'srv' files are just like msg files, except they contain two parts: a request and a response. The two parts are separated by a '---' line. Example (request comes first then response):
+
+int64 A
+int64 B
+---
+int64 Sum
+
+Make sure to uncomment 'rosbuild_genmsg()' or 'rosbuild_gensrv()' from CMakeLists.txt in order to make sure that the msg/srv files are turned into C++/Python source code.

@@ -1,2 +1,5 @@
 *.m~
 .DS_Store
+amee/msg_gen/*
+*.pyc
+amee/src/amee
