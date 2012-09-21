@@ -1,0 +1,18 @@
+<package>
+  <description brief="amee">
+
+     amee
+
+  </description>
+  <author>Robot</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/amee</url>
+  <depend package="std_msgs"/>
+  <depend package="roslang"/>
+  <depend package="rospy"/>
+  <depend package="roscpp"/>
+
+</package>
+
+
