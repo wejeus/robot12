@@ -95,7 +95,6 @@ def calc_tic_speed(encoderCurrent, encoderPrevious):
     (curTime, curRight, curLeft) = encoderCurrent
     (prevTime, prevRight, prevLeft) = encoderPrevious
     deltaTime = (curTime - prevTime) * 1000
-    #rospy.loginfo("ct %s pt %s dt %s ", curTime, prevTime, deltaTime)
     return ( deltaTime, (curLeft - prevLeft)/deltaTime, (curRight - prevRight)/deltaTime )
 
 
@@ -121,13 +120,13 @@ def calc_tic_speed(encoderCurrent, encoderPrevious):
 #         counter = 0
         
 
-
-curEncoderChange = (0.0, 0.0, 0.0)
 curEncoder = False
 prevEncoder = False
+ticsSpeedLeftMax = 500*1.0 # FIXME (tics per revolution times v_max per motor)
+ticsSpeedRightMax = 500*1.2 # FIXME (tics per revolution times v_max per motor)
 
 def handle_encoder(msg):
-    global curEncoderChange, curEncoder, prevEncoder
+    global curTicSpeed, curEncoder, prevEncoder
 
     # Handle initial case when ecoders are empty
     if not curEncoder:
@@ -139,29 +138,13 @@ def handle_encoder(msg):
     prevEncoder = curEncoder
     curEncoder = (msg.timestamp, msg.right, msg.left)
 
-    curEncoderChange = calc_tic_speed(curEncoder, prevEncoder)
+    (timestamp, ticsSpeedRight, ticsSpeedLeft) = calc_tic_speed(curEncoder, prevEncoder)
 
-    (timestamp, right, left) = curEncoderChange
-    rospy.loginfo("T: %s R: %s L: %s", timestamp, right/timestamp, left/timestamp)
-    
-    #update_mean((msg.timestamp, msg.right, msg.left))
-    # ticsSpeedLeftMax = 500*1.0 # FIXME (tics per revolution times v_max per motor)
-    # ticsSpeedRightMax = 500*1.2 # FIXME (tics per revolution times v_max per motor)
+    pwmRight = ticsSpeedRight / ticsSpeedRightMax
+    pwmLeft = ticsSpeedLeft / ticsSpeedLeftMax
 
-    # global mEncoderCurrent, mEncoderPrevious
-    # mEncoderPrevious = mEncoderCurrent
-    # mEncoderCurrent = (msg.timestamp, msg.right, msg.left)
-
-    # if init:
-    #     (ticsSpeedLeft, ticsSpeedRight) = calc_tic_speed(mEncoderCurrent, mEncoderPrevious)
-        
-    #     pwmLeft = ticsSpeedLeft / ticsSpeedLeftMax
-    #     pwmRight = ticsSpeedRight / ticsSpeedRightMax
-        
-    #     tmp = list(currEncoderMean)
-
-    #     rospy.loginfo("L %s R %s", ticsSpeedLeft, ticsSpeedRight)
-        #rospy.loginfo("TIMESTAMP -> %s RIGHT: %s LEFT: %s, PWM_RIGH %s, PWM_LEFT: %s", tmp[0], tmp[1], tmp[2], pwmRight, pwmLeft)
+    rospy.loginfo("DELTA_TIME: %s R: %s L: %s", timestamp, ticsSpeedRight, ticsSpeedLeft)
+    rospy.loginfo("PWM_RIGH: %s PWM_LEFT: %s", pwmRight, pwmLeft)
 
 
 if __name__ == '__main__':
