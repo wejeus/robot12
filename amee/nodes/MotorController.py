@@ -12,50 +12,27 @@ from robo.msg import Encoder, Motor
 from turtlesim.msg import Velocity as V
 
 
-# Send custom msg: rostopic pub -1 /MotorController/Velocity amee/Velocity -- 1.0 1.0
-# You should be able to
+# Send custom msg in ROS
+# rostopic pub -1 <the topic to publish to> <the message type to use> -- <values>
+# rostopic pub -1 /MotorController/Movement amee/Movement -- 1.0 1.0
 
-# 1. Rotate a certain angle A on the spot 
-# 2. Move straight a distance D
-# 3. Move to a certain position (x,y) wrt to the statring position (forward at the start is the x-direction)
-# 4. Control robot using a device such as keyboard or joystick
+# Node functionality
+# Rotate a certain angle A on the spot 
+# Move straight a distance D
+# Move to a certain position (x,y) wrt to the statring position (forward at the start is the x-direction)
+# Control robot using a device such as keyboard or joystick
 
-# The wheel base (distance between wheels) is 0.5m and the wheel radii is 0.1m.
 
 NODE_NAME = "MotorController"
 MOVE_STRAIGHT = 1
 MOVE_ROTATE = 2
 MOVE_COORDINATE = 3
-
 WHEEL_RADIUS = 0.1
 
 mPublisherMotor = {}
 mPublisherEncoderInterval = {}
 mEncoderCurrent = (0.0, 0.0, 0.0)
 mEncoderPrevious  = (0.0, 0.0, 0.0)
-
-
-RIGHT = -2.0
-LEFT = 2.0
-FORWARD = 2.0
-BACKWARD = -2.0
-
-# In /turtle only one key can be pressed at a time
-def determine(linear, angular):
-    leftWheel = 0.0
-    rightWheel = 0.0
-
-    if linear != 0.0:
-        leftWheel = linear
-        rightWheel = linear
-    else:
-        if angular == RIGHT:
-            leftWheel = FORWARD
-            rightWheel = BACKWARD
-        else:
-            leftWheel = BACKWARD
-            rightWheel = FORWARD
-    return (leftWheel, rightWheel)
 
 
 def norm(vector):
@@ -100,15 +77,12 @@ def move_rotate(angle):
 def handle_static_change(msg):
     if msg.type == MOVE_STRAIGHT:
         move_straight(msg.distance)
-        return
     elif msg.type == MOVE_ROTATE:
         move_rotate(msg.angle)
-        return
     elif msg.type == MOVE_COORDINATE:
         move_coordinate((msg.x, msg.y))
-        return
     else:
-        rospy.loginfo(NODE_NAME + ' UNKNOWN_MOVEMENT')
+        rospy.logwarn(NODE_NAME + ' UNKNOWN_MOVEMENT')
 
     # (left, right) = determine(msg.linear, msg.angular)
     # rospy.loginfo(rospy.get_name() + " Determined (static) change -> left: %s, right: %s", left, right)
