@@ -31,8 +31,8 @@ WHEEL_RADIUS = 0.1
 
 mPublisherMotor = {}
 mPublisherEncoderInterval = {}
-mEncoderCurrent = (0.0, 0.0, 0.0)
-mEncoderPrevious  = (0.0, 0.0, 0.0)
+mEncoderCurrent = (0, 0.0, 0.0)
+mEncoderPrevious  = (0, 0.0, 0.0)
 
 
 def norm(vector):
@@ -52,11 +52,7 @@ def move_coordinate(point=(0,0)):
     move_rotate(angle)
     move_straight(distance)
 
-def calc_error():
-    (curTime, curLeft, curRight) = mEncoderCurrent
-    (prevTime, prevLeft, prevRight) = mEncoderPrevious
-    deltaTime = (curTime - prevTime) / 1000
-    return ((curLeft - prevLeft) + (curRight - curRight)) / deltaTime
+
 
 def move_straight(distance):
     rospy.loginfo(NODE_NAME + ' MOVE_STRAIGHT')
@@ -93,15 +89,68 @@ def handle_keyboard_change(msg):
     rospy.loginfo(rospy.get_name() + " Determined (keyboard) change -> left: %s, right: %s", left, right)
     pubMotor.publish(Motor(left, right))
 
+# Returns (derivLeft, derivRight)
+def calc_tic_speed(encoderCurrent, encoderPrevious):
+    (curTime, curRight, curLeft) = encoderCurrent
+    (prevTime, prevRight, prevLeft) = encoderPrevious
+    deltaTime = (curTime - prevTime) / 1000
+    #rospy.loginfo("ct %s pt %s dt %s ", curTime, prevTime, deltaTime)
+    return ( (curLeft - prevLeft), (curRight - prevRight) )
+
+
+prevEncoderMean = (0.0,0.0,0.0)
+currEncoderMean = (0.0,0.0,0.0)
+currMesurement = (0.0,0.0,0.0)
+
+counter = 0
+
+# TODO INIT> set prev
+init = False 
+
+def update_mean(encoder):
+
+    global currMesurement, prevEncoderMean, currEncoderMean, counter, init
+    currMesurement = map(operator.add, currMesurement, encoder)
+
+    counter += 1
+
+    if (counter == 100):
+        prevEncoderMean = currEncoderMean
+        currEncoderMean = map(lambda x : x * 1.0/counter,currMesurement)
+        currMesurement = (0.0,0.0,0.0)
+        init = True 
+        counter = 0
 
 def handle_encoder(msg):
+
+    update_mean((msg.timestamp, msg.right, msg.left))
+
+    ticsSpeedLeftMax = 500*1.0 # FIXME (tics per revolution times v_max per motor)
+    ticsSpeedRightMax = 500*1.2 # FIXME (tics per revolution times v_max per motor)
+
+    global mEncoderCurrent, mEncoderPrevious
     mEncoderPrevious = mEncoderCurrent
-    mEncoderCurrent = (msg.timestamp, msg.left, msg.right)
+    mEncoderCurrent = (msg.timestamp, msg.right, msg.left)
+
+    if init:
+        (ticsSpeedLeft, ticsSpeedRight) = calc_tic_speed(mEncoderCurrent, mEncoderPrevious)
+        
+        pwmLeft = ticsSpeedLeft / ticsSpeedLeftMax
+        pwmRight = ticsSpeedRight / ticsSpeedRightMax
+        
+        tmp = list(currEncoderMean)
+
+        rospy.loginfo("L %s R %s", ticsSpeedLeft, ticsSpeedRight)
+        #rospy.loginfo("TIMESTAMP -> %s RIGHT: %s LEFT: %s, PWM_RIGH %s, PWM_LEFT: %s", tmp[0], tmp[1], tmp[2], pwmRight, pwmLeft)
+
 
 if __name__ == '__main__':
-    # Name of this node
+    # Register this node
     rospy.init_node(NODE_NAME)
     rospy.loginfo(NODE_NAME + " is starting up...")
+    
+    mEncoderCurrent = (0.0, 0.0, 0.0)
+    mEncoderPrevious  = (0.0, 0.0, 0.0)
     
     try:
         # Init publishers
