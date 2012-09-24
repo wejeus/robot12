@@ -28,11 +28,12 @@ MOVE_STRAIGHT = 1
 MOVE_ROTATE = 2
 MOVE_COORDINATE = 3
 WHEEL_RADIUS = 0.1
+TICKS_REV = 500
 
 mPublisherMotor = {}
 mPublisherEncoderInterval = {}
-mEncoderCurrent = (0, 0.0, 0.0)
-mEncoderPrevious  = (0, 0.0, 0.0)
+# mEncoderCurrent = (0, 0.0, 0.0)
+# mEncoderPrevious  = (0, 0.0, 0.0)
 
 
 def norm(vector):
@@ -93,54 +94,73 @@ def handle_keyboard_change(msg):
 def calc_tic_speed(encoderCurrent, encoderPrevious):
     (curTime, curRight, curLeft) = encoderCurrent
     (prevTime, prevRight, prevLeft) = encoderPrevious
-    deltaTime = (curTime - prevTime) / 1000
+    deltaTime = (curTime - prevTime) * 1000
     #rospy.loginfo("ct %s pt %s dt %s ", curTime, prevTime, deltaTime)
-    return ( (curLeft - prevLeft), (curRight - prevRight) )
+    return ( deltaTime, (curLeft - prevLeft)/deltaTime, (curRight - prevRight)/deltaTime )
 
 
-prevEncoderMean = (0.0,0.0,0.0)
-currEncoderMean = (0.0,0.0,0.0)
-currMesurement = (0.0,0.0,0.0)
+# prevEncoderMean = (0.0,0.0,0.0)
+# currEncoderMean = (0.0,0.0,0.0)
+# currMesurement = (0.0,0.0,0.0)
+# counter = 0
+# # TODO INIT> set prev
+# init = False 
+# allMesurements = (0.0, 0.0, 0.0)
 
-counter = 0
+# def update_mean(encoder):
+#     global allMesurements, prevEncoderMean, currEncoderMean, counter
 
-# TODO INIT> set prev
-init = False 
+#     allMesurements = tuple(map(operator.add, allMesurements, encoder))
+#     counter += 1
+    
+#     if (counter == 10):
+#         prevEncoderMean = currEncoderMean
+#         currEncoderMean = tuple(map(lambda x : x * 1.0/counter, allMesurements))
+#         allMesurements = (0.0,0.0,0.0)
+#         init = True
+#         counter = 0
+        
 
-def update_mean(encoder):
 
-    global currMesurement, prevEncoderMean, currEncoderMean, counter, init
-    currMesurement = map(operator.add, currMesurement, encoder)
-
-    counter += 1
-
-    if (counter == 100):
-        prevEncoderMean = currEncoderMean
-        currEncoderMean = map(lambda x : x * 1.0/counter,currMesurement)
-        currMesurement = (0.0,0.0,0.0)
-        init = True 
-        counter = 0
+curEncoderChange = (0.0, 0.0, 0.0)
+curEncoder = False
+prevEncoder = False
 
 def handle_encoder(msg):
+    global curEncoderChange, curEncoder, prevEncoder
 
-    update_mean((msg.timestamp, msg.right, msg.left))
+    # Handle initial case when ecoders are empty
+    if not curEncoder:
+        curEncoder = (msg.timestamp, msg.right, msg.left)
+        return
 
-    ticsSpeedLeftMax = 500*1.0 # FIXME (tics per revolution times v_max per motor)
-    ticsSpeedRightMax = 500*1.2 # FIXME (tics per revolution times v_max per motor)
+    # ----------- Normal workflow ------------
 
-    global mEncoderCurrent, mEncoderPrevious
-    mEncoderPrevious = mEncoderCurrent
-    mEncoderCurrent = (msg.timestamp, msg.right, msg.left)
+    prevEncoder = curEncoder
+    curEncoder = (msg.timestamp, msg.right, msg.left)
 
-    if init:
-        (ticsSpeedLeft, ticsSpeedRight) = calc_tic_speed(mEncoderCurrent, mEncoderPrevious)
+    curEncoderChange = calc_tic_speed(curEncoder, prevEncoder)
+
+    (timestamp, right, left) = curEncoderChange
+    rospy.loginfo("T: %s R: %s L: %s", timestamp, right/timestamp, left/timestamp)
+    
+    #update_mean((msg.timestamp, msg.right, msg.left))
+    # ticsSpeedLeftMax = 500*1.0 # FIXME (tics per revolution times v_max per motor)
+    # ticsSpeedRightMax = 500*1.2 # FIXME (tics per revolution times v_max per motor)
+
+    # global mEncoderCurrent, mEncoderPrevious
+    # mEncoderPrevious = mEncoderCurrent
+    # mEncoderCurrent = (msg.timestamp, msg.right, msg.left)
+
+    # if init:
+    #     (ticsSpeedLeft, ticsSpeedRight) = calc_tic_speed(mEncoderCurrent, mEncoderPrevious)
         
-        pwmLeft = ticsSpeedLeft / ticsSpeedLeftMax
-        pwmRight = ticsSpeedRight / ticsSpeedRightMax
+    #     pwmLeft = ticsSpeedLeft / ticsSpeedLeftMax
+    #     pwmRight = ticsSpeedRight / ticsSpeedRightMax
         
-        tmp = list(currEncoderMean)
+    #     tmp = list(currEncoderMean)
 
-        rospy.loginfo("L %s R %s", ticsSpeedLeft, ticsSpeedRight)
+    #     rospy.loginfo("L %s R %s", ticsSpeedLeft, ticsSpeedRight)
         #rospy.loginfo("TIMESTAMP -> %s RIGHT: %s LEFT: %s, PWM_RIGH %s, PWM_LEFT: %s", tmp[0], tmp[1], tmp[2], pwmRight, pwmLeft)
 
 
@@ -149,8 +169,8 @@ if __name__ == '__main__':
     rospy.init_node(NODE_NAME)
     rospy.loginfo(NODE_NAME + " is starting up...")
     
-    mEncoderCurrent = (0.0, 0.0, 0.0)
-    mEncoderPrevious  = (0.0, 0.0, 0.0)
+    # mEncoderCurrent = (0.0, 0.0, 0.0)
+    # mEncoderPrevious  = (0.0, 0.0, 0.0)
     
     try:
         # Init publishers
