@@ -30,10 +30,8 @@ MOVE_COORDINATE = 3
 WHEEL_RADIUS = 0.1
 TICKS_REV = 500
 
-mPublisherMotor = {}
-mPublisherEncoderInterval = {}
-# mEncoderCurrent = (0, 0.0, 0.0)
-# mEncoderPrevious  = (0, 0.0, 0.0)
+mPublisherMotor = None
+mPublisherEncoderInterval = None
 
 
 def norm(vector):
@@ -56,15 +54,16 @@ def move_coordinate(point=(0,0)):
 
 
 def move_straight(distance):
+    global mPublisherMotor
+
     rospy.loginfo(NODE_NAME + ' MOVE_STRAIGHT')
     curDistance = 0.0
-
-    while curDistance < distance:
-        error = calc_error()
-        C = 2*math.pi*WHEEL_RADIUS
-        mPublisherMotor.pub(1.0, 1.0)
-
-    return
+    mPublisherMotor.publish(1.0, 1.0)
+    # while curDistance < distance:
+    #     error = calc_error()
+    #     C = 2*math.pi*WHEEL_RADIUS
+    #     mPublisherMotor.publish(1.0, 1.0)
+    # return
 
 def move_rotate(angle):
     rospy.loginfo(NODE_NAME + ' MOVE_ROTATE')
@@ -120,20 +119,13 @@ def calc_tic_speed(encoderCurrent, encoderPrevious):
 #         counter = 0
         
 
-curEncoder = False
-prevEncoder = False
+curEncoder = (0.0, 0.0, 0.0)
+prevEncoder = (0.0, 0.0, 0.0)
 ticsSpeedLeftMax = 500*1.0 # FIXME (tics per revolution times v_max per motor)
 ticsSpeedRightMax = 500*1.2 # FIXME (tics per revolution times v_max per motor)
 
 def handle_encoder(msg):
     global curTicSpeed, curEncoder, prevEncoder
-
-    # Handle initial case when ecoders are empty
-    if not curEncoder:
-        curEncoder = (msg.timestamp, msg.right, msg.left)
-        return
-
-    # ----------- Normal workflow ------------
 
     prevEncoder = curEncoder
     curEncoder = (msg.timestamp, msg.right, msg.left)
@@ -151,9 +143,6 @@ if __name__ == '__main__':
     # Register this node
     rospy.init_node(NODE_NAME)
     rospy.loginfo(NODE_NAME + " is starting up...")
-    
-    # mEncoderCurrent = (0.0, 0.0, 0.0)
-    # mEncoderPrevious  = (0.0, 0.0, 0.0)
     
     try:
         # Init publishers
