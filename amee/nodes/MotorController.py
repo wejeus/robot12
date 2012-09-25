@@ -37,6 +37,8 @@ class Controller:
         self.ticSpeedRight = 0.0
         self.ticSpeedLeft = 0.0
 
+        self.positionHistory = []
+
     def determine_next_pwm(self):
         # Check motor error, Check IR sensors, is moving straight? is angular movement?
         maxVelocityRight = 1.0 # What should this be?
@@ -55,11 +57,43 @@ class Controller:
         controlledPwmLeft = pwmRefLeft + pwmErrorLeft
         return (controlledPwmRight, controlledPwmLeft)
 
+    def calc_next_point(self):
+        ticLength = 2*math.pi/500
+        distanceBetweenWheels = 0.5
+
+        deltaDistanceRight = self.ticSpeedRight * ticLength
+        deltaDistanceLeft = self.ticSpeedLeft * ticLength
+        deltaDistanceTotal = (deltaDistanceRight + deltaDistanceLeft) / 2
+
+        deltaAngle = (deltaDistanceRight - deltaDistanceLeft) / distanceBetweenWheels
+
+        someAngle = 0.0 # TODO!!! Which angle is this?
+        deltaY = deltaDistanceTotal*math.sin(someAngle + deltaAngle/2)
+        deltaX = deltaDistanceTotal*math.cos(someAngle + deltaAngle/2)
+        
+        return (deltaX, deltaY, deltaAngle)
+
+    def get_travelled_distance(self):
+        total = (0.0, 0.0, 0.0)
+        for point in self.positionHistory:
+            total = tuple(map(operator.add, total, point))
+        return total
+
     def move_straight(self, distance):
         # TODO: Some while loop that checks if we reached target pos
-        PR, PL = self.determine_next_pwm()
-        self.publisherMotor.publish(1.0, 1.0)
+        
+        self.publisherMotor.publish(1.0, 1.0) # Full speed ahead!
 
+        travelledDistance = (0.0, 0.0, 0.0)
+
+        while travelledDistance[0] < distance:
+            rospy.loginfo("dist: %s", travelledDistance[0])
+            position = self.calc_next_point()
+            self.positionHistory.append(position)
+            travelledDistance = self.get_travelled_distance()
+            rospy.sleep(1) # TODO: How long should we sleep?
+
+        self.publisherMotor.publish(0.0, 0.0) # we reached our target, stop the motors
 
     def move_rotate(self, angle):
         return
@@ -67,13 +101,11 @@ class Controller:
     # Calculate the tic speed of individual wheels by determining the number of tics 
     # that have passed between two mesurement pointss and divides by the time interval
     # elapsed between these points to get the tic speed.
-    # Speed is measured in tics per 100 miliseconds
-    # TODO Why is this time measurement correct?
-    # should this be: tics/s = (tic_t - tic_t-1) / dt
+    # Speed is measured in tics per second
     def update_tic_speed(self):
         (curTime, curRight, curLeft) = self.currentEncoder
         (prevTime, prevRight, prevLeft) = self.previousEncoder
-        deltaTime = (curTime - prevTime) * 1000
+        deltaTime = (curTime - prevTime)
         self.ticSpeedRight = (curRight - prevRight) / deltaTime
         self.ticSpeedLeft = (curLeft - prevLeft) / deltaTime
 
@@ -99,8 +131,8 @@ class Controller:
 
         # A little debug..
         PR, PL = self.determine_next_pwm()
-        rospy.loginfo("TICSPEED_R: %s TICSPEED_L: %s", self.ticSpeedRight, self.ticSpeedLeft)
-        rospy.loginfo("PWM_R: %s PWM_L: %s", PR, PL)
+        #rospy.loginfo("TICSPEED_R: %s TICSPEED_L: %s", self.ticSpeedRight, self.ticSpeedLeft)
+        #rospy.loginfo("PWM_R: %s PWM_L: %s", PR, PL)
 
 
     def handle_keyboard_change(self, msg):
