@@ -19,9 +19,10 @@ private:
 
 	public:
 		void receive_encoder(const robo::Encoder::ConstPtr &msg);
-		void driveSpeed(float vLeft, float vRight);
+		void setSpeed(float vLeft, float vRight);
+		void drive();
 		void rotate(float degrees);
-		void break();
+		void stop();
 		void init();
 		bool isInitialized();
 		void setMotorPublisher(ros::Publisher pub);
