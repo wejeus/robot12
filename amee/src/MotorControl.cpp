@@ -7,18 +7,13 @@
 #define TICS_PER_REVOLUTION 500 // encoder tics/rev
 #define REVOLUTION_PER_SEC_LEFT 1.0f //TODO check
 #define REVOLUTION_PER_SEC_RIGHT 1.2f
-#define NUM_AVERAGED_MEASUREMENTS 10
+#define NUM_AVERAGED_MEASUREMENTS 28
 
 using namespace amee;
 using namespace robo;
 ros::Subscriber	enc_sub;
 ros::Publisher	int_pub;
 
-//void calcWheelPWMVelocities(Velocity);
-//void linearVelocityControl(float);
-//float angularVelocityControl(float, Encoder, Encoder, Velocity);
-
-//TODO make c++ class
 
 void MotorControl::setMotorPublisher(ros::Publisher pub) {
 	mot_pub = pub;
@@ -35,20 +30,24 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 	mInit = mInit > 0 ? mInit - 1 : 0;
 
 	if (mMeasurementCounter < NUM_AVERAGED_MEASUREMENTS) {
-		//mMeasurementAccumulator	
-	}
-	
-	mPrevEncoder.timestamp = mCurrentEncoder.timestamp;
-	mPrevEncoder.left = mCurrentEncoder.left;
-	mPrevEncoder.right = mCurrentEncoder.right;
-	mCurrentEncoder.timestamp = timestamp;
-	mCurrentEncoder.left      = left;
-	mCurrentEncoder.right     = right; 
+		mMeasurementAccumulator.left += left;
+		mMeasurementAccumulator.right += right;
+		mMeasurementAccumulator.timestamp += timestamp;
+		++mMeasurementCounter; 	
+	} else {
+		mPrevEncoder.timestamp = mCurrentEncoder.timestamp;
+		mPrevEncoder.left = mCurrentEncoder.left;
+		mPrevEncoder.right = mCurrentEncoder.right;
 
-	//Motor motor;
-	//motor.right	= (0.5f-float(rand()%1000)/1000.0f)*2.0f;//random motorspeed[-1,1]
-	//motor.left	= (0.5f-float(rand()%1000)/1000.0f)*2.0f;//random motorspeed[-1,1]
-	//mot_pub.publish(motor);
+		mCurrentEncoder.timestamp = mMeasurementAccumulator.timestamp / (float)(mMeasurementCounter);
+		mCurrentEncoder.left = mMeasurementAccumulator.left / (float)(mMeasurementCounter);	
+		mCurrentEncoder.right = mMeasurementAccumulator.right / (float)(mMeasurementCounter);
+
+		mMeasurementAccumulator.timestamp = 0;
+		mMeasurementAccumulator.left = 0;
+		mMeasurementAccumulator.right = 0;
+		mMeasurementCounter = 0;
+	}
 }
 
 // Calculates the current pwm velocities of both wheels based on the last two encoder values;
@@ -95,7 +94,7 @@ void MotorControl::linearVelocityControl(float linearVelocity)
 }
 
 void MotorControl::init() {
-	mInit = 2;
+	mInit = 2 * NUM_AVERAGED_MEASUREMENTS;
 	mMeasurementCounter = 0;
 
 	mPrevEncoder.left = 0;
@@ -138,7 +137,10 @@ int main(int argc, char **argv)
 	enc_sub = n.subscribe("/serial/encoder", 1000, &MotorControl::receive_encoder, &control);//when "/encoder" topic is revieved call recive_encoder function
 	ros::Publisher mot_pub = n.advertise<Motor>("/serial/motor_speed", 100000);//used to publish a topic that changes the motorspeed
 	control.setMotorPublisher(mot_pub);
-	//int_pub = n.advertise<std_msgs::Int32>("/serial/encoder_interval", 100000);//used to publish a topic that changes the intervall between the "/encoder" topics published.
+	int_pub = n.advertise<std_msgs::Int32>("/serial/encoder_interval", 100000);//used to publish a topic that changes the intervall between the "/encoder" topics published.
+	std_msgs::Int32 interval;
+	interval.data = 10;
+	int_pub.publish(interval);
 
 	ros::Rate loop_rate(5);
 	//The loop randomly changes the intervall with wich the "/encoder" topic is published.
