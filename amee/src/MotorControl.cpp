@@ -2,12 +2,14 @@
 #include <string.h>
 #include "MotorControl.h"
 #include <iostream>
+#include <math>
 
 #define WHEEL_RADIUS 0.1
 #define TICS_PER_REVOLUTION 500 // encoder tics/rev
 #define REVOLUTION_PER_SEC_LEFT 1.0f //TODO check
 #define REVOLUTION_PER_SEC_RIGHT 1.2f
-#define NUM_AVERAGED_MEASUREMENTS 28
+#define NUM_AVERAGED_MEASUREMENTS 10
+#define ROTATION_SPEED 0.4f
 
 using namespace amee;
 using namespace robo;
@@ -71,15 +73,15 @@ void MotorControl::calcWheelPWMVelocities(Velocity& velocity)
 }
 
 // Sets the given speed ( in m/s ) to both motors.
-void MotorControl::linearVelocityControl(float linearVelocity)
+void MotorControl::driveSpeed(float vLeft, float vRight)
 {
 
 	// calculate current velocity (in pwm) based on the last two encoder values 
 	calcWheelPWMVelocities(mVelocity);
 
 	// transform given linearVelocity to pwm velocity
-	float leftVPWM = linearVelocity / (2.0f * 3.14f * WHEEL_RADIUS * REVOLUTION_PER_SEC_LEFT);
-	float rightVPWM = linearVelocity / (2.0f * 3.14f * WHEEL_RADIUS * REVOLUTION_PER_SEC_RIGHT);
+	float leftVPWM = vLeft / (2.0f * 3.14f * WHEEL_RADIUS * REVOLUTION_PER_SEC_LEFT);
+	float rightVPWM = vRight / (2.0f * 3.14f * WHEEL_RADIUS * REVOLUTION_PER_SEC_RIGHT);
 	
 	printf("target pwm velocities: %f %f \n", leftVPWM, rightVPWM);	
 
@@ -87,8 +89,8 @@ void MotorControl::linearVelocityControl(float linearVelocity)
 	float leftError = leftVPWM - mVelocity.left; // error on the left side
 	float rightError = rightVPWM - mVelocity.right; // error on the left side
 	
-	mMotor.right	= leftVPWM;//mMotor.right + 0.05 * rightError;//set right motorspeed[-1,1]
-	mMotor.left	= rightVPWM;//mMotor.left + 0.05 * leftError;//set left motorspeed[-1,1]
+	mMotor.right	= mMotor.right + 0.05 * rightError;//set right motorspeed[-1,1]
+	mMotor.left	= mMotor.left + 0.05 * leftError;//set left motorspeed[-1,1]
 	//printf("set motor pwm velocities: %f %f \n", mMotor.left, mMotor.right);
 	mot_pub.publish(mMotor);
 }
@@ -122,6 +124,23 @@ void MotorControl::init() {
 
 	return angularVelocity = angularVelocity - angularVelocityError; 
 }*/
+
+void MotorControl::rotate(float degree) {
+	float distToTravel = std::abs(degree / 180.0f * M_PI * 0.25f);
+	int sign = degree > 0 ? 1 : -1;
+	float travelledDistance = 0.0f;	
+	while (travelledDistance < distToTravel) {
+		driveSpeed(sign * ROTATION_SPEED, sign * (- ROTATION_SPEED));
+		
+	}
+	break();	
+}
+
+void MotorControl::break() {
+	mMotor.right	= 0;//set right motorspeed[-1,1]
+	mMotor.left	= 0;//set left motorspeed[-1,1]
+	mot_pub.publish(mMotor);
+}
 
 bool MotorControl::isInitialized() {
 	return mInit == 0;
@@ -166,7 +185,7 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		float refVelocity = 0.5f;
 		if (control.isInitialized()) {
-			control.linearVelocityControl(refVelocity);
+			control.driveSpeed(-refVelocity, refVelocity);
 			//printf("controlled velocity is: %f \n", refVelocity);
 		} else {
 			//printf("Not initialised, needed number of encoder values: %i \n", mInit);

@@ -19,11 +19,13 @@ private:
 
 	public:
 		void receive_encoder(const robo::Encoder::ConstPtr &msg);
-		void calcWheelPWMVelocities(amee::Velocity& velocity);
-		void linearVelocityControl(float linearVelocity);
+		void driveSpeed(float vLeft, float vRight);
+		void rotate(float degrees);
+		void break();
 		void init();
 		bool isInitialized();
 		void setMotorPublisher(ros::Publisher pub);
-
+	protected:
+		void calcWheelPWMVelocities(amee::Velocity& velocity);
 };
 #endif
