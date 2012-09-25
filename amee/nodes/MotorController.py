@@ -56,9 +56,19 @@ def move_coordinate(point=(0,0)):
 def move_straight(distance):
     global mPublisherMotor
 
-    rospy.loginfo(NODE_NAME + ' MOVE_STRAIGHT')
-    curDistance = 0.0
-    mPublisherMotor.publish(1.0, 1.0)
+    rospy.loginfo(NODE_NAME + ' MOVE_STRAIGHT: %s', distance)
+    try:
+        if distance > 0.0:
+            rospy.loginfo(NODE_NAME + ' 1: %s', distance)
+            mPublisherMotor.publish(1.0, 1.0)
+        elif distance < 0.0:
+            rospy.loginfo(NODE_NAME + ' 2: %s', distance)
+            mPublisherMotor.publish(-1.0, -1.0)
+        else:
+            rospy.loginfo(NODE_NAME + ' 3: %s', distance)
+            mPublisherMotor.publish(0.0, 0.0)
+    except:
+        rospy.loginfo("error")
     # while curDistance < distance:
     #     error = calc_error()
     #     C = 2*math.pi*WHEEL_RADIUS
@@ -89,55 +99,75 @@ def handle_keyboard_change(msg):
     rospy.loginfo(rospy.get_name() + " Determined (keyboard) change -> left: %s, right: %s", left, right)
     pubMotor.publish(Motor(left, right))
 
-# Returns (derivLeft, derivRight)
+# Calculate the tic speed of individual wheels by determining the number of tics 
+# that have passed between two mesurement pointss and divides by the time interval
+# elapsed between these points to get the tic speed.
+# Speed is measured in tics per 100 miliseconds
+# TODO Why is this time measurement correct?
 def calc_tic_speed(encoderCurrent, encoderPrevious):
     (curTime, curRight, curLeft) = encoderCurrent
     (prevTime, prevRight, prevLeft) = encoderPrevious
     deltaTime = (curTime - prevTime) * 1000
-    return ( deltaTime, (curLeft - prevLeft)/deltaTime, (curRight - prevRight)/deltaTime )
-
-
-# prevEncoderMean = (0.0,0.0,0.0)
-# currEncoderMean = (0.0,0.0,0.0)
-# currMesurement = (0.0,0.0,0.0)
-# counter = 0
-# # TODO INIT> set prev
-# init = False 
-# allMesurements = (0.0, 0.0, 0.0)
-
-# def update_mean(encoder):
-#     global allMesurements, prevEncoderMean, currEncoderMean, counter
-
-#     allMesurements = tuple(map(operator.add, allMesurements, encoder))
-#     counter += 1
-    
-#     if (counter == 10):
-#         prevEncoderMean = currEncoderMean
-#         currEncoderMean = tuple(map(lambda x : x * 1.0/counter, allMesurements))
-#         allMesurements = (0.0,0.0,0.0)
-#         init = True
-#         counter = 0
+    return deltaTime, (curRight - prevRight)/deltaTime, (curLeft - prevLeft)/deltaTime
         
 
-curEncoder = (0.0, 0.0, 0.0)
-prevEncoder = (0.0, 0.0, 0.0)
-ticsSpeedLeftMax = 500*1.0 # FIXME (tics per revolution times v_max per motor)
-ticsSpeedRightMax = 500*1.2 # FIXME (tics per revolution times v_max per motor)
 
+class Controller:
+    def __init__(self):
+        self.encoders = (0.0, 0.0, 0.0)
+        self.velocity = 0.0
+        self.ticSpeedRight = 0.0
+        self.ticSpeedLeft = 0.0
+        self.ticSpeedRightMax = 500*1.2 # FIXME (tics per revolution times v_max per motor)
+        self.ticSpeedLeftMax = 500*1.0 # FIXME (tics per revolution times v_max per motor)
+
+    def set_velocity(self, velocity):
+        self.velocity = velocity
+
+    def set_tic_speed(self, right, left):
+        self.ticSpeedRight = right
+        self.ticSpeedLeft = left
+
+    def determine_next_pwm(self):
+        # Check motor error
+        # Check IR sensors
+        # Test if moving straight?
+        # Test if angular movement?
+        pwmRight = ticSpeedRight / ticsSpeedRightMax
+        pwmLeft = ticSpeedLeft / ticsSpeedLeftMax
+        return (pwmRight, pwmLeft)
+
+    def add_encoder(self, encoder):
+        self.encoders = encoder
+
+    # Should return a list of encoders history so we can take the average
+    # Currently only returns on previous
+    def get_encoders(self):
+        return self.encoders
+
+    def debug_print(self):
+        rospy.loginfo("TIC_SPEED_R: %s TIC_SPEED_L: %s", self.ticSpeedRight, self.ticSpeedLeft)
+
+
+
+# Input -> msg(timestamp, right, left) where (left, right) 
+# is the number of tics the wheels have rotated (sum of positive and negative direction)
 def handle_encoder(msg):
-    global curTicSpeed, curEncoder, prevEncoder
+    #rospy.loginfo("RAW_TIME: %s RAW_R: %s RAW_L: %s", msg.timestamp, msg.right, msg.left)
+    global controller
 
-    prevEncoder = curEncoder
-    curEncoder = (msg.timestamp, msg.right, msg.left)
+    currentEncoder = (msg.timestamp, msg.right, msg.left)
+    previousEncoder = controller.get_encoders()
+    controller.add_encoder(currentEncoder)
 
-    (timestamp, ticsSpeedRight, ticsSpeedLeft) = calc_tic_speed(curEncoder, prevEncoder)
+    (diffTime, ticSpeedRight, ticSpeedLeft) = calc_tic_speed(currentEncoder, previousEncoder)
 
-    pwmRight = ticsSpeedRight / ticsSpeedRightMax
-    pwmLeft = ticsSpeedLeft / ticsSpeedLeftMax
+    controller.set_tic_speed(ticSpeedRight, ticSpeedLeft)
+    controller.debug_print()
 
-    rospy.loginfo("DELTA_TIME: %s R: %s L: %s", timestamp, ticsSpeedRight, ticsSpeedLeft)
-    rospy.loginfo("PWM_RIGH: %s PWM_LEFT: %s", pwmRight, pwmLeft)
 
+
+controller = Controller()
 
 if __name__ == '__main__':
     # Register this node
