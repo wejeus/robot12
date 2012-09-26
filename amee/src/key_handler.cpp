@@ -1,6 +1,6 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
-#include "amee/Velocity.h"
+#include "amee/KeyboardCommand.h"
 #include <stdio.h>
 #include <termios.h>
 #include <unistd.h>
@@ -8,13 +8,13 @@
 
 
 /* Hopefully this will work for all types of keyboards with arrows */
-enum {KEYCODE_U = 65, KEYCODE_D, KEYCODE_R, KEYCODE_L};
+enum {KEYCODE_SPACE = 32, KEYCODE_U = 65, KEYCODE_D, KEYCODE_R, KEYCODE_L};
 
 /* Holds the velocities of the (left & right) wheels */
-amee::Velocity v;
+amee::KeyboardCommand v;
 
 /* The volocity change rate */
-const float VELO_RATE = 0.5f;
+float VELO_RATE = 0.5f;
 
 
 
@@ -50,8 +50,8 @@ int kbhit(void){
 /**
  * Sets the wheel velocities to given values
  **/
-inline void setWheels(const float L=0.0f, const float R=0.0f){
-	v.left = L; v.right = R;
+inline void setWheels(const float L=0.0f, const float A=0.0f){
+	v.linear = L; v.angular = A;
 }
 
 
@@ -64,13 +64,13 @@ void startKeyboardHandling(int argc, char **argv){
 	ros::init(argc, argv, "KeyHandler");
 	ros::NodeHandle n;
 
-	ros::Publisher keyCom_pub = n.advertise<amee::Velocity>("wheel_velocities", 1000);
+	ros::Publisher keyCom_pub = n.advertise<amee::KeyboardCommand>("/KeyboardControl/KeyboardCommand", 1000);
 
 	ros::Rate loop_rate(10);
 
 	//sets the velocities of the wheels to initial values (0.0f)
 	setWheels();
-	char c;
+	char c = '0', lastKey = '0';
 	puts("Press the arrow keys to move around.");
 	while (ros::ok()){
 
@@ -81,31 +81,35 @@ void startKeyboardHandling(int argc, char **argv){
 				switch(c){
 					case KEYCODE_L:
 						ROS_DEBUG("LEFT");
-						setWheels(-VELO_RATE, VELO_RATE);
+						setWheels(0, VELO_RATE);
 						break;
 					case KEYCODE_R:
 						ROS_DEBUG("RIGHT");
-						setWheels(VELO_RATE, -VELO_RATE);
+						setWheels(0, -VELO_RATE);
 						break;
 					case KEYCODE_U:
 						ROS_DEBUG("UP");
-						setWheels(VELO_RATE, VELO_RATE);
+						setWheels(VELO_RATE, 0);
 						break;
 					case KEYCODE_D:
 						ROS_DEBUG("DOWN");						
-						setWheels(-VELO_RATE, -VELO_RATE);
+						setWheels(-VELO_RATE, 0);
 						break;
 					default:
 						ROS_DEBUG("RELEASE");
 						setWheels();
 						break;
 				}
+			}else if(int(c) == 32){//we hit the space
+				setWheels();
 			}
-		}else //if we don't push any key
-			setWheels(); //reset
+		}
 
 		/* publish the wheel velocities */
-		keyCom_pub.publish(v);
+		if(lastKey != c){
+			lastKey = c;
+			keyCom_pub.publish(v);
+		}
 
 		ros::spinOnce();
 
@@ -183,8 +187,13 @@ void terminalHandler(int argc, char **argv){
 
 int main(int argc, char **argv){
 	
-	terminalHandler(argc, argv);// get input from terminal
+	if(argc > 1){
+		VELO_RATE = atof(argv[1]);
+	}
 
+	printf("VELO_RATE is set to: %0.2f\n", VELO_RATE);
+	//terminalHandler(argc, argv);// get input from terminal
+	startKeyboardHandling(argc, argv);
 
 	return 0;
 }
