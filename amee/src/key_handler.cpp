@@ -5,9 +5,6 @@
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <cmath>
-
-#define _USE_MATH_DEFINES
 
 
 /* Hopefully this will work for all types of keyboards with arrows */
@@ -15,6 +12,11 @@ enum {KEYCODE_U = 65, KEYCODE_D, KEYCODE_R, KEYCODE_L};
 
 /* Holds the velocities of the (left & right) wheels */
 amee::Velocity v;
+
+/* The volocity change rate */
+const float VELO_RATE = 0.5f;
+
+
 
 /**
  * This is for handling the nonblocking key presses
@@ -45,10 +47,19 @@ int kbhit(void){
 	return 0;
 }
 
-inline void setWheels(float L=0.0f, float R=0.0f){
+/**
+ * Sets the wheel velocities to given values
+ **/
+inline void setWheels(const float L=0.0f, const float R=0.0f){
 	v.left = L; v.right = R;
 }
 
+
+/**
+ * Gets input from keyboard and publishes it to "wheel_velocities" topic.
+ *
+ * Use the keyboard arrows to navigate the robot.
+ **/
 void startKeyboardHandling(int argc, char **argv){
 	ros::init(argc, argv, "KeyHandler");
 	ros::NodeHandle n;
@@ -60,7 +71,7 @@ void startKeyboardHandling(int argc, char **argv){
 	//sets the velocities of the wheels to initial values (0.0f)
 	setWheels();
 	char c;
-	ROS_INFO("Press the arrow keys to move around.");
+	puts("Press the arrow keys to move around.");
 	while (ros::ok()){
 
 		if(kbhit()){
@@ -70,19 +81,19 @@ void startKeyboardHandling(int argc, char **argv){
 				switch(c){
 					case KEYCODE_L:
 						ROS_DEBUG("LEFT");
-						setWheels(-1.0f, 1.0f);
+						setWheels(-VELO_RATE, VELO_RATE);
 						break;
 					case KEYCODE_R:
 						ROS_DEBUG("RIGHT");
-						setWheels(1.0f, -1.0f);
+						setWheels(VELO_RATE, -VELO_RATE);
 						break;
 					case KEYCODE_U:
 						ROS_DEBUG("UP");
-						setWheels(1.0f, 1.0f);
+						setWheels(VELO_RATE, VELO_RATE);
 						break;
 					case KEYCODE_D:
 						ROS_DEBUG("DOWN");						
-						setWheels(-1.0f, -1.0f);
+						setWheels(-VELO_RATE, -VELO_RATE);
 						break;
 					default:
 						ROS_DEBUG("RELEASE");
@@ -113,8 +124,9 @@ void terminalHandler(int argc, char **argv){
 		puts("###################################################################\n#");
 		puts("#  1. Navigate the robot with the keyboard arrows.");
 		puts("#  2. Give the arguments (A,D,x,y) for the robot movement.");
-		puts("#  3. Do a random movement");
-		puts("#  \n0. Quit");
+		puts("#  3. Do a random movement.");
+		puts("#");
+		puts("#  0. Quit\n#");
 		puts("###################################################################\n\n");
 	
 		in = int(getchar()) - 48;
@@ -124,14 +136,14 @@ void terminalHandler(int argc, char **argv){
 			inOK = true;
 	}
 
-	printf("The input was %d", in);
-
 
 	if(in == 0) exit(0);
 
+	// Navigate with keyboard arrows
 	if(in == 1)
 		startKeyboardHandling(argc, argv);
 
+	// Start the MotorControl with some given values
 	if(in == 2){
 		float A, D, x, y;
 		const float NAN_F = -888888.8f;
@@ -142,7 +154,7 @@ void terminalHandler(int argc, char **argv){
 			printf("Input values for A D x y: ");
 			scanf("%f %f %f %f", &A, &D, &x, &y);
 
-			if(A == NAN_F || D == NAN_F || x == NAN_F || y == NAN_F){		
+			if(A == NAN_F || D == NAN_F || x == NAN_F || y == NAN_F){//Bad code!
 				printf("\033[2J\033[1;1H"); //clear the screen
 				puts("Did you forget to input all the values? (A D x y)");
 				puts("Try again");
@@ -159,7 +171,9 @@ void terminalHandler(int argc, char **argv){
 		
 	}	
 
+	// Start the MotorControl with some random values
 	if(in == 3){
+		//TODO: code me
 		puts("Not coded yet! Exiting.");
 		exit(0);
 	}
