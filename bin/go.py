@@ -3,7 +3,7 @@
 import sys
 import commands
 
-motorCmd = "rostopic pub -1 /MotorController/Movement amee/Movement -- %s %s %s %s %s"
+motorCmd = "rostopic pub -1 /MovementControl/MovementCommand amee/MovementCommand -- %s %s %s %s %s"
 
 if sys.argv[1] == 'forward':
 	meters = sys.argv[2]
