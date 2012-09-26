@@ -4,28 +4,17 @@
 # @author Samuel Wejeus (wejeus@kth.se)
 
 import roslib; roslib.load_manifest('amee')
-import rospy
-import math, operator
+import rospy, math, operator
 from std_msgs.msg import String, Int32
 from amee.msg import Movement
 from robo.msg import Encoder, Motor
 from turtlesim.msg import Velocity as V
-import Helpers
-
-
-# Send custom msg in ROS
-# rostopic pub -1 <the topic to publish to> <the message type to use> -- <values>
-# rostopic pub -1 /MotorController/Movement amee/Movement -- 1.0 1.0
-
 
 NODE_NAME = "MotorController"
 MOVE_STRAIGHT = 1
 MOVE_ROTATE = 2
 MOVE_COORDINATE = 3
 WHEEL_RADIUS = 0.1
-TICKS_REV = 500
-ticSpeedRightMax = 500*1.2 # FIXME (tics per revolution times v_max per motor)
-ticSpeedLeftMax = 500*1.0 # FIXME (tics per revolution times v_max per motor)
 
 REVOLUTION_PER_SEC_RIGHT = 1.0 # What should this be?
 REVOLUTION_PER_SEC_LEFT = 1.0 # What should this be?
@@ -39,6 +28,8 @@ def dot_product(vector1, vector2):
     if len(vector1) != len(vector2):
         raise Exception("Vector size mismatch")
     return sum(map(operator.mul, vector1, vector2))
+
+
 
 class Controller:
     def __init__(self, publisherMotor, publisherEncoderInterval):
@@ -59,35 +50,6 @@ class Controller:
         pwmRight = self.ticSpeedRight / (REVOLUTION_PER_SEC_RIGHT * TICS_PER_REVOLUTION)
         pwmLeft = self.ticSpeedLeft / (REVOLUTION_PER_SEC_LEFT * TICS_PER_REVOLUTION)
         return (pwmRight, pwmLeft)
-
-        # # Right motor
-        # pwmFeedbackRight = self.ticSpeedRight / 500
-        # pwmRefRight = self.velocity * (1/maxVelocityRight)
-        # pwmErrorRight = pwmRefRight - pwmFeedbackRight
-        # controlledPwmRight = pwmRefRight + pwmErrorRight
-        
-        # # Left motor
-        # pwmFeedbackLeft = self.ticSpeedLeft / 500
-        # pwmRefLeft = self.velocity * (1/maxVelocityLeft)
-        # pwmErrorLeft = pwmRefLeft - pwmFeedbackLeft
-        # controlledPwmLeft = pwmRefLeft + pwmErrorLeft
-        # return (controlledPwmRight, controlledPwmLeft)
-
-
-    def move(self, leftVelocity, rightVelocity):
-        (currentPWMRight, currentPWMLeft) = self.get_current_pwm_velocities()
-
-        # The velocity that we want
-        rightPWMVelocity = rightVelocity / (2.0 * math.pi * WHEEL_RADIUS * REVOLUTION_PER_SEC_RIGHT)
-        leftPWMVelocity = leftVelocity / (2.0 * math.pi * WHEEL_RADIUS * REVOLUTION_PER_SEC_LEFT)
-
-        rightError = rightPWMVelocity - currentPWMRight
-        leftError = leftPWMVelocity - currentPWMLeft
-
-        self.motorRight = self.motorRight + 0.05 * rightError
-        self.motorLeft = self.motorLeft + 0.05 * leftError
-
-        self.publisherMotor.publish(self.motorRight, self.motorLeft)
 
     def calc_next_point(self):
         ticLength = 2*math.pi/500
@@ -110,35 +72,61 @@ class Controller:
         for point in self.positionHistory:
             total = tuple(map(operator.add, total, point))
         return total
+   
+    def stop_motors(self):
+        self.publisherMotor.publish(0.0, 0.0)
+
+    def move(self, leftVelocity, rightVelocity):
+        (currentPWMRight, currentPWMLeft) = self.get_current_pwm_velocities()
+
+        # The velocity that we want
+        rightPWMVelocity = rightVelocity / (2.0 * math.pi * WHEEL_RADIUS * REVOLUTION_PER_SEC_RIGHT)
+        leftPWMVelocity = leftVelocity / (2.0 * math.pi * WHEEL_RADIUS * REVOLUTION_PER_SEC_LEFT)
+
+        rightError = rightPWMVelocity - currentPWMRight
+        leftError = leftPWMVelocity - currentPWMLeft
+
+        self.motorRight = self.motorRight + 0.05 * rightError
+        self.motorLeft = self.motorLeft + 0.05 * leftError
+
+        self.publisherMotor.publish(self.motorRight, self.motorLeft)
 
     def move_straight(self, distance):
-        # TODO: Some while loop that checks if we reached target pos
-        
-        self.move(1,1) # full speed ahead!
-
         travelledDistance = (0.0, 0.0, 0.0)
+        loopRate = rospy.Rate(5)
+
+        self.move(1.0, 1.0) # full speed ahead!
 
         while travelledDistance[0] < distance:
-            rospy.loginfo("dist: %s", travelledDistance[0])
+            rospy.loginfo("distance travelled: %s", travelledDistance[0])
+
             position = self.calc_next_point()
             self.positionHistory.append(position)
             travelledDistance = self.get_travelled_distance()
-            rospy.sleep(1) # TODO: How long should we sleep?
+            loopRate.sleep() # TODO: How long should we sleep?
 
-        self.move(0,0) # we reached our target, stop the motors
+        self.stop_motors()
+        self.positionHistory = []
 
+    # FIXME Make sure angle is degrees...
     def move_rotate(self, angle):
-        distanceToTravel = abs(angle / (180.0 * math.pi * 0.25))
-        sign = 0
-        if angle > 0:
-            sign = 1
-        else:
-            sign = -1
-        travelledDistance = 0.0
-        while travelledDistance < distanceToTravel:
-            self.move(sign*ROTATION_SPEED, sign*(-ROTATION_SPEED))
+        degreesToTravel = abs(angle / (180.0 * math.pi * 0.25))
+        sign = 1 if angle > 0 else -1
+        travelledDistance = (0.0, 0.0, 0.0)
+        loopRate = rospy.Rate(5)
 
-        self.move(0,0)
+        self.move(sign*ROTATION_SPEED, sign*(-ROTATION_SPEED))
+        
+        while travelledDistance[2] < degreesToTravel:
+            rospy.loginfo("degrees rotated: %s", travelledDistance[2])
+
+            position = self.calc_next_point()
+            self.positionHistory.append(position)
+            travelledDistance = self.get_travelled_distance()
+            loopRate.sleep() # TODO: How long should we sleep?
+
+        self.stop_motors()
+        self.positionHistory = []
 
     def move_coordinate(self, x, y):
         ref_vec = (1.0, 0.0) # Reference vector, set to coordinate axis in direction of robot
@@ -147,8 +135,6 @@ class Controller:
         angle = math.acos(dot_product(ref_vec, point) / (norm(ref_vec)*norm(point)))
         self.move_rotate(angle)
         self.move_straight(distance)
-
-
 
     # Calculate the tic speed of individual wheels by determining the number of tics 
     # that have passed between two mesurement pointss and divides by the time interval
@@ -181,16 +167,13 @@ class Controller:
         self.currentEncoder = (msg.timestamp, msg.right, msg.left)
         self.update_tic_speed()
 
-        # A little debug..
-        # PR, PL = self.determine_next_pwm()
-        #rospy.loginfo("TICSPEED_R: %s TICSPEED_L: %s", self.ticSpeedRight, self.ticSpeedLeft)
-        #rospy.loginfo("PWM_R: %s PWM_L: %s", PR, PL)
-
-
     def handle_keyboard_change(self, msg):
-        (left, right) = determine(msg.linear, msg.angular)
-        rospy.loginfo(rospy.get_name() + " Determined (keyboard) change -> left: %s, right: %s", left, right)
-        pubMotor.publish(Motor(left, right))
+        if msg.linear != 0.0:
+            sign = 1 if msg.linear > 0 else -1
+            self.move_straight(sign*0.5) # if up/down -> move 0.5 meters in that direction
+        elif msg.angular != 0.0:
+            sign = 1 if msg.angular > 0 else -1
+            self.move_rotate(sign*10) # If left/righ key -> rotate 10 degrees
 
 
 controller = None
@@ -211,7 +194,9 @@ if __name__ == '__main__':
         rospy.Subscriber("/MotorController/Movement", Movement, controller.handle_static_change)
         rospy.Subscriber("/turtle1/command_velocity", V, controller.handle_keyboard_change)
         rospy.Subscriber("/serial/encoder", Encoder, controller.handle_encoder)
-       
+
+        rospy.loginfo("... done! Entering spin() loop")
+
         while not rospy.is_shutdown():
             rospy.spin()
 
