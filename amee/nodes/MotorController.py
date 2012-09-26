@@ -6,7 +6,7 @@
 import roslib; roslib.load_manifest('amee')
 import rospy, math, operator
 from std_msgs.msg import String, Int32
-from amee.msg import Movement
+from amee.msg import Movement, Velocity
 from robo.msg import Encoder, Motor
 from turtlesim.msg import Velocity as V
 
@@ -90,27 +90,28 @@ class Controller:
         self.publisherMotor.publish(0.0, 0.0)
 
     def move(self, leftVelocity, rightVelocity):
-        (currentPWMRight, currentPWMLeft) = self.get_current_pwm_velocities()
+        # (currentPWMRight, currentPWMLeft) = self.get_current_pwm_velocities()
 
-        # The velocity that we want
-        rightPWMVelocity = rightVelocity / (2.0 * math.pi * WHEEL_RADIUS * REVOLUTION_PER_SEC_RIGHT)
-        leftPWMVelocity = leftVelocity / (2.0 * math.pi * WHEEL_RADIUS * REVOLUTION_PER_SEC_LEFT)
+        # # The velocity that we want
+        # rightPWMVelocity = rightVelocity / (2.0 * math.pi * WHEEL_RADIUS * REVOLUTION_PER_SEC_RIGHT)
+        # leftPWMVelocity = leftVelocity / (2.0 * math.pi * WHEEL_RADIUS * REVOLUTION_PER_SEC_LEFT)
 
-        rightError = rightPWMVelocity - currentPWMRight
-        leftError = leftPWMVelocity - currentPWMLeft
+        # rightError = rightPWMVelocity - currentPWMRight
+        # leftError = leftPWMVelocity - currentPWMLeft
 
-        # TODO: Why 0.1 here?
-        self.motorRight = self.motorRight + 0.1 * rightError
-        self.motorLeft = self.motorLeft + 0.1 * leftError
+        # # TODO: Why 0.1 here?
+        # self.motorRight = self.motorRight + 0.1 * rightError
+        # self.motorLeft = self.motorLeft + 0.1 * leftError
 
-        self.publisherMotor.publish(self.motorRight, self.motorLeft)
+        self.publisherMotor.publish(rightVelocity, leftVelocity)
+
 
     def move_straight(self, distance):
         travelledDistance = (0.0, 0.0, 0.0)
         loopRate = rospy.Rate(5)
 
         self.clear_history()
-        self.move(1.0, 1.0) # full speed ahead!
+        self.move(0.3, 0.3) # full speed ahead!
 
         # TODO: This can overshoot the target position with a small error
         while travelledDistance[0] < (distance - 0.05):
@@ -131,8 +132,8 @@ class Controller:
 
         self.move(sign*ROTATION_SPEED, sign*(-ROTATION_SPEED))
         
-        while travelledDistance[2] < degreesToTravel:
-            rospy.loginfo("degrees rotated: %s", travelledDistance[2])
+        while abs(travelledDistance[2]) < degreesToTravel:
+            rospy.loginfo("degrees rotated: %s", (travelledDistance[2]))
 
             position = self.calc_next_point()
             self.positionHistory.append(position)
@@ -140,7 +141,6 @@ class Controller:
             loopRate.sleep() # TODO: How long should we sleep?
 
         self.stop_motors()
-        self.positionHistory = []
 
     def move_coordinate(self, x, y):
         ref_vec = (1.0, 0.0) # Reference vector, set to coordinate axis in direction of robot
@@ -183,6 +183,7 @@ class Controller:
         self.update_tic_speed()
 
     def handle_keyboard_change(self, msg):
+        rospy.loginfo("Got msg> %s %s", msg.linear, msg.angular)
         if msg.linear != 0.0:
             sign = 1 if msg.linear > 0 else -1
             self.move_straight(sign*0.5) # if up/down -> move 0.5 meters in that direction
@@ -200,7 +201,9 @@ if __name__ == '__main__':
     
     try:
         # Init publishers
-        publisherMotor = rospy.Publisher('/serial/motor_speed', Motor)
+        # publisherMotor = rospy.Publisher('/serial/motor_speed', Motor)
+        publisherMotor = rospy.Publisher('/wheel_velocity', Velocity)
+        
         publisherEncoderInterval = rospy.Publisher('/serial/encoder_interval', Int32)
 
         controller = Controller(publisherMotor, publisherEncoderInterval)
