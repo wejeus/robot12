@@ -6,7 +6,7 @@
 import roslib; roslib.load_manifest('amee')
 import rospy, math, operator
 from std_msgs.msg import String, Int32
-from amee.msg import MovementCommand, KeyboardCommand, Velocity
+from amee.msg import MovementCommand, KeyboardCommand, Velocity, Odometry
 
 NODE_NAME = "MovementControl"
 
@@ -14,11 +14,12 @@ TYPE_MOVE_STRAIGHT = 1
 TYPE_MOVE_ROTATE = 2
 TYPE_MOVE_COORDINATE = 3
 MOVEMENT_SPEED = 0.3
+ROTATION_SPEED = 0.3
 
 
 # TODO: BUGFIX: positive/negative directions/angle is not handle correctly
-# TODO: Do the vectors in move_coordinate(..) need to be normalized?
-# TODO: Moving forward moves the robot 2 times the distance reported by this node and its wrong by 1*10
+# TODO: This can overshoot the target position with a small error
+# TODO: How long should we sleep in move/rotate? (i.e. find best value)
 
 def norm(vector):
     return math.sqrt(sum(map(lambda coord: coord*coord, vector)))
@@ -46,36 +47,31 @@ class Controller:
         self.publisherMotor.publish(rightVelocity, leftVelocity)
 
     def move_straight(self, distance):
-        direction = 1 if angle > 0 else -1
+        rospy.loginfo("MOVING: %s METRES", distance)
+        direction = 1 if distance > 0 else -1
         loopRate = rospy.Rate(5)
         
         # full speed ahead!
         self.move(direction*MOVEMENT_SPEED, direction*MOVEMENT_SPEED)
         
-        # TODO: This can overshoot the target position with a small error
-        # TODO: How long should we sleep?
-        while self.travelledDistance < (distance - 0.05):
-            rospy.loginfo("distance travelled: %s", travelledDistance[0])
+        while self.travelledDistance < abs(distance - 0.05):
+            rospy.loginfo("distance travelled: %s", self.travelledDistance)
             loopRate.sleep()
 
         self.stop_motors()
 
     # FIXME Make sure angle is degrees...
     def move_rotate(self, angle):
-        degreesToTravel = abs(angle / (180.0 * math.pi * 0.25))
+        rospy.loginfo("ROTATING: %s DEGREES", angle)
+        degreesToTravel = abs(angle)
         direction = 1 if angle > 0 else -1
-        travelledDistance = (0.0, 0.0, 0.0)
         loopRate = rospy.Rate(5)
 
         self.move(direction*ROTATION_SPEED, direction*(-ROTATION_SPEED))
         
-        while abs(travelledDistance[2]) < degreesToTravel:
-            rospy.loginfo("degrees rotated: %s", (travelledDistance[2]))
-
-            position = self.calc_next_point()
-            self.positionHistory.append(position)
-            travelledDistance = self.get_travelled_distance()
-            loopRate.sleep() # TODO: How long should we sleep?
+        while abs(self.travelledAngle) < (degreesToTravel - 0.05):
+            rospy.loginfo("degrees rotated: %s", self.travelledAngle)
+            loopRate.sleep()
 
         self.stop_motors()
 
@@ -84,7 +80,7 @@ class Controller:
         point = (2.0, 2.0)
         distance = norm(point)
         angle = math.acos(dot_product(ref_vec, point) / (norm(ref_vec)*norm(point)))
-        self.move_rotate(angle)
+        self.move_rotate(angle * (180/math.pi))
         self.move_straight(distance)
 
 
@@ -127,9 +123,9 @@ if __name__ == '__main__':
         controller = Controller(publisherMotor)
 
         # The TOPIC we want to listen to
-        rospy.Subscriber("/MovementController/MovementCommand", MovementCommand, controller.handle_static_change)
+        rospy.Subscriber("/MovementControl/MovementCommand", MovementCommand, controller.handle_static_change)
         rospy.Subscriber("/MotorControl/Odometry", Odometry, controller.handle_odometry_change)
-        rospy.Subscriber("/KeyboardController/KeyboardCommand", KeyboardCommand, controller.handle_keyboard_change)
+        rospy.Subscriber("/KeyboardControl/KeyboardCommand", KeyboardCommand, controller.handle_keyboard_change)
 
         rospy.loginfo("... done! Entering spin() loop")
 
