@@ -13,18 +13,19 @@ private:
 	robo::Encoder mCurrentEncoder;
 	robo::Encoder mMeasurementAccumulator;
 	robo::Motor mMotor;
-	int mInit;
+	int mMeasurementValidCounter;
 	int mMeasurementCounter; 
 	ros::Publisher	mot_pub;
 
 	public:
 		void receive_encoder(const robo::Encoder::ConstPtr &msg);
+		void receive_speed(const amee::Velocity::ConstPtr &v);
 		void setSpeed(float vLeft, float vRight);
 		void drive();
 		void rotate(float degrees);
 		void stop();
 		void init();
-		bool isInitialized();
+		bool measurementsValid();
 		void setMotorPublisher(ros::Publisher pub);
 	protected:
 		void calcWheelPWMVelocities(amee::Velocity& velocity);

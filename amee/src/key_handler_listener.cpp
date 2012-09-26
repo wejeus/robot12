@@ -1,10 +1,10 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
-#include "amee/Velocity2.h"
+#include "amee/Velocity.h"
 
-void keyHandlerCallback(const amee::Velocity2& v)
+void keyHandlerCallback(const amee::Velocity & v)
 {
-  ROS_INFO("[%0.2f, %0.2f]", v.linear, v.angular);
+  ROS_INFO("[%0.2f, %0.2f]", v.left, v.right);
 }
 
 int main(int argc, char **argv)
@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 
   ros::NodeHandle n;
 
-  ros::Subscriber sub = n.subscribe("key_commands", 1000, keyHandlerCallback);
+  ros::Subscriber sub = n.subscribe("wheel_velocities", 1000, keyHandlerCallback);
 
   ros::spin();
 
