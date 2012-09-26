@@ -13,8 +13,9 @@ NODE_NAME = "MovementControl"
 TYPE_MOVE_STRAIGHT = 1
 TYPE_MOVE_ROTATE = 2
 TYPE_MOVE_COORDINATE = 3
+
 MOVEMENT_SPEED = 0.3
-ROTATION_SPEED = 0.3
+ROTATION_SPEED = 0.3 / 10
 
 
 # TODO: BUGFIX: positive/negative directions/angle is not handle correctly
@@ -69,8 +70,11 @@ class Controller:
         direction = 1 if angle > 0 else -1
         loopRate = rospy.Rate(5)
 
+        #angularVelocity = ROTATION_SPEED * (degreesToTravel - self.travelledAngle)
+
         self.move(direction*ROTATION_SPEED, direction*(-ROTATION_SPEED))
-        
+        #self.move(direction*angularVelocity, direction*(-angularVelocity))
+
         while abs(self.travelledAngle) < (degreesToTravel - 0.05):
             rospy.loginfo("degrees rotated: %s", self.travelledAngle)
             loopRate.sleep()
