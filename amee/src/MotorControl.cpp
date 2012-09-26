@@ -5,6 +5,7 @@
 #include <cmath>
 
 #define WHEEL_RADIUS 0.1
+#define WHEEL_BASE 0.5f
 #define TICS_PER_REVOLUTION 500.0f // encoder tics/rev
 #define REVOLUTION_PER_SEC_LEFT 1.2f 
 #define REVOLUTION_PER_SEC_RIGHT 1.0f
@@ -18,6 +19,10 @@ using namespace robo;
 
 void MotorControl::setMotorPublisher(ros::Publisher pub) {
 	mot_pub = pub;
+}
+
+void MotorControl::setOdometryPublisher(ros::Publisher pub) {
+	odo_pub = pub;
 }
 
 //Callback function for the "/encoder" topic. Stores the two last encoder values.
@@ -49,11 +54,21 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 		mCurrentEncoder.left = mMeasurementAccumulator.left / (float)(mMeasurementCounter);	
 		mCurrentEncoder.right = mMeasurementAccumulator.right / (float)(mMeasurementCounter);
 
+		publishOdometry();
+
 		mMeasurementAccumulator.timestamp = 0;
 		mMeasurementAccumulator.left = 0;
 		mMeasurementAccumulator.right = 0;
 		mMeasurementCounter = 0;
 	}
+}
+
+void MotorControl::publishOdometry() {
+	mOdometry.leftWheelDistance += (mCurrentEncoder.left - mPrevEncoder.left) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
+	mOdometry.rightWheelDistance += (mCurrentEncoder.right - mPrevEncoder.right) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
+	mOdometry.angle += (mOdometry.rightWheelDistance - mOdometry.leftWheelDistance) / WHEEL_BASE;
+	mOdometry.distance =  (mOdometry.leftWheelDistance + mOdometry.rightWheelDistance) / 2.0f;
+	odo_pub.publish(mOdometry);
 }
 
 // Calculates the current pwm velocities of both wheels based on the last two encoder values;
@@ -84,6 +99,10 @@ void MotorControl::setSpeed(float vLeft, float vRight) {
 	mVelocity.left = vLeft;
 	mVelocity.right = vRight;
 	mMeasurementValidCounter = 2 * NUM_AVERAGED_MEASUREMENTS;
+	mOdometry.leftWheelDistance = 0.0f;
+	mOdometry.rightWheelDistance = 0.0f;
+	mOdometry.distance = 0.0f;
+	mOdometry.angle = 0.0f;
 }
 
 // Sets the given speed ( in m/s ) to both motors.
@@ -131,7 +150,12 @@ void MotorControl::init() {
 	mMeasurementAccumulator.timestamp = 0;
 	mMeasurementAccumulator.left = 0;
 	mMeasurementAccumulator.right = 0;
-
+	
+	mOdometry.leftWheelDistance = 0.0f;
+	mOdometry.rightWheelDistance = 0.0f;
+	mOdometry.distance = 0.0f;
+	mOdometry.angle = 0.0f;
+	
 	mMotor.left = 0;
 	mMotor.right = 0;
 }
@@ -207,10 +231,14 @@ int main(int argc, char **argv)
 	ros::Publisher	int_pub;
 
 	ros::Subscriber velocities_sub;
-	velocities_sub = n.subscribe("wheel_velocities", 1000, &MotorControl::receive_speed, &control);
+	velocities_sub = n.subscribe("amee/set_wheel_velocities", 1000, &MotorControl::receive_speed, &control);
 	enc_sub = n.subscribe("/serial/encoder", 1000, &MotorControl::receive_encoder, &control);//when "/encoder" topic is revieved call recive_encoder function
 	ros::Publisher mot_pub = n.advertise<Motor>("/serial/motor_speed", 100000);//used to publish a topic that changes the motorspeed
 	control.setMotorPublisher(mot_pub);
+	
+	ros::Publisher odo_pub = n.advertise<Odometry>("/amee/odometry", 10000);
+	control.setOdometryPublisher(odo_pub);
+
 	int_pub = n.advertise<std_msgs::Int32>("/serial/encoder_interval", 100000);//used to publish a topic that changes the intervall between the "/encoder" topics published.
 
 
