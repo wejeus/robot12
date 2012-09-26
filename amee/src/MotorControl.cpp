@@ -64,9 +64,11 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 }
 
 void MotorControl::publishOdometry() {
-	mOdometry.leftWheelDistance += (mCurrentEncoder.left - mPrevEncoder.left) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
-	mOdometry.rightWheelDistance += (mCurrentEncoder.right - mPrevEncoder.right) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
-	mOdometry.angle = ((mOdometry.rightWheelDistance - mOdometry.leftWheelDistance) / WHEEL_BASE) /  M_PI * 180.0f;
+	float tDistLeft = (mCurrentEncoder.left - mPrevEncoder.left) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
+	float tDistRight = (mCurrentEncoder.right - mPrevEncoder.right) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
+	mOdometry.leftWheelDistance += tDistLeft;
+	mOdometry.rightWheelDistance += tDistRight;
+	mOdometry.angle += ((tDistRight - tDistLeft) / WHEEL_BASE) /  M_PI * 180.0f;
 	mOdometry.distance =  (mOdometry.leftWheelDistance + mOdometry.rightWheelDistance) / 2.0f;
 	odo_pub.publish(mOdometry);
 }
@@ -99,10 +101,10 @@ void MotorControl::setSpeed(float vLeft, float vRight) {
 	mVelocity.left = vLeft;
 	mVelocity.right = vRight;
 	mMeasurementValidCounter = 2 * NUM_AVERAGED_MEASUREMENTS;
-	mOdometry.leftWheelDistance = 0.0f;
+	/*mOdometry.leftWheelDistance = 0.0f;
 	mOdometry.rightWheelDistance = 0.0f;
 	mOdometry.distance = 0.0f;
-	mOdometry.angle = 0.0f;
+	mOdometry.angle = 0.0f;*/
 }
 
 // Sets the given speed ( in m/s ) to both motors.
