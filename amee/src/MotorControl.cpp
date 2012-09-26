@@ -2,10 +2,10 @@
 #include <string.h>
 #include "MotorControl.h"
 #include <iostream>
-#include <math>
+#include <cmath>
 
 #define WHEEL_RADIUS 0.1
-#define TICS_PER_REVOLUTION 500 // encoder tics/rev
+#define TICS_PER_REVOLUTION 500.0f // encoder tics/rev
 #define REVOLUTION_PER_SEC_LEFT 1.0f //TODO check
 #define REVOLUTION_PER_SEC_RIGHT 1.2f
 #define NUM_AVERAGED_MEASUREMENTS 10
@@ -30,6 +30,11 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 	//printf("%f:got encoder L:%i , false R:%i\n",timestamp,left,right);
 	
 	mInit = mInit > 0 ? mInit - 1 : 0;
+
+	struct timeval start;
+	gettimeofday(&start, NULL);
+	//std::cout << start.tv_sec << std::endl;
+
 
 	if (mMeasurementCounter < NUM_AVERAGED_MEASUREMENTS) {
 		mMeasurementAccumulator.left += left;
@@ -72,25 +77,33 @@ void MotorControl::calcWheelPWMVelocities(Velocity& velocity)
 	std::cout << "measured pwm velocities: " << velocity.left << " " << velocity.right << std::endl;
 }
 
+void MotorControl::setSpeed(float vLeft, float vRight) {
+	mVelocity.left = vLeft;
+	mVelocity.right = vRight;
+	//mMotor.right = vRight;
+	//mMotor.left = vLeft;
+}
+
 // Sets the given speed ( in m/s ) to both motors.
-void MotorControl::driveSpeed(float vLeft, float vRight)
+void MotorControl::drive()
 {
 
 	// calculate current velocity (in pwm) based on the last two encoder values 
-	calcWheelPWMVelocities(mVelocity);
+	Velocity pwmVelocity;
+	calcWheelPWMVelocities(pwmVelocity);
 
-	// transform given linearVelocity to pwm velocity
-	float leftVPWM = vLeft / (2.0f * 3.14f * WHEEL_RADIUS * REVOLUTION_PER_SEC_LEFT);
-	float rightVPWM = vRight / (2.0f * 3.14f * WHEEL_RADIUS * REVOLUTION_PER_SEC_RIGHT);
+	// transform given velocities to pwm velocity
+	float leftVPWM = mVelocity.left / (2.0f * M_PI * WHEEL_RADIUS * REVOLUTION_PER_SEC_LEFT);
+	float rightVPWM = mVelocity.right / (2.0f * M_PI * WHEEL_RADIUS * REVOLUTION_PER_SEC_RIGHT);
 	
-	printf("target pwm velocities: %f %f \n", leftVPWM, rightVPWM);	
+	std::cout << "target pwm velocities " << leftVPWM << " " << rightVPWM << std::endl;	
 
 	// calculate errors: error < 0 <-> too fast, error > 0 <-> too slow 
-	float leftError = leftVPWM - mVelocity.left; // error on the left side
-	float rightError = rightVPWM - mVelocity.right; // error on the left side
+	float leftError = leftVPWM - pwmVelocity.left; // error on the left side
+	float rightError = rightVPWM - pwmVelocity.right; // error on the left side
 	
-	mMotor.right	= mMotor.right + 0.05 * rightError;//set right motorspeed[-1,1]
-	mMotor.left	= mMotor.left + 0.05 * leftError;//set left motorspeed[-1,1]
+	mMotor.right	= mMotor.right + 0.1 * rightError;//set right motorspeed[-1,1]
+	mMotor.left	= mMotor.left + 0.1 * leftError;//set left motorspeed[-1,1]
 	//printf("set motor pwm velocities: %f %f \n", mMotor.left, mMotor.right);
 	mot_pub.publish(mMotor);
 }
@@ -128,17 +141,23 @@ void MotorControl::init() {
 void MotorControl::rotate(float degree) {
 	float distToTravel = std::abs(degree / 180.0f * M_PI * 0.25f);
 	int sign = degree > 0 ? 1 : -1;
-	float travelledDistance = 0.0f;	
+	float travelledDistance = 0.0f;
+	ros::Rate loop_rate(5);
 	while (travelledDistance < distToTravel) {
-		driveSpeed(sign * ROTATION_SPEED, sign * (- ROTATION_SPEED));
-		
+		//driveSpeed(sign * ROTATION_SPEED, sign * (- ROTATION_SPEED));
+		float distLeft = (mCurrentEncoder.left - mPrevEncoder.left) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
+		float distRight = (mCurrentEncoder.right - mPrevEncoder.right) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
+		travelledDistance += (std::abs(distLeft) + std::abs(distRight))/2.0f;
+		//std::cout << travelledDistance << std::endl;
+		loop_rate.sleep();
+		ros::spinOnce();
 	}
-	break();	
+	stop();	
 }
 
-void MotorControl::break() {
-	mMotor.right	= 0;//set right motorspeed[-1,1]
-	mMotor.left	= 0;//set left motorspeed[-1,1]
+void MotorControl::stop() {
+	mMotor.left = 0;
+	mMotor.right = 0;
 	mot_pub.publish(mMotor);
 }
 
@@ -157,14 +176,15 @@ int main(int argc, char **argv)
 	ros::Publisher mot_pub = n.advertise<Motor>("/serial/motor_speed", 100000);//used to publish a topic that changes the motorspeed
 	control.setMotorPublisher(mot_pub);
 	int_pub = n.advertise<std_msgs::Int32>("/serial/encoder_interval", 100000);//used to publish a topic that changes the intervall between the "/encoder" topics published.
-	std_msgs::Int32 interval;
-	interval.data = 10;
-	int_pub.publish(interval);
 
-	ros::Rate loop_rate(5);
+
+	ros::Rate loop_rate(10);
+	ros::Rate rotateWaiter(1);
 	//The loop randomly changes the intervall with wich the "/encoder" topic is published.
 	
 	//struct timeval start, end;
+	float refVelocity = 0.5f;
+	control.setSpeed(refVelocity, refVelocity);
 	
 	while(ros::ok()){
 		/*gettimeofday(&start, NULL);
@@ -172,9 +192,13 @@ int main(int argc, char **argv)
 		interval.data = 10;//+rand()%991;//very random intervall [10,1000] ms
 		int_pub.publish(interval);
 		loop_rate.sleep();
-		ros::spinOnce();
+		ros::spinOnce(); */
 
-		gettimeofday(&end, NULL);
+		std_msgs::Int32 interval;
+		interval.data = 10; // we want the encoder values as fast as possible
+		int_pub.publish(interval);
+
+		/*gettimeofday(&end, NULL);
 
 		while((end.tv_sec+(double(end.tv_usec)/1000000.0)-(start.tv_sec+(double(start.tv_usec)/1000000.0))) < 5.0){//Sleep 50 seconds
 			loop_rate.sleep();
@@ -183,13 +207,20 @@ int main(int argc, char **argv)
 		}*/
 		loop_rate.sleep();
 		ros::spinOnce();
-		float refVelocity = 0.5f;
+		
+		
 		if (control.isInitialized()) {
-			control.driveSpeed(-refVelocity, refVelocity);
+			//std::cout << "rotate" << std::endl;
+			//control.rotate(45.0f);
+			//break;
+			//rotateWaiter.sleep();
+			//ros::spinOnce();
+			control.drive();
 			//printf("controlled velocity is: %f \n", refVelocity);
 		} else {
 			//printf("Not initialised, needed number of encoder values: %i \n", mInit);
 		}	
 	}
+	//control.stop();
 	return 0;
 }
