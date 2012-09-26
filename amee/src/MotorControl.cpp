@@ -66,7 +66,7 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 void MotorControl::publishOdometry() {
 	mOdometry.leftWheelDistance += (mCurrentEncoder.left - mPrevEncoder.left) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
 	mOdometry.rightWheelDistance += (mCurrentEncoder.right - mPrevEncoder.right) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
-	mOdometry.angle += ((mOdometry.rightWheelDistance - mOdometry.leftWheelDistance) / WHEEL_BASE) /  M_PI * 180.0f;
+	mOdometry.angle = ((mOdometry.rightWheelDistance - mOdometry.leftWheelDistance) / WHEEL_BASE) /  M_PI * 180.0f;
 	mOdometry.distance =  (mOdometry.leftWheelDistance + mOdometry.rightWheelDistance) / 2.0f;
 	odo_pub.publish(mOdometry);
 }
