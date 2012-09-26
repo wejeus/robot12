@@ -39,11 +39,12 @@ class Controller:
         self.travelledAngle = 0.0    # Degrees
 
     def stop_motors(self):
+        rospy.loginfo("STOPPING MOTORS")
         self.publisherMotor.publish(0.0, 0.0)
         self.travelledDistance = 0.0
         self.travelledAngle = 0.0
 
-    def move(self, leftVelocity, rightVelocity):
+    def move(self, rightVelocity, leftVelocity):
         self.publisherMotor.publish(rightVelocity, leftVelocity)
 
     def move_straight(self, distance):
@@ -58,6 +59,7 @@ class Controller:
             rospy.loginfo("distance travelled: %s", self.travelledDistance)
             loopRate.sleep()
 
+        rospy.loginfo("DONE. MOVED: %s", self.travelledDistance)    
         self.stop_motors()
 
     # FIXME Make sure angle is degrees...
@@ -72,7 +74,8 @@ class Controller:
         while abs(self.travelledAngle) < (degreesToTravel - 0.05):
             rospy.loginfo("degrees rotated: %s", self.travelledAngle)
             loopRate.sleep()
-
+        
+        rospy.loginfo("DONE. ROTATED: %s", abs(self.travelledAngle))
         self.stop_motors()
 
     def move_coordinate(self, x, y):
