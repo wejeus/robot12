@@ -5,4 +5,4 @@ amee/msg_gen/*
 amee/src/amee
 amee/build
 *.*~
-bin/*
+amee/bin/*
