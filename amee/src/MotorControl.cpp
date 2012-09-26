@@ -231,12 +231,12 @@ int main(int argc, char **argv)
 	ros::Publisher	int_pub;
 
 	ros::Subscriber velocities_sub;
-	velocities_sub = n.subscribe("amee/set_wheel_velocities", 1000, &MotorControl::receive_speed, &control);
+	velocities_sub = n.subscribe("/amee/motor_control/set_wheel_velocities", 1000, &MotorControl::receive_speed, &control);
 	enc_sub = n.subscribe("/serial/encoder", 1000, &MotorControl::receive_encoder, &control);//when "/encoder" topic is revieved call recive_encoder function
 	ros::Publisher mot_pub = n.advertise<Motor>("/serial/motor_speed", 100000);//used to publish a topic that changes the motorspeed
 	control.setMotorPublisher(mot_pub);
 	
-	ros::Publisher odo_pub = n.advertise<Odometry>("/amee/odometry", 10000);
+	ros::Publisher odo_pub = n.advertise<Odometry>("/amee/motor_control/odometry", 10000);
 	control.setOdometryPublisher(odo_pub);
 
 	int_pub = n.advertise<std_msgs::Int32>("/serial/encoder_interval", 100000);//used to publish a topic that changes the intervall between the "/encoder" topics published.
