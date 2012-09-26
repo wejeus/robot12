@@ -1,0 +1,12 @@
+<launch>
+
+    <group ns="robo">
+        <node pkg="robo" name="FakeMotors" type="FakeMotors"/>
+    </group>
+
+    <group ns="amee">
+        <node pkg="amee" name="MotorControl" type="MotorControl"/>
+        <node pkg="amee" name="MovementControl" type="MovementControl.py"/>
+    </group>
+
+</launch>
