@@ -11,15 +11,23 @@ from robo.msg import Encoder, Motor
 from turtlesim.msg import Velocity as V
 
 NODE_NAME = "MotorController"
+
 MOVE_STRAIGHT = 1
 MOVE_ROTATE = 2
 MOVE_COORDINATE = 3
-WHEEL_RADIUS = 0.1
 
 REVOLUTION_PER_SEC_RIGHT = 1.0 # What should this be?
 REVOLUTION_PER_SEC_LEFT = 1.0 # What should this be?
 TICS_PER_REVOLUTION = 500
 ROTATION_SPEED = 0.4
+WHEEL_RADIUS = 0.1
+TIC_LENGTH = (2*math.pi*WHEEL_RADIUS)/TICS_PER_REVOLUTION
+DISTANCE_WHEELS = 0.5
+
+
+# TODO: BUGFIX: positive/negative directions/angle is not handle correctly
+# TODO: Do the vectors in move_coordinate(..) need to be normalized?
+# TODO: Moving forward moves the robot 2 times the distance reported by this node and its wrong by 1*10
 
 def norm(vector):
     return math.sqrt(sum(map(lambda coord: coord*coord, vector)))
@@ -28,7 +36,6 @@ def dot_product(vector1, vector2):
     if len(vector1) != len(vector2):
         raise Exception("Vector size mismatch")
     return sum(map(operator.mul, vector1, vector2))
-
 
 
 class Controller:
@@ -51,22 +58,26 @@ class Controller:
         pwmLeft = self.ticSpeedLeft / (REVOLUTION_PER_SEC_LEFT * TICS_PER_REVOLUTION)
         return (pwmRight, pwmLeft)
 
+    # Each new point is calculated from a new reference point of (0, 0, 0)
     def calc_next_point(self):
-        ticLength = 2*math.pi/500
-        distanceBetweenWheels = 0.5
-
-        deltaDistanceRight = self.ticSpeedRight * ticLength
-        deltaDistanceLeft = self.ticSpeedLeft * ticLength
+        deltaDistanceRight = self.ticSpeedRight * TIC_LENGTH
+        deltaDistanceLeft = self.ticSpeedLeft * TIC_LENGTH
+        
         deltaDistanceTotal = (deltaDistanceRight + deltaDistanceLeft) / 2
-
-        deltaAngle = (deltaDistanceRight - deltaDistanceLeft) / distanceBetweenWheels
-
-        someAngle = 0.0 # TODO!!! Which angle is this?
-        deltaY = deltaDistanceTotal*math.sin(someAngle + deltaAngle/2)
-        deltaX = deltaDistanceTotal*math.cos(someAngle + deltaAngle/2)
+        deltaAngle = (deltaDistanceRight - deltaDistanceLeft) / DISTANCE_WHEELS
+        
+        # TODO!!! Which angle is this? (currently last mesurement)
+        someAngle = 0.0
+        
+        deltaY = deltaDistanceTotal*math.sin( (someAngle + deltaAngle/2) * (math.pi/180))
+        deltaX = deltaDistanceTotal*math.cos( (someAngle + deltaAngle/2) * (math.pi/180))
         
         return (deltaX, deltaY, deltaAngle)
 
+    def clear_history(self):
+        self.positionHistory = []
+
+    # Numerically intergrates over set of measurement points given so far
     def get_travelled_distance(self):
         total = (0.0, 0.0, 0.0)
         for point in self.positionHistory:
@@ -74,6 +85,8 @@ class Controller:
         return total
    
     def stop_motors(self):
+        self.motorRight = 0.0
+        self.motorLeft = 0.0
         self.publisherMotor.publish(0.0, 0.0)
 
     def move(self, leftVelocity, rightVelocity):
@@ -86,8 +99,9 @@ class Controller:
         rightError = rightPWMVelocity - currentPWMRight
         leftError = leftPWMVelocity - currentPWMLeft
 
-        self.motorRight = self.motorRight + 0.05 * rightError
-        self.motorLeft = self.motorLeft + 0.05 * leftError
+        # TODO: Why 0.1 here?
+        self.motorRight = self.motorRight + 0.1 * rightError
+        self.motorLeft = self.motorLeft + 0.1 * leftError
 
         self.publisherMotor.publish(self.motorRight, self.motorLeft)
 
@@ -95,18 +109,18 @@ class Controller:
         travelledDistance = (0.0, 0.0, 0.0)
         loopRate = rospy.Rate(5)
 
+        self.clear_history()
         self.move(1.0, 1.0) # full speed ahead!
 
-        while travelledDistance[0] < distance:
+        # TODO: This can overshoot the target position with a small error
+        while travelledDistance[0] < (distance - 0.05):
             rospy.loginfo("distance travelled: %s", travelledDistance[0])
-
-            position = self.calc_next_point()
-            self.positionHistory.append(position)
+            curPosition = self.calc_next_point()
+            self.positionHistory.append(curPosition)
             travelledDistance = self.get_travelled_distance()
             loopRate.sleep() # TODO: How long should we sleep?
 
         self.stop_motors()
-        self.positionHistory = []
 
     # FIXME Make sure angle is degrees...
     def move_rotate(self, angle):
@@ -149,6 +163,7 @@ class Controller:
 
 
     # ----------------------- ROS CALLBACKS ----------------------- #
+
 
     def handle_static_change(self, msg):
         if msg.type == MOVE_STRAIGHT:
