@@ -81,19 +81,19 @@ void startKeyboardHandling(int argc, char **argv){
 				switch(c){
 					case KEYCODE_L:
 						ROS_DEBUG("LEFT");
-						setWheels(0, VELO_RATE);
+						setWheels(0, 1);
 						break;
 					case KEYCODE_R:
 						ROS_DEBUG("RIGHT");
-						setWheels(0, -VELO_RATE);
+						setWheels(0, -1);
 						break;
 					case KEYCODE_U:
 						ROS_DEBUG("UP");
-						setWheels(VELO_RATE, 0);
+						setWheels(1, 0);
 						break;
 					case KEYCODE_D:
 						ROS_DEBUG("DOWN");						
-						setWheels(-VELO_RATE, 0);
+						setWheels(-1, 0);
 						break;
 					default:
 						ROS_DEBUG("RELEASE");

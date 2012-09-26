@@ -1,0 +1,20 @@
+
+The code is separated into two parts: motor controller and movement controller.
+The motor part only controls the pwm's for the motors and the movement part
+is for high level control.
+
+Usage:
+roslaunch amee milestone0.launch
+
+Starts ROS and launches our nodes (MotorControl and MovementControl.py)
+
+Test functionality by using script located in robot12/bin
+./go.py forward <number meters to travel (positive/negative)>
+./go.py rotate <number of degrees to rotate (positive/negative)>
+./go.py point <x coordinate> <y coordinate>
+
+For keyboard input use the turtlesim turtle_tele_op ros node.
+
+Have fun!
+
+/Samuel, Joshua, Niclas, Hanif

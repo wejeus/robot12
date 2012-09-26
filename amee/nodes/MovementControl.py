@@ -7,6 +7,7 @@ import roslib; roslib.load_manifest('amee')
 import rospy, math, operator
 from std_msgs.msg import String, Int32
 from amee.msg import MovementCommand, KeyboardCommand, Velocity, Odometry
+from turtlesim.msg import Velocity as turtleCommand
 
 NODE_NAME = "MovementControl"
 
@@ -14,7 +15,7 @@ TYPE_MOVE_STRAIGHT = 1
 TYPE_MOVE_ROTATE = 2
 TYPE_MOVE_COORDINATE = 3
 MOVEMENT_SPEED = 0.3
-ROTATION_SPEED = 0.3
+ROTATION_SPEED = 0.3/10
 
 
 # TODO: BUGFIX: positive/negative directions/angle is not handle correctly
@@ -55,7 +56,7 @@ class Controller:
         # full speed ahead!
         self.move(direction*MOVEMENT_SPEED, direction*MOVEMENT_SPEED)
         
-        while self.travelledDistance < abs(distance - 0.05):
+        while abs(self.travelledDistance) < abs(distance - 0.05):
             rospy.loginfo("distance travelled: %s", self.travelledDistance)
             loopRate.sleep()
 
@@ -80,7 +81,7 @@ class Controller:
 
     def move_coordinate(self, x, y):
         ref_vec = (1.0, 0.0) # Reference vector, set to coordinate axis in direction of robot
-        point = (2.0, 2.0)
+        point = (x, y)
         distance = norm(point)
         angle = math.acos(dot_product(ref_vec, point) / (norm(ref_vec)*norm(point)))
         self.move_rotate(angle * (180/math.pi))
@@ -104,12 +105,14 @@ class Controller:
             rospy.logwarn(NODE_NAME + ' UNKNOWN_MOVEMENT')
 
     def handle_keyboard_change(self, msg):
-        if msg.linear != 0.0:
-            sign = 1 if msg.linear > 0 else -1
-            self.move_straight(sign*0.5) # if up/down -> move 0.5 meters in that direction
-        elif msg.angular != 0.0:
-            sign = 1 if msg.angular > 0 else -1
-            self.move_rotate(sign*10) # If left/righ key -> rotate 10 degrees
+        if msg.linear == 2:
+            self.move_straight(0.2)
+        elif msg.linear == -2:
+            self.move_straight(-0.2)
+        elif msg.angular == 2:
+            self.move_rotate(10)
+        elif msg.angular == -2:
+            self.move_rotate(-10)
 
 
 controller = None
@@ -128,7 +131,8 @@ if __name__ == '__main__':
         # The TOPIC we want to listen to
         rospy.Subscriber("/MovementControl/MovementCommand", MovementCommand, controller.handle_static_change)
         rospy.Subscriber("/amee/motor_control/odometry", Odometry, controller.handle_odometry_change)
-        rospy.Subscriber("/KeyboardControl/KeyboardCommand", KeyboardCommand, controller.handle_keyboard_change)
+        #rospy.Subscriber("/KeyboardControl/KeyboardCommand", KeyboardCommand, controller.handle_keyboard_change)
+        rospy.Subscriber("/turtle1/command_velocity", turtleCommand, controller.handle_keyboard_change)
 
         rospy.loginfo("... done! Entering spin() loop")
 
