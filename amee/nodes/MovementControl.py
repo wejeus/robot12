@@ -118,7 +118,7 @@ if __name__ == '__main__':
     
     try:
         # Init publishers
-        publisherMotor = rospy.Publisher('/MotorControl/wheel_velocities', Velocity)
+        publisherMotor = rospy.Publisher('/amee/motor_control/set_wheel_velocities', Velocity)
         
         controller = Controller(publisherMotor)
 
