@@ -17,6 +17,7 @@ import Helpers
 # rostopic pub -1 <the topic to publish to> <the message type to use> -- <values>
 # rostopic pub -1 /MotorController/Movement amee/Movement -- 1.0 1.0
 
+
 NODE_NAME = "MotorController"
 MOVE_STRAIGHT = 1
 MOVE_ROTATE = 2
@@ -25,7 +26,19 @@ WHEEL_RADIUS = 0.1
 TICKS_REV = 500
 ticSpeedRightMax = 500*1.2 # FIXME (tics per revolution times v_max per motor)
 ticSpeedLeftMax = 500*1.0 # FIXME (tics per revolution times v_max per motor)
-        
+
+REVOLUTION_PER_SEC_RIGHT = 1.0 # What should this be?
+REVOLUTION_PER_SEC_LEFT = 1.0 # What should this be?
+TICS_PER_REVOLUTION = 500
+ROTATION_SPEED = 0.4
+
+def norm(vector):
+    return math.sqrt(sum(map(lambda coord: coord*coord, vector)))
+
+def dot_product(vector1, vector2):
+    if len(vector1) != len(vector2):
+        raise Exception("Vector size mismatch")
+    return sum(map(operator.mul, vector1, vector2))
 
 class Controller:
     def __init__(self, publisherMotor, publisherEncoderInterval):
@@ -33,29 +46,48 @@ class Controller:
         self.publisherEncoderInterval = publisherEncoderInterval
         self.currentEncoder = (0.0, 0.0, 0.0)
         self.previousEncoder = (0.0, 0.0, 0.0)
-        self.velocity = 0.0
+
+        self.motorRight = 0.0
+        self.motorLeft = 0.0
         self.ticSpeedRight = 0.0
         self.ticSpeedLeft = 0.0
 
         self.positionHistory = []
 
-    def determine_next_pwm(self):
+    def get_current_pwm_velocities(self):
         # Check motor error, Check IR sensors, is moving straight? is angular movement?
-        maxVelocityRight = 1.0 # What should this be?
-        maxVelocityLeft = 1.0 # What should this be?
+        pwmRight = self.ticSpeedRight / (REVOLUTION_PER_SEC_RIGHT * TICS_PER_REVOLUTION)
+        pwmLeft = self.ticSpeedLeft / (REVOLUTION_PER_SEC_LEFT * TICS_PER_REVOLUTION)
+        return (pwmRight, pwmLeft)
 
-        # Right motor
-        pwmFeedbackRight = self.ticSpeedRight / 500
-        pwmRefRight = self.velocity * (1/maxVelocityRight)
-        pwmErrorRight = pwmRefRight - pwmFeedbackRight
-        controlledPwmRight = pwmRefRight + pwmErrorRight
+        # # Right motor
+        # pwmFeedbackRight = self.ticSpeedRight / 500
+        # pwmRefRight = self.velocity * (1/maxVelocityRight)
+        # pwmErrorRight = pwmRefRight - pwmFeedbackRight
+        # controlledPwmRight = pwmRefRight + pwmErrorRight
+        
+        # # Left motor
+        # pwmFeedbackLeft = self.ticSpeedLeft / 500
+        # pwmRefLeft = self.velocity * (1/maxVelocityLeft)
+        # pwmErrorLeft = pwmRefLeft - pwmFeedbackLeft
+        # controlledPwmLeft = pwmRefLeft + pwmErrorLeft
+        # return (controlledPwmRight, controlledPwmLeft)
 
-        # Left motor
-        pwmFeedbackLeft = self.ticSpeedLeft / 500
-        pwmRefLeft = self.velocity * (1/maxVelocityLeft)
-        pwmErrorLeft = pwmRefLeft - pwmFeedbackLeft
-        controlledPwmLeft = pwmRefLeft + pwmErrorLeft
-        return (controlledPwmRight, controlledPwmLeft)
+
+    def move(self, leftVelocity, rightVelocity):
+        (currentPWMRight, currentPWMLeft) = self.get_current_pwm_velocities()
+
+        # The velocity that we want
+        rightPWMVelocity = rightVelocity / (2.0 * math.pi * WHEEL_RADIUS * REVOLUTION_PER_SEC_RIGHT)
+        leftPWMVelocity = leftVelocity / (2.0 * math.pi * WHEEL_RADIUS * REVOLUTION_PER_SEC_LEFT)
+
+        rightError = rightPWMVelocity - currentPWMRight
+        leftError = leftPWMVelocity - currentPWMLeft
+
+        self.motorRight = self.motorRight + 0.05 * rightError
+        self.motorLeft = self.motorLeft + 0.05 * leftError
+
+        self.publisherMotor.publish(self.motorRight, self.motorLeft)
 
     def calc_next_point(self):
         ticLength = 2*math.pi/500
@@ -82,7 +114,7 @@ class Controller:
     def move_straight(self, distance):
         # TODO: Some while loop that checks if we reached target pos
         
-        self.publisherMotor.publish(1.0, 1.0) # Full speed ahead!
+        self.move(1,1) # full speed ahead!
 
         travelledDistance = (0.0, 0.0, 0.0)
 
@@ -93,10 +125,30 @@ class Controller:
             travelledDistance = self.get_travelled_distance()
             rospy.sleep(1) # TODO: How long should we sleep?
 
-        self.publisherMotor.publish(0.0, 0.0) # we reached our target, stop the motors
+        self.move(0,0) # we reached our target, stop the motors
 
     def move_rotate(self, angle):
-        return
+        distanceToTravel = abs(angle / (180.0 * math.pi * 0.25))
+        sign = 0
+        if angle > 0:
+            sign = 1
+        else:
+            sign = -1
+        travelledDistance = 0.0
+        while travelledDistance < distanceToTravel:
+            self.move(sign*ROTATION_SPEED, sign*(-ROTATION_SPEED))
+
+        self.move(0,0)
+
+    def move_coordinate(self, x, y):
+        ref_vec = (1.0, 0.0) # Reference vector, set to coordinate axis in direction of robot
+        point = (2.0, 2.0)
+        distance = norm(point)
+        angle = math.acos(dot_product(ref_vec, point) / (norm(ref_vec)*norm(point)))
+        self.move_rotate(angle)
+        self.move_straight(distance)
+
+
 
     # Calculate the tic speed of individual wheels by determining the number of tics 
     # that have passed between two mesurement pointss and divides by the time interval
@@ -117,8 +169,8 @@ class Controller:
             self.move_straight(msg.distance)
         elif msg.type == MOVE_ROTATE:
             self.move_rotate(msg.angle)
-        # elif msg.type == MOVE_COORDINATE:
-        #     controller.move_coordinate((msg.x, msg.y))
+        elif msg.type == MOVE_COORDINATE:
+            self.move_coordinate(msg.x, msg.y)
         else:
             rospy.logwarn(NODE_NAME + ' UNKNOWN_MOVEMENT')
 
@@ -130,7 +182,7 @@ class Controller:
         self.update_tic_speed()
 
         # A little debug..
-        PR, PL = self.determine_next_pwm()
+        # PR, PL = self.determine_next_pwm()
         #rospy.loginfo("TICSPEED_R: %s TICSPEED_L: %s", self.ticSpeedRight, self.ticSpeedLeft)
         #rospy.loginfo("PWM_R: %s PWM_L: %s", PR, PL)
 
