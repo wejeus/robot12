@@ -1,2 +1,2 @@
-float32 linear
-float32 angular
+int8 linear
+int8 angular
