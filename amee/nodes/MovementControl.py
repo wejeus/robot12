@@ -15,7 +15,7 @@ TYPE_MOVE_ROTATE = 2
 TYPE_MOVE_COORDINATE = 3
 
 MOVEMENT_SPEED = 0.3
-ROTATION_SPEED = 0.3 / 10
+ROTATION_SPEED = 0.3
 
 
 # TODO: BUGFIX: positive/negative directions/angle is not handle correctly
@@ -36,14 +36,14 @@ class Controller:
         self.publisherMotor = publisherMotor
         
         # distance/angle is mesured in respect to origin of start of movement
-        self.travelledDistance = 0.0 # Meters
-        self.travelledAngle = 0.0    # Degrees
+        self.totalDistance = 0.0 # Meters
+        self.totalAngle = 0.0    # Degrees
 
     def stop_motors(self):
         rospy.loginfo("STOPPING MOTORS")
         self.publisherMotor.publish(0.0, 0.0)
-        self.travelledDistance = 0.0
-        self.travelledAngle = 0.0
+        self.totalDistance = 0.0
+        self.totalAngle = 0.0
 
     def move(self, rightVelocity, leftVelocity):
         self.publisherMotor.publish(rightVelocity, leftVelocity)
@@ -53,33 +53,43 @@ class Controller:
         direction = 1 if distance > 0 else -1
         loopRate = rospy.Rate(5)
         
+        lastDistance = self.totalDistance
+        traveledDistance = 0
+
         # full speed ahead!
         self.move(direction*MOVEMENT_SPEED, direction*MOVEMENT_SPEED)
         
-        while self.travelledDistance < abs(distance - 0.05):
-            rospy.loginfo("distance travelled: %s", self.travelledDistance)
+        while abs(traveledDistance) < abs(distance - 0.05):
+            rospy.loginfo("distance travelled: %s", traveledDistance)
             loopRate.sleep()
+            traveledDistance = (self.totalDistance - lastDistance)  
 
-        rospy.loginfo("DONE. MOVED: %s", self.travelledDistance)    
+        rospy.loginfo("DONE. MOVED: %s", traveledDistance)    
         self.stop_motors()
 
     # FIXME Make sure angle is degrees...
-    def move_rotate(self, angle):
-        rospy.loginfo("ROTATING: %s DEGREES", angle)
-        degreesToTravel = abs(angle)
-        direction = 1 if angle > 0 else -1
+    def move_rotate(self, degreesToTravel):
+        rospy.loginfo("ROTATING: %s DEGREES", degreesToTravel)
         loopRate = rospy.Rate(5)
+        lastAngle = self.totalAngle
+        travelledAngle = 0
 
-        #angularVelocity = ROTATION_SPEED * (degreesToTravel - self.travelledAngle)
-
-        self.move(direction*ROTATION_SPEED, direction*(-ROTATION_SPEED))
+        # TODO: make K_p tuneable while driving the robot
+        # Proportional gain constant (tune this to imropve turn performance)
+        K_p = 0.5
+        # lower speed as we come closer to "degreesToTravel"
+        rotationSpeed = ROTATION_SPEED * K_p * (degreesToTravel - self.totalAngle)
+        # saturate speed to ROTATION_SPEED
+        rotationSpeed = ROTATION_SPEED if rotationSpeed > ROTATION_SPEED else rotationSpeed 
+        self.move(rotationSpeed, -rotationSpeed)
         #self.move(direction*angularVelocity, direction*(-angularVelocity))
 
-        while abs(self.travelledAngle) < (degreesToTravel - 0.05):
-            rospy.loginfo("degrees rotated: %s", self.travelledAngle)
+        while abs(travelledAngle) < (abs(degreesToTravel) - 0.05):
+            rospy.loginfo("degrees rotated: %s", self.totalAngle)
             loopRate.sleep()
+            travelledAngle = self.totalAngle - lastAngle
         
-        rospy.loginfo("DONE. ROTATED: %s", abs(self.travelledAngle))
+        rospy.loginfo("DONE. ROTATED: %s", self.totalAngle)
         self.stop_motors()
 
     def move_coordinate(self, x, y):
@@ -94,8 +104,8 @@ class Controller:
     # ----------------------- ROS CALLBACKS ----------------------- #
 
     def handle_odometry_change(self, msg):
-        self.travelledDistance = msg.distance
-        self.travelledAngle = msg.angle
+        self.totalDistance = msg.distance
+        self.totalAngle = msg.angle
         
     def handle_static_change(self, msg):
         if msg.type == TYPE_MOVE_STRAIGHT:
