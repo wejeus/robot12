@@ -77,47 +77,45 @@ void startKeyboardHandling(int argc, char **argv){
 
 	//sets the velocities of the wheels to initial values (0.0f)
 	setWheels();
-	char c = '0', lastKey = '0';
+	char c = '0';//, lastKey = '0';
 	puts("Press the arrow keys to move around.");
 	while (ros::ok()){
 
 		if(kbhit()){
 			c = getchar();
-			ROS_INFO("THE KEY PRESSED WAS: %c\n", c);
-			if(int(c) == 27){//if we hit an arrow key (or an escape key)
+			if(int(c) == 27 || int(c) == 32){//if we hit an arrow key or space (or an escape key)
 				c = getchar(); c = getchar(); //read 2 more chars
 				switch(c){
 					case KEYCODE_L:
 						ROS_DEBUG("LEFT");
-						setWheels(0, VELO_RATE);
+						setWheels(-VELO_RATE, VELO_RATE);
 						break;
 					case KEYCODE_R:
 						ROS_DEBUG("RIGHT");
-						setWheels(0, -VELO_RATE);
+						setWheels(VELO_RATE, -VELO_RATE);
 						break;
 					case KEYCODE_U:
 						ROS_DEBUG("UP");
-						setWheels(VELO_RATE, 0);
+						setWheels(VELO_RATE, VELO_RATE);
 						break;
 					case KEYCODE_D:
 						ROS_DEBUG("DOWN");						
-						setWheels(-VELO_RATE, 0);
+						setWheels(-VELO_RATE, -VELO_RATE);
 						break;
 					default:
 						ROS_DEBUG("RELEASE");
 						setWheels();
 						break;
 				}
-			}else if(int(c) == 32){//we hit the space
-				setWheels();
+				keyCom_pub.publish(v);
 			}
 		}
 
 		/* publish the wheel velocities */
-		if(lastKey != c){
-			lastKey = c;
-			keyCom_pub.publish(v);
-		}
+		//if(lastKey != c){
+		//	lastKey = c;
+		//	keyCom_pub.publish(v);
+		//}
 
 		ros::spinOnce();
 

@@ -5,7 +5,7 @@
 
 void keyHandlerCallback(const amee::Encoder & v)
 {
-  ROS_INFO("%f:[%i, %i]", v.timestamp, v.left, v.right);
+  ROS_INFO("%f:[%li, %li]", v.timestamp, v.left, v.right);
 }
 
 int main(int argc, char **argv)
@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 
   ros::NodeHandle n;
 
-  ros::Subscriber sub = n.subscribe("/serial/Encoder", 1000, keyHandlerCallback);
+  ros::Subscriber sub = n.subscribe("/serial/encoder", 1000, keyHandlerCallback);
 
   ros::spin();
 
