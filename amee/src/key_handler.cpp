@@ -83,6 +83,7 @@ void startKeyboardHandling(int argc, char **argv){
 
 		if(kbhit()){
 			c = getchar();
+			ROS_INFO("THE KEY PRESSED WAS: %c\n", c);
 			if(int(c) == 27){//if we hit an arrow key (or an escape key)
 				c = getchar(); c = getchar(); //read 2 more chars
 				switch(c){
