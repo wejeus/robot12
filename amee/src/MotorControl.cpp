@@ -31,7 +31,6 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 	int right = msg->right;
 	int left = msg->left;
 	double timestamp = msg->timestamp;
-	//printf("%f:got encoder L:%i , false R:%i\n",timestamp,left,right);
 	
 	mMeasurementValidCounter = mMeasurementValidCounter > 0 ? mMeasurementValidCounter - 1 : 0;
 
@@ -39,23 +38,27 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 	gettimeofday(&start, NULL);
 	//std::cout << start.tv_sec << std::endl;
 
-
+	// We filter noise by calculating the average of multiple measurements (TODO replace by Kalman filter)
+	// accumulate NUM_AVERAGED_MEASUREMENTS and then calculate the mean 
 	if (mMeasurementCounter < NUM_AVERAGED_MEASUREMENTS) {
 		mMeasurementAccumulator.left += left;
 		mMeasurementAccumulator.right += right;
 		mMeasurementAccumulator.timestamp += timestamp;
 		++mMeasurementCounter; 	
-	} else {
+	} else { // enough measurement accumulated, calculate mean now
+		// save old encoder mean
 		mPrevEncoder.timestamp = mCurrentEncoder.timestamp;
 		mPrevEncoder.left = mCurrentEncoder.left;
 		mPrevEncoder.right = mCurrentEncoder.right;
 
+		// calculate new mean
 		mCurrentEncoder.timestamp = mMeasurementAccumulator.timestamp / (float)(mMeasurementCounter);
 		mCurrentEncoder.left = mMeasurementAccumulator.left / (float)(mMeasurementCounter);	
 		mCurrentEncoder.right = mMeasurementAccumulator.right / (float)(mMeasurementCounter);
 
 		publishOdometry();
 
+		// reset accumulator
 		mMeasurementAccumulator.timestamp = 0;
 		mMeasurementAccumulator.left = 0;
 		mMeasurementAccumulator.right = 0;
@@ -64,10 +67,16 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 }
 
 void MotorControl::publishOdometry() {
-	mOdometry.leftWheelDistance += (mCurrentEncoder.left - mPrevEncoder.left) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
-	mOdometry.rightWheelDistance += (mCurrentEncoder.right - mPrevEncoder.right) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
-	mOdometry.angle = ((mOdometry.rightWheelDistance - mOdometry.leftWheelDistance) / WHEEL_BASE) /  M_PI * 180.0f;
+	// calculate odometry stuff and publish it
+	float tDistLeft = (mCurrentEncoder.left - mPrevEncoder.left) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
+	float tDistRight = (mCurrentEncoder.right - mPrevEncoder.right) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
+	mOdometry.leftWheelDistance += tDistLeft;
+	mOdometry.rightWheelDistance += tDistRight;
+	mOdometry.angle += ((tDistRight - tDistLeft) / WHEEL_BASE) /  M_PI * 180.0f;
 	mOdometry.distance =  (mOdometry.leftWheelDistance + mOdometry.rightWheelDistance) / 2.0f;
+	
+	//TODO calculate x,y position and publish
+
 	odo_pub.publish(mOdometry);
 }
 
@@ -95,21 +104,22 @@ void MotorControl::receive_speed(const amee::Velocity::ConstPtr &v) {
 	setSpeed(v->left, v->right);
 }
 
+// Sets the given speed ( in m/s ) to both motors.
 void MotorControl::setSpeed(float vLeft, float vRight) {
 	mVelocity.left = vLeft;
 	mVelocity.right = vRight;
 	mMeasurementValidCounter = 2 * NUM_AVERAGED_MEASUREMENTS;
-	mOdometry.leftWheelDistance = 0.0f;
+	/*mOdometry.leftWheelDistance = 0.0f;
 	mOdometry.rightWheelDistance = 0.0f;
 	mOdometry.distance = 0.0f;
-	mOdometry.angle = 0.0f;
+	mOdometry.angle = 0.0f;*/
 }
 
-// Sets the given speed ( in m/s ) to both motors.
 void MotorControl::drive()
 {
 
 	// transform given velocities to pwm velocity
+	// TODO this calculation has only need to be done once (in setSpeed(..))
 	float leftVPWM = mVelocity.left / (2.0f * M_PI * WHEEL_RADIUS * REVOLUTION_PER_SEC_LEFT);
 	float rightVPWM = mVelocity.right / (2.0f * M_PI * WHEEL_RADIUS * REVOLUTION_PER_SEC_RIGHT);
 	std::cout << "target pwm velocities " << leftVPWM << " " << rightVPWM << std::endl;
@@ -160,61 +170,8 @@ void MotorControl::init() {
 	mMotor.right = 0;
 }
 
-// overwrites angularVelocity with the controlled angularVelocity
-/*float angularVelocityControl(float angularVelocity, Encoder encoderMsg, Encoder lastEncoder, Velocity velocity)
-{
-	// make sure robot is turning with "angularVelocity"
-	//calcWheelVelocities(&encoderMsg, &lastEncoder, &velocity);
-	float angularVelocityError = velocity.angular - angularVelocity;
-
-	return angularVelocity = angularVelocity - angularVelocityError; 
-}*/
-
-void MotorControl::rotate(float degree) {
-	float distToTravel = std::abs(degree / 180.0f * M_PI * 0.25f);
-	int sign = degree > 0 ? 1 : -1;
-	float travelledDistance = 0.0f;
-	ros::Rate loop_rate(5);
-	while (travelledDistance < distToTravel) {
-		//driveSpeed(sign * ROTATION_SPEED, sign * (- ROTATION_SPEED));
-		float distLeft = (mCurrentEncoder.left - mPrevEncoder.left) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
-		float distRight = (mCurrentEncoder.right - mPrevEncoder.right) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
-		travelledDistance += (std::abs(distLeft) + std::abs(distRight))/2.0f;
-		//std::cout << travelledDistance << std::endl;
-		loop_rate.sleep();
-		ros::spinOnce();
-	}
-	stop();	
-}
-
-void MotorControl::stop() {
-	/*setSpeed(0.0f,0.0f);
-	ros::Rate loop_rate(6);
-/	while (!measurementsValid()) {
-		drive();
-		loop_rate.sleep();
-		ros::spinOnce();
-	}
-	 
-	Velocity pwmVelocity;
-	calcWheelPWMVelocities(pwmVelocity);
-	
-	while ((std::abs(pwmVelocity.left) > 0.01f) && (std::abs(pwmVelocity.right) > 0.01f)) {
-		std_msgs::Int32 interval;
-		interval.data = 10; // we want the encoder values as fast as possible
-		int_pub.publish(interval);
-		drive();
-		loop_rate.sleep();
-		ros::spinOnce();
-		calcWheelPWMVelocities(pwmVelocity);
-	}
-
-	mMotor.left = 0;
-	mMotor.right = 0;
-	mot_pub.publish(mMotor);
-	ros::spinOnce();*/
-}
-
+// Returns true if the current measurements are valid. This is the case if the measurements have been made after
+// the current speed was set.
 bool MotorControl::measurementsValid() {
 	return mMeasurementValidCounter == 0;
 }
@@ -224,50 +181,53 @@ int main(int argc, char **argv)
 	
 	ros::init(argc, argv, "MotorControl");//Creates a node named "MotorControl"
 	ros::NodeHandle n;
+
+	// create the controller and initialize it
 	MotorControl control;
 	control.init();
 
 	ros::Subscriber	enc_sub;
 	ros::Publisher	int_pub;
 
+	// create subscriber for velocity commands
 	ros::Subscriber velocities_sub;
 	velocities_sub = n.subscribe("/amee/motor_control/set_wheel_velocities", 1000, &MotorControl::receive_speed, &control);
-	enc_sub = n.subscribe("/serial/encoder", 1000, &MotorControl::receive_encoder, &control);//when "/encoder" topic is revieved call recive_encoder function
-	ros::Publisher mot_pub = n.advertise<Motor>("/serial/motor_speed", 100000);//used to publish a topic that changes the motorspeed
+
+	// create subscriber for encoder values
+	enc_sub = n.subscribe("/serial/encoder", 1000, &MotorControl::receive_encoder, &control);
+
+	// create publisher for low level motor speeds (pwm)
+	ros::Publisher mot_pub = n.advertise<Motor>("/serial/motor_speed", 100000);
 	control.setMotorPublisher(mot_pub);
 	
+	// create publisher for odometry values
 	ros::Publisher odo_pub = n.advertise<Odometry>("/amee/motor_control/odometry", 10000);
 	control.setOdometryPublisher(odo_pub);
 
-	int_pub = n.advertise<std_msgs::Int32>("/serial/encoder_interval", 100000);//used to publish a topic that changes the intervall between the "/encoder" topics published.
+	//used to publish a topic that changes the intervall between the "/encoder" topics published.
+	int_pub = n.advertise<std_msgs::Int32>("/serial/encoder_interval", 100000);
 
-
+	// set our control loop at 6Hz (TODO increase frequency when using Kalman filter)
 	ros::Rate loop_rate(6);
-	//ros::Rate rotateWaiter(1);
 	
-	//float refVelocity = 0.5f;
+	// make sure the robot isn't moving on startup
 	control.setSpeed(0.0f, 0.0f);
-	//int counter = 0;
 	
 	while(ros::ok()){
 
 		std_msgs::Int32 interval;
 		interval.data = 10; // we want the encoder values as fast as possible
+		// publish the encoder interval
 		int_pub.publish(interval);
 
+		// go to sleep for a short while
 		loop_rate.sleep();
+
+		// call all callbacks
 		ros::spinOnce();
 		
+		// drive!
 		control.drive();
-		
-		//std::cout << "rotate" << std::endl;
-		//control.rotate(45.0f);
-		//break;
-		//rotateWaiter.sleep();
-		//ros::spinOnce();
-		
-		//printf("controlled velocity is: %f \n", refVelocity);
-		//printf("Not initialised, needed number of encoder values: %i \n", mInit);
 	}
 
 	return 0;

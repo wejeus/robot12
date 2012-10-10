@@ -24,10 +24,9 @@ private:
 	public:
 		void receive_encoder(const robo::Encoder::ConstPtr &msg);
 		void receive_speed(const amee::Velocity::ConstPtr &v);
+		// Sets the given speed ( in m/s ) to both motors.
 		void setSpeed(float vLeft, float vRight);
-		void drive();
-		void rotate(float degrees);
-		void stop();
+		void drive(); // call this frequently to make the robot drive
 		void init();
 		bool measurementsValid();
 		void setMotorPublisher(ros::Publisher pub);
