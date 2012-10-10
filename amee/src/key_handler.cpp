@@ -129,10 +129,10 @@ void startKeyboardHandling(int argc, char **argv){
 int main(int argc, char **argv){
 	
 	if(argc > 1){
-		VELO_RATE = atof(argv[1]);
+		VELO_RATE = atoi(argv[1]);
 	}
 
-	printf("VELO_RATE is set to: %0.2f\n", VELO_RATE);
+	printf("VELO_RATE is set to: %i\n", VELO_RATE);
 	startKeyboardHandling(argc, argv);
 
 	return 0;

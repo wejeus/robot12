@@ -3,7 +3,7 @@
 #include "amee/KeyboardCommand.h"
 #include "amee/Encoder.h"
 
-void keyHandlerCallback(const amee::KeyboardCommand & v)
+void keyHandlerCallback(const amee::Encoder & v)
 {
   ROS_INFO("%f:[%i, %i]", v.timestamp, v.left, v.right);
 }
