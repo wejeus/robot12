@@ -69,9 +69,9 @@ void startKeyboardHandling(int argc, char **argv){
 	ros::init(argc, argv, "KeyHandler");
 	ros::NodeHandle n;
 
-	ros::Publisher keyCom_pub = n.advertise<Motor>("/serial/motor_speed", 100000);
+	ros::Publisher keyCom_pub = n.advertise<Motor>("/serial/motor_speed", 10);
 
-	ros::Rate loop_rate(10);
+	ros::Rate loop_rate(3);
 
 	char c = '0';//, lastKey = '0';
 	puts("Press the arrow keys to move around.");
@@ -80,8 +80,10 @@ void startKeyboardHandling(int argc, char **argv){
 		if(kbhit()){
 			c = getchar();
 			if(int(c) == 27 || int(c) == 32){//if we hit an arrow key or space (or an escape key)
-				c = getchar(); c = getchar(); //read 2 more chars
 				Motor motor;
+				if(int(c) != 32){//if it is an escape key
+					c = getchar(); c = getchar(); //read 2 more chars
+				}
 				switch(c){
 					case KEYCODE_L:
 						ROS_DEBUG("LEFT");
