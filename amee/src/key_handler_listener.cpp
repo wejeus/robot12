@@ -1,11 +1,13 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
-#include "amee/KeyboardCommand.h"
-#include "amee/Encoder.h"
+#include "amee/Velocity.h"
+#include "amee/Motor.h"
 
-void keyHandlerCallback(const amee::Encoder & v)
+using namespace amee;
+
+void keyHandlerCallback(const Motor::ConstPtr &motor)
 {
-  ROS_INFO("%f:[%li, %li]", v.timestamp, v.left, v.right);
+  ROS_INFO("[%0.2f, %0.2f]", motor->left, motor->right);
 }
 
 int main(int argc, char **argv)
@@ -14,7 +16,7 @@ int main(int argc, char **argv)
 
   ros::NodeHandle n;
 
-  ros::Subscriber sub = n.subscribe("/serial/encoder", 1000, keyHandlerCallback);
+  ros::Subscriber sub = n.subscribe("/serial/motor_speed", 1, keyHandlerCallback);
 
   ros::spin();
 
