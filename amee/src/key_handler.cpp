@@ -23,7 +23,7 @@ float VELO_RATE = 0.5;
 /**
  * This is for handling the nonblocking key presses
  **/
-int kbhit(void){
+int kbhit(bool put_char_back = true){
 	struct termios oldt, newt;
 	int ch;
 	int oldf;
@@ -42,7 +42,8 @@ int kbhit(void){
  
 	if(ch != EOF)
 	{
-		ungetc(ch, stdin);
+		if(put_char_back)
+			ungetc(ch, stdin);
 		return 1;
 	}
  
@@ -69,9 +70,9 @@ void startKeyboardHandling(int argc, char **argv){
 	ros::init(argc, argv, "KeyHandler");
 	ros::NodeHandle n;
 
-	ros::Publisher keyCom_pub = n.advertise<Motor>("/serial/motor_speed", 10);
+	ros::Publisher keyCom_pub = n.advertise<Motor>("/serial/motor_speed", 1);
 
-	ros::Rate loop_rate(3);
+	ros::Rate loop_rate(6);
 
 	char c = '0';//, lastKey = '0';
 	puts("Press the arrow keys to move around.");
@@ -84,6 +85,7 @@ void startKeyboardHandling(int argc, char **argv){
 				if(int(c) != 32){//if it is an escape key
 					c = getchar(); c = getchar(); //read 2 more chars
 				}
+
 				switch(c){
 					case KEYCODE_L:
 						ROS_DEBUG("LEFT");
@@ -118,6 +120,7 @@ void startKeyboardHandling(int argc, char **argv){
 
 		ros::spinOnce();
 
+		while(kbhit(false));//clear the rest
 		loop_rate.sleep();
 	}
 
