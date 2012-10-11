@@ -35,3 +35,6 @@ rosbuild_genmsg()
 rosbuild_add_executable(KeyHandler src/key_handler.cpp)
 rosbuild_add_executable(KeyHandlerTester src/key_handler_listener.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
+
+rosbuild_add_executable(MotorControl src/MotorControl.cpp)
+
