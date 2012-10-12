@@ -12,26 +12,21 @@ env.user = 'root'
 # If some command fails, stop the execution
 env.warn_only = 'false'
 
-
 # ---- PROJECT SETTINGS ---------------------------------------------------------- #
 
 # Project name, will be used as root folder name for deployments
 env.project = 'amee'
 # Assumes that project structure is using structure <project_root>/<misc> 
 # That means we are always running from <project_roo>/deploy
-env.root_path = os.path.dirname(__file__).rsplit('/',1)[0]
+env.root_path = os.path.dirname(__file__).rsplit('/',1)[0] + '/amee'
 
 # # Get a nice timestamp like '20100212-151218' to flag deployments
 # env.timestamp = utils.timestamp_mark();
 
 # Host to deploy to
 env.hosts = ['localhost']
+env.remote_deploy_path = '/opt/amee'
 
-def _init_dynamic_environment():
-    # env.remote_path = '/opt/%s' % (env.project)
-    # env.remote_release_path = '%s/releases' % (env.remote_path)
-    env.remote_deploy_path = '/opt/amee'
-    print "Will deploy to: %s on hosts: %s" % (env.remote_deploy_path, env.hosts)
 
 # ---- TASK ---------------------------------------------------------------------- #
 
@@ -39,16 +34,9 @@ def _init_dynamic_environment():
 # NOTE: During deploy You WANT full build to make sure everything is built using latest sources
 
 @task
-def test():
-    _init_dynamic_environment()
-
-@task
-def activate():
-    """Activates the latest release located in <project>/current"""
-
-    print 'Activating using <project>/current, path: ' + current_release
-    deploy.activate_release(env.project, env.project_dir, 'master', env.deploy_dir)
-    current_release = env.project_dir + '/current'
+def environment():
+    print "Will deploy to: %s on hosts: %s" % (env.remote_deploy_path, env.hosts)
+    print "Using build from: %s" % (env.root_path)
 
 
 @task
@@ -63,10 +51,10 @@ def start():
     # })
 
     # TODO Start some launch script (maybe we want to supply which?)
-    run('%(deploy_dir)s/ProbeServer.pl -r --config=%(config_file)s' % {
-        'deploy_dir' : current_release,
-        'config_file' : current_release + "/config/p2.conf",
-    })
+    # run('%(deploy_dir)s/ProbeServer.pl -r --config=%(config_file)s' % {
+    #     'deploy_dir' : current_release,
+    #     'config_file' : current_release + "/config/p2.conf",
+    # })
 
 @task
 def run_tests():
