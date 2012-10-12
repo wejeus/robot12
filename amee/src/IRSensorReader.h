@@ -12,6 +12,12 @@ private:
 		float c;
 	};
 
+	std::vector<int> mAveragedValues;
+	int mNumAveraged;
+	int mNumSensors;
+
+	static const int MAX_NUM_AVERAGED = 5;
+
 	std::vector<SensorCalibration> mSensorCalibrations;
 	ros::Publisher distance_pub;
 public:
