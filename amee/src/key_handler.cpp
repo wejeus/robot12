@@ -3,8 +3,6 @@
 using namespace amee;
 
 namespace amee{
-	//struct timeval start;
-
 
 
 	/**
@@ -41,8 +39,6 @@ namespace amee{
 	 * Sets the wheel velocities to given values
 	 **/
 	inline void KeyHandler::setWheels(Motor &motor, const float L=0.0, const float R=0.0) const{
-		//v.linear = L; v.angular = A;
-		//gettimeofday(&start, NULL);
 		motor.left  = L;
 		motor.right = R;
 	}
@@ -99,9 +95,7 @@ namespace amee{
 		}
 	}
 
-	void KeyHandler::setKeyComPublisher(ros::Publisher & pub){
-		keyCom_pub = pub;
-	}
+	void KeyHandler::setKeyComPublisher(ros::Publisher & pub){keyCom_pub = pub;}
 
 	/**
 	 * Sets the velocity rates to the default values
@@ -122,7 +116,7 @@ namespace amee{
 	inline const float & KeyHandler::getVeloRateL() const{return VELO_RATE_L;}
 	inline const float & KeyHandler::getVeloRateR() const{return VELO_RATE_R;}
 
-}
+}//namespace amee
 
 
 
