@@ -20,7 +20,7 @@ namespace amee{
 	class KeyHandler{
 
 	/* Hopefully this will work for all types of keyboards with arrows */
-	enum {KEYCODE_SPACE = 32, KEYCODE_U = 65, KEYCODE_D, KEYCODE_R, KEYCODE_L};//TODO Add page up and page down for rotating when 1 wheel is locked
+	enum {LEFT_YAW = 108, RIGHT_YAW = 114, KEYCODE_SPACE = 32, KEYCODE_U = 65, KEYCODE_D, KEYCODE_R, KEYCODE_L};//TODO Add page up and page down for rotating when 1 wheel is locked
 
 
 	private:

@@ -56,13 +56,15 @@ namespace amee{
 		char c = '0';
 		if(kbhit()){
 			c = getchar();
-			if(int(c) == 27 || int(c) == 32){//if we hit an arrow key or space (or an escape key)
+			int ascii_i = int(c);
+			if(ascii_i == 27 || ascii_i == 32 || ascii_i == LEFT_YAW || ascii_i == RIGHT_YAW){//if we hit an arrow key or space (or an escape key)
 				Motor motor;
-				if(int(c) != 32){//if it is an escape key
+				if(ascii_i == 27){//if it is an escape key
 					c = getchar(); c = getchar(); //read 2 more chars
+					ascii_i = int(c);
 				}
 
-				switch(c){
+				switch(ascii_i){
 					case KEYCODE_L:
 						ROS_DEBUG("LEFT");
 						setWheels(motor, VELO_RATE_L, -VELO_RATE_R);
@@ -78,6 +80,14 @@ namespace amee{
 					case KEYCODE_D:
 						ROS_DEBUG("DOWN");						
 						setWheels(motor, VELO_RATE_L, VELO_RATE_R);
+						break;
+					case LEFT_YAW:
+						ROS_DEBUG("LEFT_YAW");						
+						setWheels(motor, 0, -VELO_RATE_R);
+						break;
+					case RIGHT_YAW:
+						ROS_DEBUG("RIGHT_YAW");						
+						setWheels(motor, -VELO_RATE_L, 0);
 						break;
 					default:
 						ROS_DEBUG("RELEASE");
