@@ -13,6 +13,7 @@ private:
 	};
 
 	std::vector<int> mAveragedValues;
+	std::vector<int> mLastReadings;
 	int mNumAveraged;
 	int mNumSensors;
 

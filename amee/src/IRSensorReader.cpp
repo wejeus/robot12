@@ -22,22 +22,35 @@ IRSensorReader::IRSensorReader(int numSensors) {
 }
 
 void IRSensorReader::calibrate(int sensor) {
-	std::cout << "Starting calibration for sensor " << sensor << ", type arbitrary char and press enter to continue" << std::endl;
-	char input = 0;
+	std::cout << "Starting calibration for sensor " << sensor << ", type 0 and press enter to continue" << std::endl;
+	float input = 0;
 	std::cin >> input;
-	std::cout << "	Place an obstacle where zero distance is supposed to be and type arbitrary char followed by enter" << std::endl;
+	std::cout << "	Place an obstacle where zero distance is supposed to be and type 0 followed by enter" << std::endl;
 	std::cin >> input;
-	std::cout << "loop" << std::endl;
 	ros::spinOnce();
-	std::cout << "	Place an obstacle to a distance of your choice and enter the distance followed by enter" << std::endl;
+
+	// alpha is the voltage for zero distance and describes the amplitude
+	SensorCalibration calib;
+	calib.alpha = mLastReadings[sensor];
+	
+	std::cout << "	Remove any obstacle so that the sensor can 'see' as far as possible and type 0 followed by enter" << std::endl;
 	std::cin >> input;
-	std::cout << "loop" << std::endl;
 	ros::spinOnce();
-	std::cout << "	Remove any obstacle so that the sensor can 'see' as far as possible and arbitrary char followed by enter" << std::endl;
+
+	// c is the voltage for infinite distance and describes an offset
+	calib.c = mLastReadings[sensor];
+
+	std::cout << "	Place an obstacle to a distance of your choice ( > 0) and enter the distance followed by enter" << std::endl;
 	std::cin >> input;
-	std::cout << "loop" << std::endl;
 	ros::spinOnce();
-	std::cout << "Calibration is done!" << std::endl;
+
+	// lambda is the parameter that determines how fast the voltage drops
+	calib.lambda = log(calib.alpha / (mLastReadings[sensor] - calib.c)) / input;
+	
+	std::cout << "Calibration is done: " << std::endl;
+	std::cout << "	alpha = " << calib.alpha << std::endl;
+	std::cout << "	lambda = " << calib.lambda << std::endl;
+	std::cout << "	c = " << calib.c << std::endl;
 }
 
 void IRSensorReader::setDistancePublisher(ros::Publisher pub) {
@@ -47,9 +60,17 @@ void IRSensorReader::setDistancePublisher(ros::Publisher pub) {
 void IRSensorReader::receiveRawData(const serial_adc_val::ConstPtr &msg) {
 	std::cout << "Message received: " << msg->timestamp << ": " << msg->val0 << std::endl;
 	if (mNumAveraged < MAX_NUM_AVERAGED) {
+		int[] values = {msg->val0, msg->val1, msg->val2, msg->val3, msg->val4};
 		for (int i = 0; i < mNumSensors; ++i) {
 			//TODO average sensor data
+			mAveragedValues[i] += values[i];
 		}
+	} else {
+		for (int i = 0; i < mNumSensors; ++i) {
+			mLastReadings[i] = mAveragedValues[i] / MAX_NUM_AVERAGED;
+			mAveragedValues[i] = 0;
+		}
+		mNumAveraged = 0;
 	}
 }
 
