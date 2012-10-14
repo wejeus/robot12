@@ -70,6 +70,15 @@ void IRSensorReader::receiveRawData(const serial_adc_val::ConstPtr &msg) {
 			mLastReadings[i] = mAveragedValues[i] / MAX_NUM_AVERAGED;
 			mAveragedValues[i] = 0;
 		}
+		for (int i = 0; i < mNumSensors; ++i) {
+			float distance = 0;
+			if (mLastReadings[i] == mSensorCalibrations[i].c) {
+				distance = 1000.0f; // TODO set to limits::max
+			} else {
+				distance = log(mSensorCalibrations[i].alpha / (mLastReadings[i] - mSensorCalibrations[i].c)) / mSensorCalibrations[i].lambda;
+			}
+			// TODO publish distance
+		}
 		mNumAveraged = 0;
 	}
 }
