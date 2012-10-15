@@ -14,7 +14,7 @@
 #define EPSILON_SPEED 0.001f;
 
 using namespace amee;
-using namespace robo;
+using namespace roboard_drivers;
 
 
 void MotorControl::setMotorPublisher(ros::Publisher pub) {
