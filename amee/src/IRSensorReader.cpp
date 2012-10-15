@@ -17,6 +17,7 @@ IRSensorReader::IRSensorReader(int numSensors) {
 	baseCalib.c = 0.0f;
 	mSensorCalibrations.resize(numSensors, baseCalib);
 	mAveragedValues.resize(numSensors, 0);
+	mLastReadings.resize(numSensors,0);
 	mNumAveraged = 0;
 	mNumSensors = numSensors;
 }
@@ -51,6 +52,8 @@ void IRSensorReader::calibrate(int sensor) {
 	std::cout << "	alpha = " << calib.alpha << std::endl;
 	std::cout << "	lambda = " << calib.lambda << std::endl;
 	std::cout << "	c = " << calib.c << std::endl;
+
+	mSensorCalibrations[sensor] = calib;
 }
 
 void IRSensorReader::setDistancePublisher(ros::Publisher pub) {
@@ -58,27 +61,34 @@ void IRSensorReader::setDistancePublisher(ros::Publisher pub) {
 }
 
 void IRSensorReader::receiveRawData(const serial_adc_val::ConstPtr &msg) {
-	std::cout << "Message received: " << msg->timestamp << ": " << msg->val0 << std::endl;
+	//std::cout << "Message received: " << msg->timestamp << ": " << msg->val0 << std::endl;
 	if (mNumAveraged < MAX_NUM_AVERAGED) {
-		int[] values = {msg->val0, msg->val1, msg->val2, msg->val3, msg->val4};
+		int values[] = {msg->val0, msg->val1, msg->val2, msg->val3, msg->val4};
 		for (int i = 0; i < mNumSensors; ++i) {
 			//TODO average sensor data
 			mAveragedValues[i] += values[i];
 		}
+		++mNumAveraged;
 	} else {
 		for (int i = 0; i < mNumSensors; ++i) {
 			mLastReadings[i] = mAveragedValues[i] / MAX_NUM_AVERAGED;
 			mAveragedValues[i] = 0;
 		}
+		float distances[mNumSensors];
 		for (int i = 0; i < mNumSensors; ++i) {
-			float distance = 0;
 			if (mLastReadings[i] == mSensorCalibrations[i].c) {
-				distance = 1000.0f; // TODO set to limits::max
+				distances[i] = 1000.0f; // TODO set to limits::max
 			} else {
-				distance = log(mSensorCalibrations[i].alpha / (mLastReadings[i] - mSensorCalibrations[i].c)) / mSensorCalibrations[i].lambda;
+				distances[i] = log(mSensorCalibrations[i].alpha / (mLastReadings[i] - mSensorCalibrations[i].c)) / mSensorCalibrations[i].lambda;
 			}
-			// TODO publish distance
 		}
+
+		IRDistances distanceMsg;
+		distanceMsg.timestamp = msg->timestamp;
+		distanceMsg.leftBack = distances[0];
+		//TODO publish all the other distances
+		distance_pub.publish(distanceMsg);
+
 		mNumAveraged = 0;
 	}
 }
@@ -114,14 +124,14 @@ int main(int argc, char **argv)
 	ros::Rate loop_rate(100);
 		
 	reader.calibrate(0);
-	// while(ros::ok()){
+	while(ros::ok()){
 
-	// 	// go to sleep for a short while
-	// 	loop_rate.sleep();
+	 	// go to sleep for a short while
+	 	loop_rate.sleep();
 
-	// 	// call all callbacks
-	// 	ros::spinOnce();
-	// }
+	 	// call all callbacks
+	 	ros::spinOnce();
+	 }
 
 	return 0;
 }

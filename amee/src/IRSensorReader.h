@@ -11,7 +11,9 @@ private:
 		float lambda;
 		float c;
 	};
-
+	
+	std::vector<SensorCalibration> mSensorCalibrations;
+	ros::Publisher distance_pub;
 	std::vector<int> mAveragedValues;
 	std::vector<int> mLastReadings;
 	int mNumAveraged;
@@ -19,8 +21,7 @@ private:
 
 	static const int MAX_NUM_AVERAGED = 5;
 
-	std::vector<SensorCalibration> mSensorCalibrations;
-	ros::Publisher distance_pub;
+
 public:
 		IRSensorReader(int numSensors);
 		void setDistancePublisher(ros::Publisher pub);
