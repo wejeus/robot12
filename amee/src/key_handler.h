@@ -4,7 +4,7 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "amee/Velocity.h"
-#include "amee/Motor.h"
+#include "roboard_drivers/Motor.h"
 //#include <QWSKeyboardHandler>
 #include <stdio.h>
 #include <termios.h>
@@ -12,6 +12,7 @@
 #include <fcntl.h>
 
 using namespace amee;
+using namespace roboard_drivers;
 
 namespace amee{
 #define DEF_VELO_RATE_L -0.5
@@ -24,11 +25,13 @@ namespace amee{
 
 
 	private:
+		bool sendToMotorControl;
 		float VELO_RATE_L;
 		float VELO_RATE_R;
 		ros::Publisher keyCom_pub;
 	
 		inline void setWheels(Motor &, const float L, const float R) const;
+		inline void setVel(Velocity &, const float L, const float R) const;
 
 	public:
 		void setVeloRate(float left, float right);
@@ -38,6 +41,8 @@ namespace amee{
 		inline int kbhit(bool) const;
 		inline const float & getVeloRateL() const;
 		inline const float & getVeloRateR() const;
+		inline const bool & isMotorControlPub() const;
+		void setMotorControlPub(bool);
 
 	};
 

@@ -39,8 +39,11 @@ namespace amee{
 	 * Sets the wheel velocities to given values
 	 **/
 	inline void KeyHandler::setWheels(Motor &motor, const float L=0.0, const float R=0.0) const{
-		motor.left  = L;
-		motor.right = R;
+		motor.left  = L; motor.right = R;
+	}
+
+	inline void KeyHandler::setVel(Velocity &vel, const float L=0.0, const float R=0.0) const{
+		vel.left = L; vel.right = R;
 	}
 
 	/**
@@ -55,6 +58,7 @@ namespace amee{
 			int ascii_i = int(c);
 			if(ascii_i == 27 || ascii_i == 32 || ascii_i == LEFT_YAW || ascii_i == RIGHT_YAW){//if we hit an arrow key or space (or an escape key)
 				Motor motor;
+				Velocity velocity;
 				if(ascii_i == 27){//if it is an escape key
 					c = getchar(); c = getchar(); //read 2 more chars
 					ascii_i = int(c);
@@ -64,33 +68,43 @@ namespace amee{
 					case KEYCODE_L:
 						ROS_DEBUG("LEFT");
 						setWheels(motor, VELO_RATE_L, -VELO_RATE_R);
+						setVel(velocity, VELO_RATE_L, -VELO_RATE_R);
 						break;
 					case KEYCODE_R:
 						ROS_DEBUG("RIGHT");
 						setWheels(motor, -VELO_RATE_L, VELO_RATE_R);
+						setVel(velocity, -VELO_RATE_L, VELO_RATE_R);
 						break;
 					case KEYCODE_U:
 						ROS_DEBUG("UP");
 						setWheels(motor, -VELO_RATE_L, -VELO_RATE_R);
+						setVel(velocity, -VELO_RATE_L, -VELO_RATE_R);
 						break;
 					case KEYCODE_D:
 						ROS_DEBUG("DOWN");						
 						setWheels(motor, VELO_RATE_L, VELO_RATE_R);
+						setVel(velocity, VELO_RATE_L, VELO_RATE_R);
 						break;
 					case LEFT_YAW:
-						ROS_DEBUG("LEFT_YAW");						
+						ROS_DEBUG("LEFT_YAW");
 						setWheels(motor, 0, -VELO_RATE_R);
+						setVel(velocity, 0, -VELO_RATE_R);
 						break;
 					case RIGHT_YAW:
-						ROS_DEBUG("RIGHT_YAW");						
+						ROS_DEBUG("RIGHT_YAW");
 						setWheels(motor, -VELO_RATE_L, 0);
+						setVel(velocity, -VELO_RATE_L, 0);
 						break;
 					default:
 						ROS_DEBUG("RELEASE");
 						setWheels(motor);
+						setVel(velocity);
 						break;
 				}
-				keyCom_pub.publish(motor);
+				if(isMotorControlPub())
+					keyCom_pub.publish(velocity);
+				else
+					keyCom_pub.publish(motor);
 			}
 		}
 	}
@@ -116,30 +130,45 @@ namespace amee{
 	inline const float & KeyHandler::getVeloRateL() const{return VELO_RATE_L;}
 	inline const float & KeyHandler::getVeloRateR() const{return VELO_RATE_R;}
 
+	inline const bool & KeyHandler::isMotorControlPub() const {return sendToMotorControl;}
+	
+	void KeyHandler::setMotorControlPub(bool activate){sendToMotorControl = activate;}
+
 }//namespace amee
+
 
 
 
 
 int main(int argc, char **argv){
 	KeyHandler keyHandler;
-	
-	if(argc > 1){//if only one velocity is given, set both motors to given value
-		float velo_rate = atof(argv[1]);
+	if(argc > 2){//if only one velocity is given, set both motors to given value
+		bool sendToMotor = atoi(argv[1]);
+		float velo_rate = atof(argv[2]);
 		keyHandler.setVeloRate(velo_rate, velo_rate);
-	}else if(argc > 2){//if both velocities are given, set each to the corresponding value
-		float velo_rate_L = atof(argv[1]);
-		float velo_rate_R = atof(argv[2]);
+		keyHandler.setMotorControlPub(sendToMotor);
+	}else if(argc > 3){//if both velocities are given, set each to the corresponding value
+		bool sendToMotor = atoi(argv[1]);
+		float velo_rate_L = atof(argv[2]);
+		float velo_rate_R = atof(argv[3]);
 		keyHandler.setVeloRate(velo_rate_L, velo_rate_R);
+		keyHandler.setMotorControlPub(sendToMotor);
 	}else{//no value is given so set the volicities to the default values
 		keyHandler.initDefVeloRate();
+		keyHandler.setMotorControlPub(1); //publish to the velocities to MotorControl instead of dirictly to the motor(s)
 	}
-
 	printf("VELO_RATE is set to: [%0.2f, %0.2f]\n", keyHandler.getVeloRateL(), keyHandler.getVeloRateR());
 
 	ros::init(argc, argv, "KeyHandler");
 	ros::NodeHandle nodeHandle;
-	ros::Publisher keyCom_pub = nodeHandle.advertise<Motor>("/serial/motor_speed", 1);
+	ros::Publisher keyCom_pub;
+	if(keyHandler.isMotorControlPub()){
+		keyCom_pub = nodeHandle.advertise<Velocity>("/amee/motor_control/set_wheel_velocities", 1);
+		puts("Publishing on /amee/motor_control/set_wheel_velocities");
+	}else{
+		keyCom_pub = nodeHandle.advertise<Motor>("/serial/motor_speed", 1);
+		puts("Publishing on /serial/motor_speed");
+	}
 	keyHandler.setKeyComPublisher(keyCom_pub);
 
 	ros::Rate loop_rate = ros::Rate(6);
