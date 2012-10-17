@@ -8,6 +8,10 @@
 #include "amee/Odometry.h"
 
 class MotorControl {
+
+#define MAX_MOTOR_SPEED 1.0
+#define MIN_MOTOR_SPEED -1.0
+
 private:
 	amee::Velocity mVelocity;
 	amee::Odometry mOdometry;
@@ -34,6 +38,8 @@ private:
 	protected:
 		void calcWheelPWMVelocities(amee::Velocity& velocity);
 	private:
+		inline void checkWheelSpeed(float & motorDirection);
+		inline void checkSpeedLimit();
 		void publishOdometry();
 };
 #endif
