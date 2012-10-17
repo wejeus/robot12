@@ -3,7 +3,7 @@
 BIN="/home/robot/ros_workspace/robot12/amee/bin/"
 NODES="/home/robot/ros_workspace/robot12/amee/nodes/"
 
-DEST="/home/robot/ros_workspace/robot12/"
+DEST="/home/robot/ros_workspace/robot12/amee/"
 
 scp -r $BIN $NODES robo0:$DEST
 
