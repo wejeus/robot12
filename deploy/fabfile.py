@@ -8,7 +8,7 @@ from fabric.api import *
 # ---- FABRIC SETTINGS -----------------------------------------------------------
 
 # Assume user 'root' when executing commands and copying files
-env.user = 'root'
+env.user = 'robot'
 # If some command fails, stop the execution
 env.warn_only = 'false'
 
@@ -24,8 +24,8 @@ env.root_path = os.path.dirname(__file__).rsplit('/',1)[0] + '/amee'
 # env.timestamp = utils.timestamp_mark();
 
 # Host to deploy to
-env.hosts = ['localhost']
-env.remote_deploy_path = '/opt/amee'
+env.hosts = ['robo0']
+env.remote_deploy_path = '/home/robot/amee'
 
 
 # ---- TASK ---------------------------------------------------------------------- #
