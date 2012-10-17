@@ -25,6 +25,18 @@ void MotorControl::setOdometryPublisher(ros::Publisher pub) {
 	odo_pub = pub;
 }
 
+inline void MotorControl::checkWheelSpeed(float & wheel){
+	if(wheel < 0 && wheel < MIN_MOTOR_SPEED) wheel = MIN_MOTOR_SPEED;
+	else if(wheel > 0 && wheel > MAX_MOTOR_SPEED) wheel = MAX_MOTOR_SPEED;
+}
+
+inline void MotorControl::checkSpeedLimit(){
+//	printf("[%0.2f, %0.2f] -> ", mMotor.left, mMotor.right);
+	checkWheelSpeed(mMotor.left);
+	checkWheelSpeed(mMotor.right);
+//	printf("[%0.2f, %0.2f]\n", mMotor.left, mMotor.right);
+}
+
 //Callback function for the "/encoder" topic. Stores the two last encoder values.
 void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 {
@@ -142,6 +154,7 @@ void MotorControl::drive()
 	}
 	
 	//printf("set motor pwm velocities: %f %f \n", mMotor.left, mMotor.right);
+	checkSpeedLimit(); //check the limit before publishing it
 	mot_pub.publish(mMotor);
 }
 
@@ -197,7 +210,7 @@ int main(int argc, char **argv)
 	enc_sub = n.subscribe("/serial/encoder", 1000, &MotorControl::receive_encoder, &control);
 
 	// create publisher for low level motor speeds (pwm)
-	ros::Publisher mot_pub = n.advertise<Motor>("/serial/motor_speed", 100000);
+	ros::Publisher mot_pub = n.advertise<Motor>("/serial/motor_speed", 100);
 	control.setMotorPublisher(mot_pub);
 	
 	// create publisher for odometry values
