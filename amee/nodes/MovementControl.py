@@ -7,7 +7,7 @@ import roslib; roslib.load_manifest('amee')
 import rospy, math, operator
 from std_msgs.msg import String, Int32
 from amee.msg import MovementCommand, KeyboardCommand, Velocity, Odometry
-from turtlesim.msg import Velocity as turtleCommand
+#from turtlesim.msg import Velocity as turtleCommand
 
 NODE_NAME = "MovementControl"
 
@@ -160,7 +160,7 @@ if __name__ == '__main__':
         rospy.Subscriber("/MovementControl/MovementCommand", MovementCommand, controller.handle_static_change)
         rospy.Subscriber("/amee/motor_control/odometry", Odometry, controller.handle_odometry_change)
         #rospy.Subscriber("/KeyboardControl/KeyboardCommand", KeyboardCommand, controller.handle_keyboard_change)
-        rospy.Subscriber("/turtle1/command_velocity", turtleCommand, controller.handle_keyboard_change)
+        #rospy.Subscriber("/turtle1/command_velocity", turtleCommand, controller.handle_keyboard_change)
 
         rospy.loginfo("... done! Entering spin() loop")
 
