@@ -31,8 +31,10 @@ inline void MotorControl::checkWheelSpeed(float & wheel){
 }
 
 inline void MotorControl::checkSpeedLimit(){
+//	printf("[%0.2f, %0.2f] -> ", mMotor.left, mMotor.right);
 	checkWheelSpeed(mMotor.left);
 	checkWheelSpeed(mMotor.right);
+//	printf("[%0.2f, %0.2f]\n", mMotor.left, mMotor.right);
 }
 
 //Callback function for the "/encoder" topic. Stores the two last encoder values.
