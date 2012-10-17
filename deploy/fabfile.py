@@ -25,12 +25,12 @@ env.root_path = os.path.dirname(__file__).rsplit('/',1)[0]
 # env.timestamp = utils.timestamp_mark();
 
 # Host to deploy to
-env.hosts = ['localhost']
+env.hosts = ['robo0']
 
 def _init_dynamic_environment():
     # env.remote_path = '/opt/%s' % (env.project)
     # env.remote_release_path = '%s/releases' % (env.remote_path)
-    env.remote_deploy_path = '/opt/amee'
+    env.remote_deploy_path = '/home/robot/ros_workspace/robot12'
     print "Will deploy to: %s on hosts: %s" % (env.remote_deploy_path, env.hosts)
 
 # ---- TASK ---------------------------------------------------------------------- #
@@ -77,7 +77,7 @@ def run_tests():
 def build():
     """Builds project"""
     require('root_path')
-    local('cd %s; rosmake' % (env.root_path))
+    local('cd %s/amee; rosmake' % (env.root_path))
 
 
 @task
@@ -88,22 +88,15 @@ def deploy():
     # Upload
     run('mkdir -p %s' % env.remote_deploy_path)
 
-    # nodes, bin, launch
-    rsync_project(
-        local_dir='%s/%s' % (env.root_path, 'nodes'),
-        remote_dir='%s/%s' % (env.remote_deploy_path, 'nodes'),
-        delete='true',
-    )
-    rsync_project(
-        local_dir='%s/%s' % (env.root_path, 'bin'),
-        remote_dir='%s/%s' % (env.remote_deploy_path, 'bin'),
-        delete='true',
-    )
-    rsync_project(
-        local_dir='%s/%s' % (env.root_path, 'launch'),
-        remote_dir='%s/%s' % (env.remote_deploy_path, 'launch'),
-        delete='true',
-    )
+    resources = ['bin', 'amee/nodes', 'amee/bin', 'amee/launch', 'amee/msg_gen']
+
+    for res in resources:
+        rsync_project(
+            local_dir='%s/%s' % (env.root_path, res),
+            remote_dir='%s/%s' % (env.remote_deploy_path, res),
+            delete='true',
+        )
+
 
 
 
