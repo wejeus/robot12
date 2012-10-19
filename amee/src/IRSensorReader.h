@@ -7,9 +7,9 @@
 class IRSensorReader {
 private:
 	struct SensorCalibration {
-		float alpha;
-		float lambda;
-		float c;
+		float m;
+		float b;
+		float k;
 	};
 	
 	std::vector<SensorCalibration> mSensorCalibrations;
