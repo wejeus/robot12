@@ -3,35 +3,34 @@
 #include "IRSensorReader.h"
 #include <iostream>
 #include <cmath>
-#include "roboard_drivers/serial_adc_val.h"
-#include "roboard_drivers/enable_adc_val.h"
+// #include "roboard_drivers/serial_adc_val.h"
+// #include "roboard_drivers/enable_adc_val.h"
 #include "amee/IRDistances.h"
 
 using namespace amee;
 using namespace roboard_drivers;
 
-IRSensorReader::IRSensorReader(int numSensors) {
+IRSensorReader::IRSensorReader() {
 	SensorCalibration baseCalib;
 	baseCalib.m = 0.0f;
 	baseCalib.b = 0.0f;
 	baseCalib.k = 0.0f;
-	mSensorCalibrations.resize(numSensors, baseCalib);
+	mSensorCalibrations.resize(NUM_PORTS, baseCalib);
 	
 	// set values determined by manual calibration
 	baseCalib.m = 0.0305;
 	baseCalib.b = 0.6042;
 	baseCalib.k = 0.0611;
-	mSensorCalibrations[0] = baseCalib;
+	mSensorCalibrations[RIGHT_FRONT] = baseCalib;
 
 	baseCalib.m = 0.0317;
 	baseCalib.b = 0.0494;
 	baseCalib.k = 0.0613;
-	mSensorCalibrations[1] = baseCalib;
+	mSensorCalibrations[RIGHT_BACK] = baseCalib;
 
-	mAveragedValues.resize(numSensors, 0);
-	mLastReadings.resize(numSensors,0);
+	mAveragedValues.resize(NUM_PORTS, 0);
+	mLastReadings.resize(NUM_PORTS,0);
 	mNumAveraged = 0;
-	mNumSensors = numSensors;
 }
 
 void IRSensorReader::calibrate(int sensor) {
@@ -72,22 +71,21 @@ void IRSensorReader::setDistancePublisher(ros::Publisher pub) {
 	distance_pub = pub;
 }
 
-void IRSensorReader::receiveRawData(const serial_adc_val::ConstPtr &msg) {
+void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 	//std::cout << "Message received: " << msg->timestamp << ": " << msg->val0 << std::endl;
 	if (mNumAveraged < MAX_NUM_AVERAGED) {
-		int values[] = {msg->val0, msg->val1, msg->val2, msg->val3, msg->val4};
-		for (int i = 0; i < mNumSensors; ++i) {
-			//TODO average sensor data
+		int values[] = {msg->val0, msg->val1, msg->val2, msg->val3, msg->val4, msg->val5, msg->val6, msg->val7};
+		for (int i = 0; i < NUM_PORTS; ++i) {
 			mAveragedValues[i] += values[i];
 		}
 		++mNumAveraged;
 	} else {
-		for (int i = 0; i < mNumSensors; ++i) {
+		for (int i = 0; i < NUM_PORTS; ++i) {
 			mLastReadings[i] = mAveragedValues[i] / MAX_NUM_AVERAGED;
 			mAveragedValues[i] = 0;
 		}
-		float distances[mNumSensors];
-		for (int i = 0; i < mNumSensors; ++i) {
+		float distances[NUM_PORTS];
+		for (int i = 0; i < NUM_PORTS; ++i) {
 			// if (mLastReadings[i] == mSensorCalibrations[i].c) {
 			// 	distances[i] = 1000.0f; // TODO set to limits::max
 			// } else {
@@ -100,8 +98,8 @@ void IRSensorReader::receiveRawData(const serial_adc_val::ConstPtr &msg) {
 
 		IRDistances distanceMsg;
 		distanceMsg.timestamp = msg->timestamp;
-		distanceMsg.rightFront = distances[0];
-		distanceMsg.rightBack = distances[1];
+		distanceMsg.rightFront = distances[RIGHT_FRONT];
+		distanceMsg.rightBack = distances[RIGHT_BACK];
 		//TODO publish all the other distances
 		distance_pub.publish(distanceMsg);
 
@@ -116,21 +114,21 @@ int main(int argc, char **argv)
 	ros::NodeHandle n;
 
 	// create the reader
-	IRSensorReader reader(2);
+	IRSensorReader reader;
 
 	// make sure we get ad values
-	ros::Publisher serial_enable_adc = n.advertise<enable_adc_val>("/serial/enable_adc", 1);
-	enable_adc_val enable_msg;
-	enable_msg.enable0 = true;
-	enable_msg.enable1 = true;
-	enable_msg.enable2 = false;
-	enable_msg.enable3 = false;
-	enable_msg.enable4 = false;
-	serial_enable_adc.publish(enable_msg);
+	// ros::Publisher serial_enable_adc = n.advertise<enable_adc_val>("/serial/enable_adc", 1);
+	// enable_adc_val enable_msg;
+	// enable_msg.enable0 = true;
+	// enable_msg.enable1 = true;
+	// enable_msg.enable2 = false;
+	// enable_msg.enable3 = false;
+	// enable_msg.enable4 = false;
+	// serial_enable_adc.publish(enable_msg);
 
 	// create subscriber for sensor input
 	ros::Subscriber raw_sensor_sub;
-	raw_sensor_sub = n.subscribe("/serial/adc", 1000, &IRSensorReader::receiveRawData, &reader);
+	raw_sensor_sub = n.subscribe("/roboard/adc", 1000, &IRSensorReader::receiveRawData, &reader);
 
 	// create publisher for distances
 	ros::Publisher distance_pub = n.advertise<IRDistances>("/amee/sensors/irdistances", 1000);
