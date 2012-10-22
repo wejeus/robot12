@@ -21,7 +21,7 @@ MOVEMENT_SPEED = 0.3
 MAX_ROTATION_SPEED = 1
 MIN_ROTATION_SPEED = 0.02
 
-DISTANCE_TO_WALL = 0.1
+REF_DISTANCE_TO_WALL = 0.1
 IR_BASE_RIGHT = 0.104
 
 
@@ -136,16 +136,16 @@ class Controller:
 
         linearSpeed = 1;
         while not stop_follow_wall:
-            ir_right_mean = (ir_rightBack - ir_rightFront)/2
-            angle_to_wall = math.tan((ir_rightBack - ir_rightFront) / IR_BASE_RIGHT)
+            ir_right_mean = (self.ir_rightBack - self.ir_rightFront)/2
+            angle_to_wall = math.tan((self.ir_rightBack - self.ir_rightFront) / IR_BASE_RIGHT)
             distance_to_wall = math.cos(angle_to_wall) * ir_right_mean
             
             if abs(REF_DISTANCE_TO_WALL - distance_to_wall) < 0.05: # if we're at distance_to_wall +- 5cm 
-                error = ir_rightBack - ir_rightFront
-                rotationSpeed = K_p * error # TODO: add integrating control if needed
+                error = self.ir_rightBack - self.ir_rightFront
+                rotationSpeed = K_p_1 * error # TODO: add integrating control if needed
             else:
                 error = REF_DISTANCE_TO_WALL - ir_right_mean
-                rotationSpeed = K_p * error # TODO: add integrating control if needed
+                rotationSpeed = K_p_2 * error # TODO: add integrating control if needed
 
             self.move(linearSpeed + rotationSpeed, linearSpeed - rotationSpeed)
             loopRate.sleep()

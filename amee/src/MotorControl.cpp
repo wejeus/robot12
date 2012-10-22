@@ -204,21 +204,21 @@ int main(int argc, char **argv)
 
 	// create subscriber for velocity commands
 	ros::Subscriber velocities_sub;
-	velocities_sub = n.subscribe("/amee/motor_control/set_wheel_velocities", 1000, &MotorControl::receive_speed, &control);
+	velocities_sub = n.subscribe("/amee/motor_control/set_wheel_velocities", 100, &MotorControl::receive_speed, &control);
 
 	// create subscriber for encoder values
-	enc_sub = n.subscribe("/serial/encoder", 1000, &MotorControl::receive_encoder, &control);
+	enc_sub = n.subscribe("/serial/encoder", 100, &MotorControl::receive_encoder, &control);
 
 	// create publisher for low level motor speeds (pwm)
 	ros::Publisher mot_pub = n.advertise<Motor>("/serial/motor_speed", 100);
 	control.setMotorPublisher(mot_pub);
 	
 	// create publisher for odometry values
-	ros::Publisher odo_pub = n.advertise<Odometry>("/amee/motor_control/odometry", 10000);
+	ros::Publisher odo_pub = n.advertise<Odometry>("/amee/motor_control/odometry", 100);
 	control.setOdometryPublisher(odo_pub);
 
 	//used to publish a topic that changes the intervall between the "/encoder" topics published.
-	int_pub = n.advertise<std_msgs::Int32>("/serial/encoder_interval", 100000);
+	int_pub = n.advertise<std_msgs::Int32>("/serial/encoder_interval", 100);
 
 	// set our control loop at 6Hz (TODO increase frequency when using Kalman filter)
 	ros::Rate loop_rate(6);
