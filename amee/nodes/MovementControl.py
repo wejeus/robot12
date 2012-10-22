@@ -6,7 +6,7 @@
 import roslib; roslib.load_manifest('amee')
 import rospy, math, operator
 from std_msgs.msg import String, Int32
-from amee.msg import MovementCommand, KeyboardCommand, Velocity, Odometry
+from amee.msg import MovementCommand, KeyboardCommand, Velocity, Odometry, IRDistances
 #from turtlesim.msg import Velocity as turtleCommand
 
 NODE_NAME = "MovementControl"
@@ -15,6 +15,7 @@ TYPE_MOVE_STRAIGHT = 1
 TYPE_MOVE_ROTATE = 2
 TYPE_MOVE_COORDINATE = 3
 TYPE_FOLLOW_WALL = 4
+TYPE_STOP_FOLLOW_WALL = 5
 
 MOVEMENT_SPEED = 0.3
 MAX_ROTATION_SPEED = 1
@@ -169,9 +170,9 @@ class Controller:
         elif msg.type == TYPE_MOVE_COORDINATE:
             self.move_coordinate(msg.x, msg.y)
         elif msg.type == TYPE_FOLLOW_WALL:
-            self.follow_wall(msg.leftBack, msg.leftFront, msg.rightBack, msg.rightFront, True)
-        elif msg.type == TYPE_STOP_FOLLOW_WALL:
             self.follow_wall(msg.leftBack, msg.leftFront, msg.rightBack, msg.rightFront, False)
+        elif msg.type == TYPE_STOP_FOLLOW_WALL:
+            self.follow_wall(msg.leftBack, msg.leftFront, msg.rightBack, msg.rightFront, True)
         else:
             rospy.logwarn(NODE_NAME + ' UNKNOWN_MOVEMENT')
 
