@@ -25,6 +25,6 @@ elif sys.argv[1] == 'stopwall':
 	print commands.getstatusoutput(motorCmd % (5, 0.0, 0.0, 0.0, 0.0))
 elif sys.argv[1] == 'reset':
 	print "Reseting motors to (0, 0)"
-	print commands.getstatusoutput('rostopic pub -1 /serial/motor_speed robo/Motor -- 0.0 0.0')
+	print commands.getstatusoutput('rostopic pub -1 /serial/motor_speed roboard_drivers/Motor -- 0.0 0.0')
 else:
 	print "Unknow command"
