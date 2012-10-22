@@ -120,7 +120,7 @@ class Controller:
         self.move_rotate(angle * (180/math.pi))
         self.move_straight(distance)
 
-    def folow_wall(self, ir_rightBack, ir_rightFront, stop_follow_wall):
+    def follow_wall(self, ir_rightBack, ir_rightFront, stop_follow_wall):
         rospy.loginfo("Following wall")
 
         loopRate = rospy.Rate(5)
