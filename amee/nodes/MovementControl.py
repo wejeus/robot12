@@ -19,6 +19,9 @@ MOVEMENT_SPEED = 0.3
 MAX_ROTATION_SPEED = 1
 MIN_ROTATION_SPEED = 0.02
 
+DISTANCE_TO_WALL = 0.1
+IR_BASE_RIGHT = 0.104
+
 
 # TODO: BUGFIX: positive/negative directions/angle is not handle correctly
 # TODO: This can overshoot the target position with a small error
@@ -115,12 +118,47 @@ class Controller:
         self.move_rotate(angle * (180/math.pi))
         self.move_straight(distance)
 
+    def folow_wall(self, ir_rightBack, ir_rightFront, stop_follow_wall):
+        rospy.loginfo("Following wall")
 
-    # ----------------------- ROS CALLBACKS ----------------------- #
+        loopRate = rospy.Rate(5)
+
+        K_p_1 = 1
+        K_p_2 = 1
+        #K_i_1 = 0
+        #K_i_2 = 0
+
+        linearSpeed = 1;
+        while not stop_follow_wall:
+            ir_right_mean = (ir_rightBack - ir_rightFront)/2
+            angle_to_wall = math.tan((ir_rightBack - ir_rightFront) / IR_BASE_RIGHT)
+            distance_to_wall = math.cos(angle_to_wall) * ir_right_mean
+            
+            if abs(REF_DISTANCE_TO_WALL - distance_to_wall) < 0.05: # if we're at distance_to_wall +- 5cm 
+                error = ir_rightBack - ir_rightFront
+                rotationSpeed = K_p * error # TODO: add integrating control if needed
+            else:
+                error = REF_DISTANCE_TO_WALL - ir_right_mean
+                rotationSpeed = K_p * error # TODO: add integrating control if needed
+
+            self.move(linearSpeed + rotationSpeed, linearSpeed - rotationSpeed)
+            loopRate.sleep()
+
+        self.stop_motors()
+        rospy.loginfo("Stop following wall")            
+
+
+   # ----------------------- ROS CALLBACKS ----------------------- #
 
     def handle_odometry_change(self, msg):
         self.totalDistance = msg.distance
         self.totalAngle = msg.angle
+
+    def handle_ir_change(self, msg):
+        self.ir_leftBack = msg.leftBack
+        self.ir_leftFront = msg.leftFront
+        self.ir_rightBack = msg.rightBack
+        self.ir_rightFront = msg.rightFront
         
     def handle_static_change(self, msg):
         if msg.type == TYPE_MOVE_STRAIGHT:
@@ -129,6 +167,10 @@ class Controller:
             self.move_rotate(msg.angle)
         elif msg.type == TYPE_MOVE_COORDINATE:
             self.move_coordinate(msg.x, msg.y)
+        elif msg.type == TYPE_FOLLOW_WALL:
+            self.follow_wall(msg.leftBack, msg.leftFront, msg.rightBack, msg.rightFront, True)
+        elif msg.type == TYPE_STOP_FOLLOW_WALL:
+            self.follow_wall(msg.leftBack, msg.leftFront, msg.rightBack, msg.rightFront, False)
         else:
             rospy.logwarn(NODE_NAME + ' UNKNOWN_MOVEMENT')
 
@@ -159,6 +201,7 @@ if __name__ == '__main__':
         # The TOPIC we want to listen to
         rospy.Subscriber("/MovementControl/MovementCommand", MovementCommand, controller.handle_static_change)
         rospy.Subscriber("/amee/motor_control/odometry", Odometry, controller.handle_odometry_change)
+        rospy.Subscriber("/amee/sensor/irdistances", IRDistances , controller.handle_ir_change)
         #rospy.Subscriber("/KeyboardControl/KeyboardCommand", KeyboardCommand, controller.handle_keyboard_change)
         #rospy.Subscriber("/turtle1/command_velocity", turtleCommand, controller.handle_keyboard_change)
 
