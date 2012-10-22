@@ -45,6 +45,10 @@ class Controller:
         # distance/angle is mesured in respect to origin of start of movement
         self.totalDistance = 0.0 # Meters
         self.totalAngle = 0.0    # Degrees
+        self.ir_leftBack = 0.0
+        self.ir_leftFront = 0.0
+        self.ir_rightBack = 0.0
+        self.ir_rightFront = 0.0
 
     def stop_motors(self):
         rospy.loginfo("STOPPING MOTORS")
@@ -120,7 +124,7 @@ class Controller:
         self.move_rotate(angle * (180/math.pi))
         self.move_straight(distance)
 
-    def follow_wall(self, ir_rightBack, ir_rightFront, stop_follow_wall):
+    def follow_wall(self, stop_follow_wall):
         rospy.loginfo("Following wall")
 
         loopRate = rospy.Rate(5)
@@ -170,9 +174,9 @@ class Controller:
         elif msg.type == TYPE_MOVE_COORDINATE:
             self.move_coordinate(msg.x, msg.y)
         elif msg.type == TYPE_FOLLOW_WALL:
-            self.follow_wall(msg.leftBack, msg.leftFront, msg.rightBack, msg.rightFront, False)
+            self.follow_wall(False)
         elif msg.type == TYPE_STOP_FOLLOW_WALL:
-            self.follow_wall(msg.leftBack, msg.leftFront, msg.rightBack, msg.rightFront, True)
+            self.follow_wall(True)
         else:
             rospy.logwarn(NODE_NAME + ' UNKNOWN_MOVEMENT')
 
