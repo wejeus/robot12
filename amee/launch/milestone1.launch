@@ -1,0 +1,12 @@
+<launch>
+
+    <group ns="roboard">
+        <node pkg="roboard_drivers" name="serializerNode" type="serializerNode"/>
+    </group>
+
+    <group ns="amee">
+        <node pkg="amee" name="MotorControl" type="MotorControl"/>
+        <node pkg="amee" name="MovementControl" type="MovementControl.py"/>
+    </group>
+
+</launch>
