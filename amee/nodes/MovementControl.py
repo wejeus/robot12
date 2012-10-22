@@ -203,7 +203,7 @@ if __name__ == '__main__':
         # The TOPIC we want to listen to
         rospy.Subscriber("/MovementControl/MovementCommand", MovementCommand, controller.handle_static_change)
         rospy.Subscriber("/amee/motor_control/odometry", Odometry, controller.handle_odometry_change)
-        rospy.Subscriber("/amee/sensor/irdistances", IRDistances , controller.handle_ir_change)
+        rospy.Subscriber("/amee/sensors/irdistances", IRDistances , controller.handle_ir_change)
         #rospy.Subscriber("/KeyboardControl/KeyboardCommand", KeyboardCommand, controller.handle_keyboard_change)
         #rospy.Subscriber("/turtle1/command_velocity", turtleCommand, controller.handle_keyboard_change)
 
