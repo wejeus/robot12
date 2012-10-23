@@ -20,6 +20,8 @@ TYPE_STOP_FOLLOW_WALL = 5
 MOVEMENT_SPEED = 0.3
 MAX_ROTATION_SPEED = 1
 MIN_ROTATION_SPEED = 0.02
+MIN_SPEED = 0.1
+MAX_SPEED = 1
 
 REF_DISTANCE_TO_WALL = 0.1
 IR_BASE_RIGHT = 0.104
@@ -66,24 +68,27 @@ class Controller:
         
         lastDistance = self.totalDistance
         traveledDistance = 0
-        
-        while abs(traveledDistance) < abs(ref_distance - 0.05):
+        K_p = 1
+        error = ref_distance - traveledDistance
 
-            error = ref_distance - traveledDistance
+	while abs(error) > 0.05:
+
             speed = error * K_p
 
             #saturate if speed is too high or too low
-            speed = math.copysign(MAX_SPEED, speed) if abs(speed) > MAX_SPEED 
-            speed = math.copysign(MIN_SPEED, speed) if abs(speed) < MIN_SPEED  
+            speed = math.copysign(MAX_SPEED, speed) if (abs(speed) > MAX_SPEED) else speed
+            speed = math.copysign(MIN_SPEED, speed) if (abs(speed) < MIN_SPEED) else speed  
 
             self.move(speed, speed) # send speed to motor control node
 
+            traveledDistance = (self.totalDistance - lastDistance)  
+            error = ref_distance - traveledDistance
+
             rospy.loginfo("distance travelled: %s", traveledDistance)
             loopRate.sleep()
-            traveledDistance = (self.totalDistance - lastDistance)  
-
-        rospy.loginfo("DONE. MOVED: %s", traveledDistance)  
-          
+        
+	rospy.loginfo("DONE. MOVED: %s", traveledDistance)  
+         
         self.stop_motors()
 
     # FIXME Make sure angle is degrees...
@@ -101,18 +106,16 @@ class Controller:
         # TODO: make K_p tuneable while driving the robot
         # Proportional gain constant (tune this to imropve turn performance)
         K_p = 1.0/200.0 # starts to slow down 20 degrees before final angle
-
+        angleError = degreesToTravel - travelledAngle
 
         while abs(angleError) > 0.5:            
-            angleError = degreesToTravel - travelledAngle
             rotationSpeed = K_p * angleError
 
             # saturate if rotation speed is too high or too low
-            rotationSpeed = math.copysign(MAX_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) > MAX_ROTATION_SPEED 
-            rotationSpeed = math.copysign(MIN_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) < MIN_ROTATION_SPEED
+            rotationSpeed = math.copysign(MAX_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) > MAX_ROTATION_SPEED else rotationSpeed 
+            rotationSpeed = math.copysign(MIN_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) < MIN_ROTATION_SPEED else rotationSpeed
             
             self.move(rotationSpeed, -rotationSpeed)
-
             rospy.loginfo("degrees rotated: %s", self.totalAngle)
             rospy.loginfo("angle error: %s", angleError)
             loopRate.sleep()
