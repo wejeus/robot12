@@ -59,23 +59,31 @@ class Controller:
     def move(self, rightVelocity, leftVelocity):
         self.publisherMotor.publish(rightVelocity, leftVelocity)
 
-    def move_straight(self, distance):
-        rospy.loginfo("MOVING: %s METRES", distance)
-        direction = 1 if distance > 0 else -1
+    def move_straight(self, ref_distance):
+        rospy.loginfo("MOVING: %s METRES", ref_distance)
+        #ref_direction = 1 if ref_distance > 0 else -1
         loopRate = rospy.Rate(5)
         
         lastDistance = self.totalDistance
         traveledDistance = 0
-
-        # full speed ahead!
-        self.move(direction*MOVEMENT_SPEED, direction*MOVEMENT_SPEED)
         
-        while abs(traveledDistance) < abs(distance - 0.05):
+        while abs(traveledDistance) < abs(ref_distance - 0.05):
+
+            error = ref_distance - traveledDistance
+            speed = error * K_p
+
+            #saturate if speed is too high or too low
+            speed = math.copysign(MAX_SPEED, speed) if abs(speed) > MAX_SPEED 
+            speed = math.copysign(MIN_SPEED, speed) if abs(speed) < MIN_SPEED  
+
+            self.move(speed, speed) # send speed to motor control node
+
             rospy.loginfo("distance travelled: %s", traveledDistance)
             loopRate.sleep()
             traveledDistance = (self.totalDistance - lastDistance)  
 
-        rospy.loginfo("DONE. MOVED: %s", traveledDistance)    
+        rospy.loginfo("DONE. MOVED: %s", traveledDistance)  
+          
         self.stop_motors()
 
     # FIXME Make sure angle is degrees...
@@ -93,15 +101,15 @@ class Controller:
         # TODO: make K_p tuneable while driving the robot
         # Proportional gain constant (tune this to imropve turn performance)
         K_p = 1.0/200.0 # starts to slow down 20 degrees before final angle
-        angleError = degreesToTravel - travelledAngle
+
 
         while abs(angleError) > 0.5:            
-            # lower speed as we come closer to "degreesToTravel"
+            angleError = degreesToTravel - travelledAngle
             rotationSpeed = K_p * angleError
-            # saturate speed to ROTATION_SPEED if too high
-            rotationSpeed = math.copysign(MAX_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) > MAX_ROTATION_SPEED else rotationSpeed 
-            # saturate speed to ROTATION_SPEED if too low
-            rotationSpeed = math.copysign(MIN_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) < MIN_ROTATION_SPEED else rotationSpeed 
+
+            # saturate if rotation speed is too high or too low
+            rotationSpeed = math.copysign(MAX_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) > MAX_ROTATION_SPEED 
+            rotationSpeed = math.copysign(MIN_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) < MIN_ROTATION_SPEED
             
             self.move(rotationSpeed, -rotationSpeed)
 
@@ -134,7 +142,7 @@ class Controller:
         #K_i_1 = 0
         #K_i_2 = 0
 
-        linearSpeed = 1;
+        linearSpeed = 0.5;
         while not stop_follow_wall:
             ir_right_mean = (self.ir_rightBack - self.ir_rightFront)/2
             angle_to_wall = math.tan((self.ir_rightBack - self.ir_rightFront) / IR_BASE_RIGHT)
