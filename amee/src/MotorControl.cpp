@@ -87,8 +87,8 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 
 void MotorControl::publishOdometry() {
 	// calculate odometry stuff and publish it
-	float tDistLeft = (mCurrentEncoder.left - mPrevEncoder.left) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
-	float tDistRight = (mCurrentEncoder.right - mPrevEncoder.right) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
+	float tDistLeft = -(mCurrentEncoder.left - mPrevEncoder.left) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
+	float tDistRight = -(mCurrentEncoder.right - mPrevEncoder.right) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
 	mOdometry.leftWheelDistance += tDistLeft;
 	mOdometry.rightWheelDistance += tDistRight;
 	mOdometry.angle += ((tDistRight - tDistLeft) / WHEEL_BASE) /  M_PI * 180.0f;
@@ -144,7 +144,7 @@ void MotorControl::drive()
 	float rightVPWM = -mVelocity.right / (2.0f * M_PI * WHEEL_RADIUS * REVOLUTION_PER_SEC_RIGHT);
 	std::cout << "Target(pwm): " << leftVPWM << " " << rightVPWM << std::endl;
 	
-	if (false) {//measurementsValid()) {
+	if (measurementsValid()) {//measurementsValid()) {
 		// calculate current velocity (in pwm) based on the last two encoder values 
 		Velocity pwmVelocity;
 		calcWheelPWMVelocities(pwmVelocity);
@@ -232,7 +232,7 @@ int main(int argc, char **argv)
 
 	//used to publish a topic that changes the intervall between the "/encoder" topics published.
 	int_pub = n.advertise<std_msgs::Int32>("/serial/encoder_interval", 100);
-	ros::Rate loop_rate(200);
+	ros::Rate loop_rate(100);
 	while(int_pub.getNumSubscribers() == 0 && ros::ok()) {
 		loop_rate.sleep();
 	} 
@@ -247,7 +247,7 @@ int main(int argc, char **argv)
 	while(ros::ok()){
 		
 		std_msgs::Int32 interval;
-		interval.data = control.getDesiredEncoderInterval();
+		interval.data = 10;//control.getDesiredEncoderInterval();
 		// publish the encoder interval
 		int_pub.publish(interval);
 
