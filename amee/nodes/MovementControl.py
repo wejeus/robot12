@@ -6,7 +6,7 @@
 import roslib; roslib.load_manifest('amee')
 import rospy, math, operator
 from std_msgs.msg import String, Int32
-from amee.msg import MovementCommand, KeyboardCommand, Velocity, Odometry
+from amee.msg import MovementCommand, KeyboardCommand, Velocity, Odometry, IRDistances
 #from turtlesim.msg import Velocity as turtleCommand
 
 NODE_NAME = "MovementControl"
@@ -14,10 +14,15 @@ NODE_NAME = "MovementControl"
 TYPE_MOVE_STRAIGHT = 1
 TYPE_MOVE_ROTATE = 2
 TYPE_MOVE_COORDINATE = 3
+TYPE_FOLLOW_WALL = 4
+TYPE_STOP_FOLLOW_WALL = 5
 
 MOVEMENT_SPEED = 0.3
 MAX_ROTATION_SPEED = 1
 MIN_ROTATION_SPEED = 0.02
+
+REF_DISTANCE_TO_WALL = 0.1
+IR_BASE_RIGHT = 0.104
 
 
 # TODO: BUGFIX: positive/negative directions/angle is not handle correctly
@@ -40,6 +45,10 @@ class Controller:
         # distance/angle is mesured in respect to origin of start of movement
         self.totalDistance = 0.0 # Meters
         self.totalAngle = 0.0    # Degrees
+        self.ir_leftBack = 0.0
+        self.ir_leftFront = 0.0
+        self.ir_rightBack = 0.0
+        self.ir_rightFront = 0.0
 
     def stop_motors(self):
         rospy.loginfo("STOPPING MOTORS")
@@ -115,12 +124,47 @@ class Controller:
         self.move_rotate(angle * (180/math.pi))
         self.move_straight(distance)
 
+    def follow_wall(self, stop_follow_wall):
+        rospy.loginfo("Following wall")
 
-    # ----------------------- ROS CALLBACKS ----------------------- #
+        loopRate = rospy.Rate(5)
+
+        K_p_1 = 1
+        K_p_2 = 1
+        #K_i_1 = 0
+        #K_i_2 = 0
+
+        linearSpeed = 1;
+        while not stop_follow_wall:
+            ir_right_mean = (self.ir_rightBack - self.ir_rightFront)/2
+            angle_to_wall = math.tan((self.ir_rightBack - self.ir_rightFront) / IR_BASE_RIGHT)
+            distance_to_wall = math.cos(angle_to_wall) * ir_right_mean
+            
+            if abs(REF_DISTANCE_TO_WALL - distance_to_wall) < 0.05: # if we're at distance_to_wall +- 5cm 
+                error = self.ir_rightBack - self.ir_rightFront
+                rotationSpeed = K_p_1 * error # TODO: add integrating control if needed
+            else:
+                error = REF_DISTANCE_TO_WALL - ir_right_mean
+                rotationSpeed = K_p_2 * error # TODO: add integrating control if needed
+
+            self.move(linearSpeed + rotationSpeed, linearSpeed - rotationSpeed)
+            loopRate.sleep()
+
+        self.stop_motors()
+        rospy.loginfo("Stop following wall")            
+
+
+   # ----------------------- ROS CALLBACKS ----------------------- #
 
     def handle_odometry_change(self, msg):
         self.totalDistance = msg.distance
         self.totalAngle = msg.angle
+
+    def handle_ir_change(self, msg):
+        self.ir_leftBack = msg.leftBack
+        self.ir_leftFront = msg.leftFront
+        self.ir_rightBack = msg.rightBack
+        self.ir_rightFront = msg.rightFront
         
     def handle_static_change(self, msg):
         if msg.type == TYPE_MOVE_STRAIGHT:
@@ -129,6 +173,10 @@ class Controller:
             self.move_rotate(msg.angle)
         elif msg.type == TYPE_MOVE_COORDINATE:
             self.move_coordinate(msg.x, msg.y)
+        elif msg.type == TYPE_FOLLOW_WALL:
+            self.follow_wall(False)
+        elif msg.type == TYPE_STOP_FOLLOW_WALL:
+            self.follow_wall(True)
         else:
             rospy.logwarn(NODE_NAME + ' UNKNOWN_MOVEMENT')
 
@@ -159,6 +207,7 @@ if __name__ == '__main__':
         # The TOPIC we want to listen to
         rospy.Subscriber("/MovementControl/MovementCommand", MovementCommand, controller.handle_static_change)
         rospy.Subscriber("/amee/motor_control/odometry", Odometry, controller.handle_odometry_change)
+        rospy.Subscriber("/amee/sensors/irdistances", IRDistances , controller.handle_ir_change)
         #rospy.Subscriber("/KeyboardControl/KeyboardCommand", KeyboardCommand, controller.handle_keyboard_change)
         #rospy.Subscriber("/turtle1/command_velocity", turtleCommand, controller.handle_keyboard_change)
 

@@ -17,8 +17,14 @@ elif sys.argv[1] == 'point':
 	(x, y) = (sys.argv[2], sys.argv[3])
 	print ("Moving to point (%s, %s)" % (x, y))
 	print commands.getstatusoutput(motorCmd % (3, 0.0, 0.0, x, y))
+elif sys.argv[1] == 'wall':
+	print ("Following wall")
+	print commands.getstatusoutput(motorCmd % (4, 0.0, 0.0, 0.0, 0.0))
+elif sys.argv[1] == 'stopwall':
+	print ("Following wall")
+	print commands.getstatusoutput(motorCmd % (5, 0.0, 0.0, 0.0, 0.0))
 elif sys.argv[1] == 'reset':
 	print "Reseting motors to (0, 0)"
-	print commands.getstatusoutput('rostopic pub -1 /serial/motor_speed robo/Motor -- 0.0 0.0')
+	print commands.getstatusoutput('rostopic pub -1 /serial/motor_speed roboard_drivers/Motor -- 0.0 0.0')
 else:
 	print "Unknow command"
