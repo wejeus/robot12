@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cmath>
 
-#define WHEEL_RADIUS 0.073
+#define WHEEL_RADIUS 0.0365f
 #define WHEEL_BASE 0.237f
 #define TICS_PER_REVOLUTION 225.0f // encoder tics/rev
 #define REVOLUTION_PER_SEC_LEFT 1.0f 
@@ -13,7 +13,6 @@
 
 using namespace amee;
 using namespace roboard_drivers;
-
 
 void MotorControl::setMotorPublisher(ros::Publisher pub) {
 	mot_pub = pub;
