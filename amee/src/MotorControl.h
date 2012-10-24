@@ -24,6 +24,7 @@ private:
 	int mMeasurementCounter; 
 	ros::Publisher mot_pub;
 	ros::Publisher odo_pub;
+	int mDesiredInterval;
 
 	public:
 		void receive_encoder(const roboard_drivers::Encoder::ConstPtr &msg);
@@ -34,6 +35,7 @@ private:
 		void init();
 		bool measurementsValid();
 		void setMotorPublisher(ros::Publisher pub);
+		int getDesiredEncoderInterval();
 		void setOdometryPublisher(ros::Publisher pub);
 	protected:
 		void calcWheelPWMVelocities(amee::Velocity& velocity);

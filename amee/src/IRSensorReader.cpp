@@ -18,14 +18,14 @@ IRSensorReader::IRSensorReader() {
 	mSensorCalibrations.resize(NUM_PORTS, baseCalib);
 	
 	// set values determined by manual calibration
-	baseCalib.m = 0.0305;
-	baseCalib.b = 0.6042;
-	baseCalib.k = 0.0611;
+	baseCalib.m = 0.0338;
+	baseCalib.b = 0.1818;
+	baseCalib.k = 0.0572;
 	mSensorCalibrations[RIGHT_FRONT] = baseCalib;
 
-	baseCalib.m = 0.0317;
-	baseCalib.b = 0.0494;
-	baseCalib.k = 0.0613;
+	baseCalib.m = 0.0417;
+	baseCalib.b = -1.0692;
+	baseCalib.k = 0.049;
 	mSensorCalibrations[RIGHT_BACK] = baseCalib;
 
 	mAveragedValues.resize(NUM_PORTS, 0);
@@ -90,11 +90,13 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 			// 	distances[i] = 1000.0f; // TODO set to limits::max
 			// } else {
 				//distances[i] = log(mSensorCalibrations[i].alpha / (mLastReadings[i] - mSensorCalibrations[i].c)) / mSensorCalibrations[i].lambda;
+				//std::cout << mLastReadings[i] << " ";
 				distances[i] = 1.0f / (mSensorCalibrations[i].m * mLastReadings[i] + mSensorCalibrations[i].b) - mSensorCalibrations[i].k;
-				int lastDigit = (int)(distances[i] * 1000) % 10;
-				distances[i] = lastDigit > 4 ? ceil(distances[i] * 100) / 100 : floor(distances[i] * 100) / 100;
+				int lastDigit = (int)(distances[i] * 1000.0f) % 10;
+				distances[i] = lastDigit > 4 ? ceil(distances[i] * 100.0f) / 100.0f : floor(distances[i] * 100.0f) / 100.0f;
 			// } 
 		}
+		//std::cout << std::endl;
 
 		IRDistances distanceMsg;
 		distanceMsg.timestamp = msg->timestamp;
