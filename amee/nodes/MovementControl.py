@@ -18,8 +18,8 @@ TYPE_FOLLOW_WALL = 4
 TYPE_STOP_FOLLOW_WALL = 5
 
 MOVEMENT_SPEED = 0.3
-MAX_ROTATION_SPEED = 1
-MIN_ROTATION_SPEED = 0.02
+MAX_ROTATION_SPEED = 0.2
+MIN_ROTATION_SPEED = 0.05
 
 REF_DISTANCE_TO_WALL = 0.1
 IR_BASE_RIGHT = 0.104
@@ -92,7 +92,7 @@ class Controller:
         # TODO: add integral control to speed up last part of turn
         # TODO: make K_p tuneable while driving the robot
         # Proportional gain constant (tune this to imropve turn performance)
-        K_p = 1.0/200.0 # starts to slow down 20 degrees before final angle
+        K_p = 1.0/400.0 # starts to slow down 20 degrees before final angle
         angleError = degreesToTravel - travelledAngle
 
         while abs(angleError) > 0.5:            
