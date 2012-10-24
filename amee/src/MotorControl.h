@@ -2,27 +2,32 @@
 #define MOTOR_CONTROL_H
 
 #include <std_msgs/Int32.h>
-#include "robo/Encoder.h"
-#include "robo/Motor.h"
+#include "roboard_drivers/Encoder.h"
+#include "roboard_drivers/Motor.h"
 #include "amee/Velocity.h"
 #include "amee/Odometry.h"
 
 class MotorControl {
+
+#define MAX_MOTOR_SPEED 1.0
+#define MIN_MOTOR_SPEED -1.0
+
 private:
 	amee::Velocity mVelocity;
 	amee::Odometry mOdometry;
 	float mAngle;
-	robo::Encoder mPrevEncoder;
-	robo::Encoder mCurrentEncoder;
-	robo::Encoder mMeasurementAccumulator;
-	robo::Motor mMotor;
+	roboard_drivers::Encoder mPrevEncoder;
+	roboard_drivers::Encoder mCurrentEncoder;
+	roboard_drivers::Encoder mMeasurementAccumulator;
+	roboard_drivers::Motor mMotor;
 	int mMeasurementValidCounter;
 	int mMeasurementCounter; 
 	ros::Publisher mot_pub;
 	ros::Publisher odo_pub;
+	int mDesiredInterval;
 
 	public:
-		void receive_encoder(const robo::Encoder::ConstPtr &msg);
+		void receive_encoder(const roboard_drivers::Encoder::ConstPtr &msg);
 		void receive_speed(const amee::Velocity::ConstPtr &v);
 		// Sets the given speed ( in m/s ) to both motors.
 		void setSpeed(float vLeft, float vRight);
@@ -30,10 +35,13 @@ private:
 		void init();
 		bool measurementsValid();
 		void setMotorPublisher(ros::Publisher pub);
+		int getDesiredEncoderInterval();
 		void setOdometryPublisher(ros::Publisher pub);
 	protected:
 		void calcWheelPWMVelocities(amee::Velocity& velocity);
 	private:
+		inline void checkWheelSpeed(float & motorDirection);
+		inline void checkSpeedLimit();
 		void publishOdometry();
 };
 #endif

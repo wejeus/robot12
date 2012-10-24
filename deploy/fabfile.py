@@ -13,19 +13,19 @@ env.user = 'robot'
 # If some command fails, stop the execution
 env.warn_only = 'false'
 
-
 # ---- PROJECT SETTINGS ---------------------------------------------------------- #
 
 # Project name, will be used as root folder name for deployments
 env.project = 'amee'
 # Assumes that project structure is using structure <project_root>/<misc> 
 # That means we are always running from <project_roo>/deploy
-env.root_path = os.path.dirname(__file__).rsplit('/',1)[0]
+env.root_path = os.path.dirname(__file__).rsplit('/',1)[0] + '/amee'
 
 env.remote_deploy_path = '/home/robot/ros_workspace/test'
 
 # Host to deploy to
 env.hosts = ['robo0']
+
 
 # ---- TASK ---------------------------------------------------------------------- #
 

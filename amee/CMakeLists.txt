@@ -15,6 +15,11 @@ rosbuild_init()
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+#####################################################
+#            Use external libraries                 #
+#find_package(Qt4 REQUIRED)
+#####################################################
+
 
 #uncomment if you have defined messages
 rosbuild_genmsg()
@@ -27,6 +32,7 @@ rosbuild_genmsg()
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 rosbuild_add_executable(MotorControl src/MotorControl.cpp)
+rosbuild_add_executable(IRSensorReader src/IRSensorReader.cpp)
 rosbuild_add_executable(KeyHandler src/key_handler.cpp)
 rosbuild_add_executable(KeyHandlerTester src/key_handler_listener.cpp)
 #target_link_libraries(example ${PROJECT_NAME})

@@ -1,0 +1,5 @@
+float32 timestamp
+float32 leftBack
+float32 leftFront
+float32 rightBack
+float32 rightFront

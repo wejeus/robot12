@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Copies the binary folder to the robo0 (the IP of our robot)
+# Don't forget to make a git push/pull to get the rest of the code/script from the robot.
+
+
+BIN="/home/robot/ros_workspace/robot12/amee/bin/"
+#NODES="/home/robot/ros_workspace/robot12/amee/nodes/"
+
+DEST="/home/robot/ros_workspace/robot12/amee/"
+
+#scp -r $BIN $NODES robo0:$DEST
+echo 'copying binary files to the robot...'
+sshpass -p 'p1ckles' scp -r $BIN robo0:$DEST
+echo 'Done copying!'

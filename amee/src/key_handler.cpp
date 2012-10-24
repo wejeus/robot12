@@ -1,199 +1,187 @@
-#include "ros/ros.h"
-#include "std_msgs/String.h"
-#include "amee/KeyboardCommand.h"
-#include <stdio.h>
-#include <termios.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include "key_handler.h"
+
+using namespace amee;
+
+namespace amee{
 
 
-/* Hopefully this will work for all types of keyboards with arrows */
-enum {KEYCODE_SPACE = 32, KEYCODE_U = 65, KEYCODE_D, KEYCODE_R, KEYCODE_L};
+	/**
+	 * This is for handling the nonblocking key presses
+	 **/
+	inline int KeyHandler::kbhit(bool put_char_back = true) const{
+		struct termios oldt, newt;
+		int ch;
+		int oldf;
 
-/* Holds the velocities of the (left & right) wheels */
-amee::KeyboardCommand v;
-
-/* The volocity change rate */
-float VELO_RATE = 0.5f;
-
-
-
-/**
- * This is for handling the nonblocking key presses
- **/
-int kbhit(void){
-	struct termios oldt, newt;
-	int ch;
-	int oldf;
-
-	tcgetattr(STDIN_FILENO, &oldt);
-	newt = oldt;
-	newt.c_lflag &= ~(ICANON | ECHO);
-	tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-	oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-	fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
- 
-	ch = getchar();
- 
-	tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-	fcntl(STDIN_FILENO, F_SETFL, oldf);
- 
-	if(ch != EOF)
-	{
-		ungetc(ch, stdin);
-		return 1;
+		tcgetattr(STDIN_FILENO, &oldt);
+		newt = oldt;
+		newt.c_lflag &= ~(ICANON | ECHO);
+		tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+		oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+		fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+	 
+		ch = getchar();
+	 
+		tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+		fcntl(STDIN_FILENO, F_SETFL, oldf);
+	 
+		if(ch != EOF)
+		{
+			if(put_char_back)
+				ungetc(ch, stdin);
+			return 1;
+		}
+	 
+		return 0;
 	}
- 
-	return 0;
-}
 
-/**
- * Sets the wheel velocities to given values
- **/
-inline void setWheels(const float L=0.0f, const float A=0.0f){
-	v.linear = L; v.angular = A;
-}
+	/**
+	 * Sets the wheel velocities to given values
+	 **/
+	inline void KeyHandler::setWheels(Motor &motor, const float L=0.0, const float R=0.0) const{
+		motor.left  = L; motor.right = R;
+	}
 
+	inline void KeyHandler::setVel(Velocity &vel, const float L=0.0, const float R=0.0) const{
+		vel.left = L; vel.right = R;
+	}
 
-/**
- * Gets input from keyboard and publishes it to "wheel_velocities" topic.
- *
- * Use the keyboard arrows to navigate the robot.
- **/
-void startKeyboardHandling(int argc, char **argv){
-	ros::init(argc, argv, "KeyHandler");
-	ros::NodeHandle n;
-
-	ros::Publisher keyCom_pub = n.advertise<amee::KeyboardCommand>("/KeyboardControl/KeyboardCommand", 1000);
-
-	ros::Rate loop_rate(10);
-
-	//sets the velocities of the wheels to initial values (0.0f)
-	setWheels();
-	char c = '0', lastKey = '0';
-	puts("Press the arrow keys to move around.");
-	while (ros::ok()){
-
+	/**
+	 * Gets input from keyboard and publishes it to "wheel_velocities" topic.
+	 *
+	 * Use the keyboard arrows to navigate the robot.
+	 **/
+	void KeyHandler::handleKeyStroke() const{
+		char c = '0';
 		if(kbhit()){
 			c = getchar();
-			if(int(c) == 27){//if we hit an arrow key (or an escape key)
-				c = getchar(); c = getchar(); //read 2 more chars
-				switch(c){
+			int ascii_i = int(c);
+			if(ascii_i == 27 || ascii_i == 32 || ascii_i == LEFT_YAW || ascii_i == RIGHT_YAW){//if we hit an arrow key or space (or an escape key)
+				Motor motor;
+				Velocity velocity;
+				if(ascii_i == 27){//if it is an escape key
+					c = getchar(); c = getchar(); //read 2 more chars
+					ascii_i = int(c);
+				}
+
+				switch(ascii_i){
 					case KEYCODE_L:
 						ROS_DEBUG("LEFT");
-						setWheels(0, 1);
+						setWheels(motor, VELO_RATE_L, -VELO_RATE_R);
+						setVel(velocity, VELO_RATE_L, -VELO_RATE_R);
 						break;
 					case KEYCODE_R:
 						ROS_DEBUG("RIGHT");
-						setWheels(0, -1);
+						setWheels(motor, -VELO_RATE_L, VELO_RATE_R);
+						setVel(velocity, -VELO_RATE_L, VELO_RATE_R);
 						break;
 					case KEYCODE_U:
 						ROS_DEBUG("UP");
-						setWheels(1, 0);
+						setWheels(motor, -VELO_RATE_L, -VELO_RATE_R);
+						setVel(velocity, -VELO_RATE_L, -VELO_RATE_R);
 						break;
 					case KEYCODE_D:
 						ROS_DEBUG("DOWN");						
-						setWheels(-1, 0);
+						setWheels(motor, VELO_RATE_L, VELO_RATE_R);
+						setVel(velocity, VELO_RATE_L, VELO_RATE_R);
+						break;
+					case LEFT_YAW:
+						ROS_DEBUG("LEFT_YAW");
+						setWheels(motor, 0, -VELO_RATE_R);
+						setVel(velocity, 0, -VELO_RATE_R);
+						break;
+					case RIGHT_YAW:
+						ROS_DEBUG("RIGHT_YAW");
+						setWheels(motor, -VELO_RATE_L, 0);
+						setVel(velocity, -VELO_RATE_L, 0);
 						break;
 					default:
 						ROS_DEBUG("RELEASE");
-						setWheels();
+						setWheels(motor);
+						setVel(velocity);
 						break;
 				}
-			}else if(int(c) == 32){//we hit the space
-				setWheels();
+				if(isMotorControlPub())
+					keyCom_pub.publish(velocity);
+				else
+					keyCom_pub.publish(motor);
 			}
 		}
-
-		/* publish the wheel velocities */
-		if(lastKey != c){
-			lastKey = c;
-			keyCom_pub.publish(v);
-		}
-
-		ros::spinOnce();
-
-		loop_rate.sleep();
 	}
 
-}
+	void KeyHandler::setKeyComPublisher(ros::Publisher & pub){keyCom_pub = pub;}
 
-/* This is for handling the input from the terminal */
-void terminalHandler(int argc, char **argv){
-	bool inOK = false;
-	int in;
+	/**
+	 * Sets the velocity rates to the default values
+	 **/
+	void KeyHandler::initDefVeloRate(){
+		VELO_RATE_L = DEF_VELO_RATE_L;
+		VELO_RATE_R = DEF_VELO_RATE_R;
+	}
 
-	while(!inOK){
-		printf("\033[2J\033[1;1H");
-		puts("###################################################################\n#");
-		puts("#  1. Navigate the robot with the keyboard arrows.");
-		puts("#  2. Give the arguments (A,D,x,y) for the robot movement.");
-		puts("#  3. Do a random movement.");
-		puts("#");
-		puts("#  0. Quit\n#");
-		puts("###################################################################\n\n");
+	/**
+	 *
+	 **/
+	void KeyHandler::setVeloRate(float left, float right){
+		VELO_RATE_L = -left;
+		VELO_RATE_R = -right;
+	}
+
+	inline const float & KeyHandler::getVeloRateL() const{return VELO_RATE_L;}
+	inline const float & KeyHandler::getVeloRateR() const{return VELO_RATE_R;}
+
+	inline const bool & KeyHandler::isMotorControlPub() const {return sendToMotorControl;}
 	
-		in = int(getchar()) - 48;
+	void KeyHandler::setMotorControlPub(bool activate){sendToMotorControl = activate;}
 
-		/* if the input values are in the intervall */
-		if(in >= 0 && in <= 3)
-			inOK = true;
-	}
+}//namespace amee
 
 
-	if(in == 0) exit(0);
 
-	// Navigate with keyboard arrows
-	if(in == 1)
-		startKeyboardHandling(argc, argv);
-
-	// Start the MotorControl with some given values
-	if(in == 2){
-		float A, D, x, y;
-		const float NAN_F = -888888.8f;
-		A = D = x = y = NAN_F;
-
-		inOK = false;
-		while(!inOK){
-			printf("Input values for A D x y: ");
-			scanf("%f %f %f %f", &A, &D, &x, &y);
-
-			if(A == NAN_F || D == NAN_F || x == NAN_F || y == NAN_F){//Bad code!
-				printf("\033[2J\033[1;1H"); //clear the screen
-				puts("Did you forget to input all the values? (A D x y)");
-				puts("Try again");
-			}else{
-				inOK = true;
-			}
-		}
-		
-		puts("I need some code to start the FakeMotor and the MotorControl with the given values.");
-		puts("Exiting");
-		exit(1);
-		//TODO: Start the FakeMotor
-		//TODO: Start the Motorcontrol with the values
-		
-	}	
-
-	// Start the MotorControl with some random values
-	if(in == 3){
-		//TODO: code me
-		puts("Not coded yet! Exiting.");
-		exit(0);
-	}
-	
-}
 
 
 int main(int argc, char **argv){
-	
-	if(argc > 1){
-		VELO_RATE = atof(argv[1]);
+	KeyHandler keyHandler;
+	if(argc > 2){//if only one velocity is given, set both motors to given value
+		bool sendToMotor = atoi(argv[1]);
+		float velo_rate = atof(argv[2]);
+		keyHandler.setVeloRate(velo_rate, velo_rate);
+		keyHandler.setMotorControlPub(sendToMotor);
+	}else if(argc > 3){//if both velocities are given, set each to the corresponding value
+		bool sendToMotor = atoi(argv[1]);
+		float velo_rate_L = atof(argv[2]);
+		float velo_rate_R = atof(argv[3]);
+		keyHandler.setVeloRate(velo_rate_L, velo_rate_R);
+		keyHandler.setMotorControlPub(sendToMotor);
+	}else{//no value is given so set the volicities to the default values
+		keyHandler.initDefVeloRate();
+		keyHandler.setMotorControlPub(1); //publish to the velocities to MotorControl instead of dirictly to the motor(s)
 	}
+	printf("VELO_RATE is set to: [%0.2f, %0.2f]\n", keyHandler.getVeloRateL(), keyHandler.getVeloRateR());
 
-	printf("VELO_RATE is set to: %0.2f\n", VELO_RATE);
-	//terminalHandler(argc, argv);// get input from terminal
-	startKeyboardHandling(argc, argv);
+	ros::init(argc, argv, "KeyHandler");
+	ros::NodeHandle nodeHandle;
+	ros::Publisher keyCom_pub;
+	if(keyHandler.isMotorControlPub()){
+		keyCom_pub = nodeHandle.advertise<Velocity>("/amee/motor_control/set_wheel_velocities", 1);
+		puts("Publishing on /amee/motor_control/set_wheel_velocities");
+	}else{
+		keyCom_pub = nodeHandle.advertise<Motor>("/serial/motor_speed", 1);
+		puts("Publishing on /serial/motor_speed");
+	}
+	keyHandler.setKeyComPublisher(keyCom_pub);
+
+	ros::Rate loop_rate = ros::Rate(6);
+
+	puts("Press the arrow keys to move around.");
+	while (ros::ok()){
+
+		keyHandler.handleKeyStroke();
+		ros::spinOnce();
+
+		while(keyHandler.kbhit(false));//clear the rest
+		loop_rate.sleep();
+	}
 
 	return 0;
 }
