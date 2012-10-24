@@ -19,7 +19,7 @@ TYPE_STOP_FOLLOW_WALL = 5
 
 MOVEMENT_SPEED = 0.3
 MAX_ROTATION_SPEED = 0.2
-MIN_ROTATION_SPEED = 0.05
+MIN_ROTATION_SPEED = 0.06
 MIN_SPEED = 0.1
 MAX_SPEED = 0.2
 
@@ -98,24 +98,25 @@ class Controller:
     #
     def move_rotate(self, degreesToTravel):
         rospy.loginfo("ROTATING: %s DEGREES", degreesToTravel)
-        loopRate = rospy.Rate(5)
+        loopRate = rospy.Rate(10)
         lastAngle = self.totalAngle
         travelledAngle = 0
         
         # TODO: add integral control to speed up last part of turn
         # TODO: make K_p tuneable while driving the robot
         # Proportional gain constant (tune this to imropve turn performance)
-        K_p = 1.0/400.0 # starts to slow down 20 degrees before final angle
+        K_p = 1.0/300.0 # starts to slow down 20 degrees before final angle
         angleError = degreesToTravel - travelledAngle
 
-        while abs(angleError) > 0.5:            
+        while abs(angleError) > 2:            
             rotationSpeed = K_p * angleError
 
             # saturate if rotation speed is too high or too low
             rotationSpeed = math.copysign(MAX_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) > MAX_ROTATION_SPEED else rotationSpeed 
             rotationSpeed = math.copysign(MIN_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) < MIN_ROTATION_SPEED else rotationSpeed
             
-            self.move(rotationSpeed, -rotationSpeed)
+            
+	    self.move(rotationSpeed, -rotationSpeed)
 
             travelledAngle = self.totalAngle - lastAngle
             angleError = degreesToTravel - travelledAngle
