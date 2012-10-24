@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cmath>
 
-#define WHEEL_RADIUS 0.073
+#define WHEEL_RADIUS 0.0365f
 #define WHEEL_BASE 0.237f
 #define TICS_PER_REVOLUTION 225.0f // encoder tics/rev
 #define REVOLUTION_PER_SEC_LEFT 1.0f 
@@ -13,7 +13,6 @@
 
 using namespace amee;
 using namespace roboard_drivers;
-
 
 void MotorControl::setMotorPublisher(ros::Publisher pub) {
 	mot_pub = pub;
@@ -48,8 +47,8 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 	
 	mMeasurementValidCounter = mMeasurementValidCounter > 0 ? mMeasurementValidCounter - 1 : 0;
 
-	struct timeval start;
-	gettimeofday(&start, NULL);
+	//struct timeval start;
+	//gettimeofday(&start, NULL);
 	//std::cout << start.tv_sec << std::endl;
 
 	// We filter noise by calculating the average of multiple measurements (TODO replace by Kalman filter)
@@ -167,6 +166,7 @@ void MotorControl::drive()
 	
 	//printf("set motor pwm velocities: %f %f \n", mMotor.left, mMotor.right);
 	checkSpeedLimit(); //check the limit before publishing it
+	std::cout << "PublishedSpeed(pwm): " << mMotor.left << " " << mMotor.right << std::endl;
 	mot_pub.publish(mMotor);
 }
 
@@ -191,8 +191,8 @@ void MotorControl::init() {
 	mOdometry.distance = 0.0f;
 	mOdometry.angle = 0.0f;
 	
-	mMotor.left = 0;
-	mMotor.right = 0;
+	mMotor.left = 0.0f;
+	mMotor.right = 0.0f;
 	mDesiredInterval = 10;
 }
 
