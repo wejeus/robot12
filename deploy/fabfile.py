@@ -25,9 +25,7 @@ env.root_path = os.path.dirname(__file__).rsplit('/',1)[0]
 env.remote_deploy_path = '/home/robot/ros_workspace/test'
 
 # Host to deploy to
-env.hosts = ['10.0.1.10']
-
-# print "Will deploy to: %s on hosts: %s" % (env.remote_deploy_path, env.hosts)
+env.hosts = ['robo0']
 
 # ---- TASK ---------------------------------------------------------------------- #
 
@@ -45,7 +43,7 @@ def build():
     """Builds project"""
     print '------------ BUILDING PROJECT ------------'
     require('root_path')
-    local('cd %s; rosmake' % (env.root_path))
+    local('cd %s/amee; rosmake' % (env.root_path))
 
 
 @task
