@@ -116,11 +116,13 @@ class Controller:
             rotationSpeed = math.copysign(MIN_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) < MIN_ROTATION_SPEED else rotationSpeed
             
             self.move(rotationSpeed, -rotationSpeed)
-            rospy.loginfo("degrees rotated: %s", self.totalAngle)
-            rospy.loginfo("angle error: %s", angleError)
-            loopRate.sleep()
+
             travelledAngle = self.totalAngle - lastAngle
             angleError = degreesToTravel - travelledAngle
+
+            rospy.loginfo("angle error: %s", angleError)
+            rospy.loginfo("degrees rotated: %s", self.totalAngle)
+            loopRate.sleep()
 
         rospy.loginfo("DONE. ROTATED: %s", travelledAngle)
         rospy.loginfo("DONE. ROTATED TOTAL: %s", self.totalAngle)
@@ -141,8 +143,8 @@ class Controller:
         loopRate = rospy.Rate(5)
 
         K_p_1 = 1
-        K_p_2 = 1
         #K_i_1 = 0
+        K_p_2 = 1
         #K_i_2 = 0
 
         linearSpeed = 0.5;
@@ -158,7 +160,9 @@ class Controller:
                 error = REF_DISTANCE_TO_WALL - ir_right_mean
                 rotationSpeed = K_p_2 * error # TODO: add integrating control if needed
 
-            self.move(linearSpeed + rotationSpeed, linearSpeed - rotationSpeed)
+           # rotationSpeed = math.copysign(MAX_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) > MAX_ROTATION_SPEED else rotationSpeed 
+           # rotationSpeed = math.copysign(MIN_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) < MIN_ROTATION_SPEED else rotationSpeed
+	    self.move(linearSpeed + rotationSpeed, linearSpeed - rotationSpeed)
             loopRate.sleep()
 
         self.stop_motors()
