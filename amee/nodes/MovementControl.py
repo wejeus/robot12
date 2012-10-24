@@ -142,14 +142,14 @@ class Controller:
 
         loopRate = rospy.Rate(5)
 
-        K_p_1 = 1
+        K_p_1 = 0.2
         #K_i_1 = 0
-        K_p_2 = 1
+        K_p_2 = 0.2
         #K_i_2 = 0
 
-        linearSpeed = 0.5;
+        linearSpeed = 0.08;
         while not stop_follow_wall:
-            ir_right_mean = (self.ir_rightBack - self.ir_rightFront)/2
+            ir_right_mean = (self.ir_rightBack + self.ir_rightFront)/2
             angle_to_wall = math.tan((self.ir_rightBack - self.ir_rightFront) / IR_BASE_RIGHT)
             distance_to_wall = math.cos(angle_to_wall) * ir_right_mean
             
