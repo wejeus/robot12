@@ -83,7 +83,7 @@ def deploy():
 def list_launch():
     """List launch scripts available on robot"""
     run('ls %(launch_dir)s/*.launch' % {
-            'launch_dir' : env.remote_deploy_path + '/launch',
+            'launch_dir' : env.remote_deploy_path + '/amee/launch',
         })
 
 @task
@@ -102,7 +102,7 @@ def launch(target):
     # })
 
     # TODO Start some launch script (maybe we want to supply which?)
-    run('roslaunch %(deploy_dir)s/launch/%(launch_file)s' % {
+    run('roslaunch %(deploy_dir)s/amee/launch/%(launch_file)s' % {
         'deploy_dir' : env.remote_deploy_path,
         'launch_file' : target,
     })
