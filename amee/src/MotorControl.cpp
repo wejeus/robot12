@@ -9,7 +9,7 @@
 #define TICS_PER_REVOLUTION 225.0f // encoder tics/rev
 #define REVOLUTION_PER_SEC_LEFT 1.0f 
 #define REVOLUTION_PER_SEC_RIGHT 1.0f
-#define NUM_AVERAGED_MEASUREMENTS 5
+#define NUM_AVERAGED_MEASUREMENTS 1
 
 using namespace amee;
 using namespace roboard_drivers;
@@ -152,8 +152,8 @@ void MotorControl::drive()
 		float leftError = leftVPWM - pwmVelocity.left; // error on the left side
 		float rightError = rightVPWM - pwmVelocity.right; // error on the left side	
 	
-		mMotor.right	= mMotor.right + 0.002 * rightError;//set right motorspeed[-1,1]
-		mMotor.left	= mMotor.left + 0.002 * leftError;//set left motorspeed[-1,1]
+		mMotor.right	= mMotor.right + 0.02 * rightError;//set right motorspeed[-1,1]
+		mMotor.left	= mMotor.left + 0.02 * leftError;//set left motorspeed[-1,1]
 
 	} else { // we have no valid measurements of the current speed, so just set it to the non controlled values
 
@@ -232,7 +232,7 @@ int main(int argc, char **argv)
 
 	//used to publish a topic that changes the intervall between the "/encoder" topics published.
 	int_pub = n.advertise<std_msgs::Int32>("/serial/encoder_interval", 100);
-	ros::Rate loop_rate(100);
+	ros::Rate loop_rate(50);
 	while(int_pub.getNumSubscribers() == 0 && ros::ok()) {
 		loop_rate.sleep();
 	} 
@@ -243,14 +243,13 @@ int main(int argc, char **argv)
 	// make sure the robot isn't moving on startup
 	control.setSpeed(0.0f, 0.0f);
 	
+	std_msgs::Int32 interval;
+	interval.data = 20;//control.getDesiredEncoderInterval();
+	// publish the encoder interval
+	int_pub.publish(interval);
 
 	while(ros::ok()){
 		
-		std_msgs::Int32 interval;
-		interval.data = 10;//control.getDesiredEncoderInterval();
-		// publish the encoder interval
-		int_pub.publish(interval);
-
 		// go to sleep for a short while
 		loop_rate.sleep();
 
