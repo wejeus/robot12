@@ -18,16 +18,19 @@ TYPE_FOLLOW_WALL = 4
 TYPE_STOP_FOLLOW_WALL = 5
 
 MOVEMENT_SPEED = 0.3
-MAX_ROTATION_SPEED = 1
-MIN_ROTATION_SPEED = 0.02
+MAX_ROTATION_SPEED = 0.1
+MIN_ROTATION_SPEED = 0.06
 
-REF_DISTANCE_TO_WALL = 0.1
+
 IR_BASE_RIGHT = 0.104
 
-linearSpeed = 0.0
-rotationSpeed = 0.0
-K_p_1 = 0.0
-K_p_2 = 0.0
+linearSpeed = 0.1
+rotationSpeed = 0.05
+K_p_1 = 0.03
+K_p_2 = 0.1
+refDistance = 0.04
+noWallDistance = 0.15
+wallDistTol = 0.01
 
 
 # TODO: BUGFIX: positive/negative directions/angle is not handle correctly
@@ -134,36 +137,33 @@ class Controller:
         rospy.loginfo("Following wall")
 
         self.followWall = True
-        loopRate = rospy.Rate(5)
+        loopRate = rospy.Rate(10)
 
-        #K_p_1 = 0.2 #dynamic_configured
-        #K_i_1 = 0
-        #K_p_2 = 0.2 #dynamic_configured
-        #K_i_2 = 0
-
-        #linearSpeed = 0.08; #dynamic_configured
         while self.followWall:
-            ir_right_mean = (self.ir_rightBack - self.ir_rightFront)/2
+            linearSpeed = rospy.get_param("/linearSpeed") # This updates the rotationSpeed on the ParamServer
+            K_p_1 = rospy.get_param("/K_p_1")
+            K_p_2 = rospy.get_param("/K_p_2")
+            refDistance = rospy.get_param("/refDistance")
+
+            ir_right_mean = (self.ir_rightBack + self.ir_rightFront)/2
             angle_to_wall = math.tan((self.ir_rightBack - self.ir_rightFront) / IR_BASE_RIGHT)
             distance_to_wall = math.cos(angle_to_wall) * ir_right_mean
             
-            if abs(REF_DISTANCE_TO_WALL - distance_to_wall) > 0.3:
-                self.move_straight(0.1)
-                self.move_rotate(90)
-            elif abs(REF_DISTANCE_TO_WALL - distance_to_wall) < 0.05: # if we're at distance_to_wall +- 5cm 
+            #if abs(refDistance - distance_to_wall) > noWallDistance:
+            #    self.move_straight(0.1)
+            #    self.move_rotate(90)
+            if abs(refDistance - distance_to_wall) < wallDistTol: # if we're at distance_to_wall +- 5cm 
                 error = self.ir_rightBack - self.ir_rightFront
                 rotationSpeed = K_p_1 * error # TODO: add integrating control if needed
-		rospy.set_param("/rotationSpeed", rotationSpeed) # This updates the rotationSpeed on the ParamServer
             else:
-                error = REF_DISTANCE_TO_WALL - ir_right_mean
+                error = refDistance - ir_right_mean
                 rotationSpeed = K_p_2 * error # TODO: add integrating control if needed
-		rospy.set_param("/rotationSpeed", rotationSpeed) # This updates the rotationSpeed on the ParamServer
 
             self.move(linearSpeed + rotationSpeed, linearSpeed - rotationSpeed)
             loopRate.sleep()
 
         rospy.loginfo("Stop following wall")
-        self.followWall = True
+        self.followWall = False
         self.stop_motors()
         
 
@@ -224,11 +224,22 @@ if __name__ == '__main__':
         #rospy.Subscriber("/KeyboardControl/KeyboardCommand", KeyboardCommand, controller.handle_keyboard_change)
         #rospy.Subscriber("/turtle1/command_velocity", turtleCommand, controller.handle_keyboard_change)
 
-        # Get/set the default values from ParamServer	
-        linearSpeed = rospy.get_param("/linearSpeed", 0.08)
-        rotationSpeed = rospy.get_param("/rotationSpeed", 0.04)
-        K_p_1 = rospy.get_param("/K_p_1", 0.2)
-        K_p_2 = rospy.get_param("/K_p_2", 0.2)
+        # Get/set the default values from ParamServer
+        rospy.set_param("/linearSpeed", linearSpeed)
+        rospy.set_param("/rotationSpeed", rotationSpeed)
+        rospy.set_param("/K_p_1", K_p_1)
+        rospy.set_param("/K_p_2", K_p_2)
+        rospy.set_param("/refDistance", refDistance)
+        rospy.set_param("/noWallDistance", noWallDistance)
+        rospy.set_param("/wallDistTol", wallDistTol)
+
+        # linearSpeed = rospy.get_param("/linearSpeed", linearSpeed)
+        # rotationSpeed = rospy.get_param("/rotationSpeed", rotationSpeed)
+        # K_p_1 = rospy.get_param("/K_p_1")
+        # K_p_2 = rospy.get_param("/K_p_2")
+        # refDistance = rospy.get_param("/refDistance")
+        # noWallDistance = rospy.get_param("/noWallDistance")
+        # wallDistTol = rospy.get_param("/wallDistTol")
 
         rospy.loginfo("... done! Entering spin() loop")
 
