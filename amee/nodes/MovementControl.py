@@ -24,10 +24,10 @@ MIN_ROTATION_SPEED = 0.02
 REF_DISTANCE_TO_WALL = 0.1
 IR_BASE_RIGHT = 0.104
 
-linearSpeed
-rotationSpeed
-K_p_1
-K_p_2
+linearSpeed = 0.0
+rotationSpeed = 0.0
+K_p_1 = 0.0
+K_p_2 = 0.0
 
 
 # TODO: BUGFIX: positive/negative directions/angle is not handle correctly
@@ -224,11 +224,11 @@ if __name__ == '__main__':
         #rospy.Subscriber("/KeyboardControl/KeyboardCommand", KeyboardCommand, controller.handle_keyboard_change)
         #rospy.Subscriber("/turtle1/command_velocity", turtleCommand, controller.handle_keyboard_change)
 
-	# Get/set the default values from ParamServer	
-	linearSpeed = rospy.get_param("/linearSpeed", 0.08)
-	rotationSpeed = rospy.get_param("/rotationSpeed", 0.04)
-	K_p_1 = rospy.get_param("/K_p_1", 0.2)
-	K_p_2 = rospy.get_param("/K_p_2", 0.2)
+        # Get/set the default values from ParamServer	
+        linearSpeed = rospy.get_param("/linearSpeed", 0.08)
+        rotationSpeed = rospy.get_param("/rotationSpeed", 0.04)
+        K_p_1 = rospy.get_param("/K_p_1", 0.2)
+        K_p_2 = rospy.get_param("/K_p_2", 0.2)
 
         rospy.loginfo("... done! Entering spin() loop")
 
