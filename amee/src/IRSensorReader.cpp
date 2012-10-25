@@ -18,19 +18,23 @@ IRSensorReader::IRSensorReader() {
 	mSensorCalibrations.resize(NUM_PORTS, baseCalib);
 	
 	// set values determined by manual calibration
+
+	// RIGHT FRONT SHORT RANGE
 	baseCalib.m = 0.0338;
 	baseCalib.b = 0.1818;
 	baseCalib.k = 0.0572;
 	mSensorCalibrations[RIGHT_FRONT] = baseCalib;
 
+	// RIGHT BACK SHORT RANGE
 	baseCalib.m = 0.0417;
 	baseCalib.b = -1.0692;
 	baseCalib.k = 0.049;
 	mSensorCalibrations[RIGHT_BACK] = baseCalib;
 
-	baseCalib.m = 0.0338;
-	baseCalib.b = 0.1818;
-	baseCalib.k = 0.0572;
+	// FRONT SHORT RANGE
+	baseCalib.m = 0.0346;
+	baseCalib.b = -0.0489;
+	baseCalib.k = 0.0751;
 	mSensorCalibrations[FRONT_SHORTRANGE] = baseCalib;
 
 	mAveragedValues.resize(NUM_PORTS, 0);
