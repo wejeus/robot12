@@ -3,6 +3,7 @@
 #include "IRSensorReader.h"
 #include <iostream>
 #include <cmath>
+#include <std_msgs/Int32.h>
 // #include "roboard_drivers/serial_adc_val.h"
 // #include "roboard_drivers/enable_adc_val.h"
 #include "amee/IRDistances.h"
@@ -142,12 +143,21 @@ int main(int argc, char **argv)
 	ros::Subscriber raw_sensor_sub;
 	raw_sensor_sub = n.subscribe("/roboard/adc", 1000, &IRSensorReader::receiveRawData, &reader);
 
+	// set our reader loop at 100Hz
+	ros::Rate loop_rate(100);
+	ros::Publisher adc_interval = n.advertise<std_msgs::Int32>("roboard/adc_interval", 10);
+	while(adc_interval.getNumSubscribers() == 0 && ros::ok()) {
+	 	loop_rate.sleep();
+	 } 
+
+	std_msgs::Int32 interval;
+	interval.data = 10;
+	adc_interval.publish(interval);
+
 	// create publisher for distances
 	ros::Publisher distance_pub = n.advertise<IRDistances>("/amee/sensors/irdistances", 1000);
 	reader.setDistancePublisher(distance_pub);
-
-	// set our reader loop at 100Hz
-	ros::Rate loop_rate(100);
+	
 		
 	
 	while(ros::ok()){
