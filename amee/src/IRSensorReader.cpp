@@ -18,15 +18,24 @@ IRSensorReader::IRSensorReader() {
 	mSensorCalibrations.resize(NUM_PORTS, baseCalib);
 	
 	// set values determined by manual calibration
+
+	// RIGHT FRONT SHORT RANGE
 	baseCalib.m = 0.0338;
 	baseCalib.b = 0.1818;
 	baseCalib.k = 0.0572;
 	mSensorCalibrations[RIGHT_FRONT] = baseCalib;
 
+	// RIGHT BACK SHORT RANGE
 	baseCalib.m = 0.0417;
 	baseCalib.b = -1.0692;
 	baseCalib.k = 0.049;
 	mSensorCalibrations[RIGHT_BACK] = baseCalib;
+
+	// FRONT SHORT RANGE
+	baseCalib.m = 0.0346;
+	baseCalib.b = -0.0489;
+	baseCalib.k = 0.0751;
+	mSensorCalibrations[FRONT_SHORTRANGE] = baseCalib;
 
 	mAveragedValues.resize(NUM_PORTS, 0);
 	mLastReadings.resize(NUM_PORTS,0);
@@ -102,6 +111,7 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 		distanceMsg.timestamp = msg->timestamp;
 		distanceMsg.rightFront = distances[RIGHT_FRONT];
 		distanceMsg.rightBack = distances[RIGHT_BACK];
+		distanceMsg.frontShortRange = distances[FRONT_SHORTRANGE];
 		//TODO publish all the other distances
 		distance_pub.publish(distanceMsg);
 
