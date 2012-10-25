@@ -26,6 +26,11 @@ MAX_SPEED = 0.2
 REF_DISTANCE_TO_WALL = 0.1
 IR_BASE_RIGHT = 0.104
 
+linearSpeed
+rotationSpeed
+K_p_1
+K_p_2
+
 
 # TODO: BUGFIX: positive/negative directions/angle is not handle correctly
 # TODO: This can overshoot the target position with a small error
@@ -143,12 +148,12 @@ class Controller:
 
         loopRate = rospy.Rate(5)
 
-        K_p_1 = 0.2
+        #K_p_1 = 0.2 #dynamic_configured
         #K_i_1 = 0
-        K_p_2 = 0.2
+        #K_p_2 = 0.2 #dynamic_configured
         #K_i_2 = 0
 
-        linearSpeed = 0.08;
+        #linearSpeed = 0.08; #dynamic_configured
         while not stop_follow_wall:
             ir_right_mean = (self.ir_rightBack + self.ir_rightFront)/2
             angle_to_wall = math.tan((self.ir_rightBack - self.ir_rightFront) / IR_BASE_RIGHT)
@@ -157,9 +162,11 @@ class Controller:
             if abs(REF_DISTANCE_TO_WALL - distance_to_wall) < 0.05: # if we're at distance_to_wall +- 5cm 
                 error = self.ir_rightBack - self.ir_rightFront
                 rotationSpeed = K_p_1 * error # TODO: add integrating control if needed
+		rospy.set_param("/rotationSpeed", rotationSpeed) # This updates the rotationSpeed on the ParamServer
             else:
                 error = REF_DISTANCE_TO_WALL - ir_right_mean
                 rotationSpeed = K_p_2 * error # TODO: add integrating control if needed
+		rospy.set_param("/rotationSpeed", rotationSpeed) # This updates the rotationSpeed on the ParamServer
 
            # rotationSpeed = math.copysign(MAX_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) > MAX_ROTATION_SPEED else rotationSpeed 
            # rotationSpeed = math.copysign(MIN_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) < MIN_ROTATION_SPEED else rotationSpeed
@@ -226,6 +233,12 @@ if __name__ == '__main__':
         rospy.Subscriber("/amee/sensors/irdistances", IRDistances , controller.handle_ir_change)
         #rospy.Subscriber("/KeyboardControl/KeyboardCommand", KeyboardCommand, controller.handle_keyboard_change)
         #rospy.Subscriber("/turtle1/command_velocity", turtleCommand, controller.handle_keyboard_change)
+
+	# Get/set the default values from ParamServer	
+	linearSpeed = rospy.get_param("/linearSpeed", 0.08)
+	rotationSpeed = rospy.get_param("/rotationSpeed", 0.04)
+	K_p_1 = rospy.get_param("/K_p_1", 0.2)
+	K_p_2 = rospy.get_param("/K_p_2", 0.2)
 
         rospy.loginfo("... done! Entering spin() loop")
 
