@@ -22,12 +22,15 @@ MAX_ROTATION_SPEED = 0.1
 MIN_ROTATION_SPEED = 0.06
 
 
+
 IR_BASE_RIGHT = 0.104
 
 linearSpeed = 0.1
-rotationSpeed = 0.05
-K_p_1 = 0.03
-K_p_2 = 0.1
+K_p_keepRef = 0.1
+K_p_reachRef = 0.3
+K_i_keepRef = 0.0
+K_i_reachRef = 0.0
+maxErrorSum = 100
 refDistance = 0.04
 noWallDistance = 0.15
 wallDistTol = 0.01
@@ -137,35 +140,54 @@ class Controller:
         rospy.loginfo("Following wall")
 
         self.followWall = True
-        loopRate = rospy.Rate(10)
+        loopRate = rospy.Rate(20)
+        error_sum = 0
 
         while self.followWall:
-            linearSpeed = rospy.get_param("/linearSpeed") # This updates the rotationSpeed on the ParamServer
-            K_p_1 = rospy.get_param("/K_p_1")
-            K_p_2 = rospy.get_param("/K_p_2")
-            refDistance = rospy.get_param("/refDistance")
+            #linearSpeed = rospy.get_param("/linearSpeed") # This updates the rotationSpeed on the ParamServer
+            #K_p_keepRef = rospy.get_param("/K_p_keepRef")
+            #K_p_reachRef = rospy.get_param("/K_p_reachRef")
+            #K_i_keepRef = rospy.get_param("/K_i_keepRef")
+            #K_i_reachRef = rospy.get_param("/K_i_reachRef")
+            #refDistance = rospy.get_param("/refDistance")
+            #maxErrorSum = rospy.get_param("/maxErrorSum")
+
 
             ir_right_mean = (self.ir_rightBack + self.ir_rightFront)/2
             angle_to_wall = math.tan((self.ir_rightBack - self.ir_rightFront) / IR_BASE_RIGHT)
             distance_to_wall = math.cos(angle_to_wall) * ir_right_mean
             
+            rospy.loginfo("DISTANCE TO WALL: %s", distance_to_wall)
+            rospy.loginfo("ANGLE TO WALL: %s", angle_to_wall)
+
             #if abs(refDistance - distance_to_wall) > noWallDistance:
             #    self.move_straight(0.1)
             #    self.move_rotate(90)
-            if abs(refDistance - distance_to_wall) < wallDistTol: # if we're at distance_to_wall +- 5cm 
+            if abs(refDistance - distance_to_wall) < wallDistTol: # if we're at distance_to_wall +- 5cm
+                rospy.loginfo("KEEPING REFERENCE")
+
                 error = self.ir_rightBack - self.ir_rightFront
-                rotationSpeed = K_p_1 * error # TODO: add integrating control if needed
+                error_sum += error
+                rotationSpeed = K_p_keepRef * error + K_i_keepRef * error_sum # TODO: add integrating control if needed
+                rospy.loginfo("ERROR_SUM: %s", error_sum)
+
             else:
+                rospy.loginfo("REACHING REFERENCE")
+
                 error = refDistance - ir_right_mean
-                rotationSpeed = K_p_2 * error # TODO: add integrating control if needed
+                error_sum += error
+                rotationSpeed = K_p_reachRef * error + K_i_reachRef * error_sum # TODO: add integrating control if needed
+                rospy.loginfo("ERROR_SUM: %s", error_sum)
+
+
+            error_sum = math.copysign(maxErrorSum, error_sum) if abs(error_sum) > maxErrorSum else error_sum
 
             self.move(linearSpeed + rotationSpeed, linearSpeed - rotationSpeed)
-            loopRate.sleep()
+           #loopRate.sleep()
 
         rospy.loginfo("Stop following wall")
         self.followWall = False
         self.stop_motors()
-        
 
    # ----------------------- ROS CALLBACKS ----------------------- #
 
@@ -226,24 +248,27 @@ if __name__ == '__main__':
 
         # Get/set the default values from ParamServer
         rospy.set_param("/linearSpeed", linearSpeed)
-        rospy.set_param("/rotationSpeed", rotationSpeed)
-        rospy.set_param("/K_p_1", K_p_1)
-        rospy.set_param("/K_p_2", K_p_2)
+        rospy.set_param("/K_p_keepRef", K_p_keepRef)
+        rospy.set_param("/K_p_reachRef", K_p_reachRef)
+        rospy.set_param("/K_i_keepRef", K_i_keepRef)
+        rospy.set_param("/K_i_reachRef", K_i_reachRef)
+        rospy.set_param("/maxErrorSum", maxErrorSum)
         rospy.set_param("/refDistance", refDistance)
         rospy.set_param("/noWallDistance", noWallDistance)
         rospy.set_param("/wallDistTol", wallDistTol)
 
         # linearSpeed = rospy.get_param("/linearSpeed", linearSpeed)
         # rotationSpeed = rospy.get_param("/rotationSpeed", rotationSpeed)
-        # K_p_1 = rospy.get_param("/K_p_1")
-        # K_p_2 = rospy.get_param("/K_p_2")
+        # K_p_keepRef = rospy.get_param("/K_p_keepRef")
+        # K_p_reachRef = rospy.get_param("/K_p_reachRef")
         # refDistance = rospy.get_param("/refDistance")
         # noWallDistance = rospy.get_param("/noWallDistance")
         # wallDistTol = rospy.get_param("/wallDistTol")
 
         rospy.loginfo("... done! Entering spin() loop")
 
-        while not rospy.is_shutdown():
-            rospy.spin()
+        rospy.spin()
+       # while not rospy.is_shutdown():
+       #     rospy.spin()
 
     except rospy.ROSInterruptException: pass
