@@ -24,6 +24,7 @@ private:
 	//TODO all the other sensors
 	static const int RIGHT_FRONT = 1;
 	static const int RIGHT_BACK = 2;
+	static const int FRONT_SHORTRANGE = 3;
 
 
 
