@@ -13,6 +13,9 @@ class MotorControl {
 #define MIN_MOTOR_SPEED -1.0
 
 private:
+	static const float K_p = 0.05f;
+
+
 	amee::Velocity mVelocity;
 	amee::Odometry mOdometry;
 	float mAngle;
@@ -24,7 +27,6 @@ private:
 	int mMeasurementCounter; 
 	ros::Publisher mot_pub;
 	ros::Publisher odo_pub;
-	int mDesiredInterval;
 
 	public:
 		void receive_encoder(const roboard_drivers::Encoder::ConstPtr &msg);
@@ -35,13 +37,11 @@ private:
 		void init();
 		bool measurementsValid();
 		void setMotorPublisher(ros::Publisher pub);
-		int getDesiredEncoderInterval();
 		void setOdometryPublisher(ros::Publisher pub);
 	protected:
 		void calcWheelPWMVelocities(amee::Velocity& velocity);
 	private:
-		inline void checkWheelSpeed(float & motorDirection);
-		inline void checkSpeedLimit();
+		inline void checkSpeedLimit(roboard_drivers::Motor& m);
 		void publishOdometry();
 };
 #endif
