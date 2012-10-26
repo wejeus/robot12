@@ -205,6 +205,27 @@ void MovementControl::doControl() {
 	// }
 }
 
+void MovementControl::receive_command(amee::MovementCommand::ConstPtr &msg) {
+	int type = msg->type;
+	
+	switch(type) {
+		case TYPE_MOVE_STRAIGHT:
+		break;
+		case TYPE_MOVE_ROTATE:
+			float angle = msg->angle;
+			mCurrentState = mRotationState;
+			mRotationState->init(angle);
+		break;
+		case TYPE_MOVE_COORDINATE:
+		break;
+		case TYPE_FOLLOW_WALL:
+		break;
+		case TYPE_STOP:
+		break;
+		default: std::cout << "UNKNOWN COMMAND" << std::endl;
+	}
+}
+
 void MovementControl::init() {
 	mRotationState->init(mSensorData);
 }
@@ -227,6 +248,8 @@ int main(int argc, char **argv)
 	// create subscriber for distances
 	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &MovementControl::receive_distances, &control);
 	ros::Subscriber odo_sub = n.subscribe("/amee/motor_control/odometry", 100, &MovementControl::receive_odometry, &control);
+
+	ros::Subscriber command_sub = n.subscribe("/MovementControl/MovementCommand",10,&MovementControl::receive_command, &control);
 
 	ros::Rate loop_rate(20);
 	while(vel_pub.getNumSubscribers() == 0 && ros::ok()) {

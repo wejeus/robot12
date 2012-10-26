@@ -16,9 +16,16 @@ class MovementControl {
 		~MovementControl();
 		void receive_distances(const amee::IRDistances::ConstPtr &msg);
 		void receive_odometry(const amee::Odometry::ConstPtr &msg);
+		void receive_command(const amee::MovementCommand::ConstPtr &msg);
 		void setSpeedPublisher(ros::Publisher pub);
 		void doControl();
 		void init();
+
+		static const int TYPE_MOVE_STRAIGHT = 1;
+		static const int TYPE_MOVE_ROTATE = 2;
+		static const int TYPE_MOVE_COORDINATE = 3;
+		static const int TYPE_FOLLOW_WALL = 4;
+		static const int TYPE_STOP = 5;
 
 	private:
 
