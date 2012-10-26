@@ -29,6 +29,8 @@ MovementControl::MovementControl(ros::Publisher pub) {
 	ros::param::set("/K_i_reachRef", (double)K_i_reachRef);
 	ros::param::set("/refDistance", (double)refDistance);
 	ros::param::set("/maxErrorSum", (double)maxErrorSum);
+
+	state = doNothing;
 }
 
 void MovementControl::setSpeedPublisher(ros::Publisher pub) {
@@ -76,9 +78,7 @@ void MovementControl::followWall() {
 	std::cout << "DISTANCE TO WALL: " << distance_to_wall << "\n";
     std::cout << "ANGLE TO WALL: " << angle_to_wall << std::endl;
 
-    // if abs(refDistance - distance_to_wall) > noWallDistance:
-    //         #    self.move_straight(0.1)
-    //         #    self.move_rotate(90)
+
     float rotationSpeed = 0.0f;
 	if (fabs(refDistance - distance_to_wall) < wallDistTol) { // if were at distance_to_wall +- 5cm
         std::cout << "KEEPING REFERENCE" << std::endl;
@@ -102,14 +102,87 @@ void MovementControl::followWall() {
     
 }
 
+void MovementControl::goStraight() {
+	publishSpeeds(0.0f, 0.0f);
+	std::cout << "GO STRAIGHT" << std::endl;
+}
+
+
+// mTargetAngle
+// mIsRotating
+// mCurrentRelativeAngle
+// mPreviousAngle
+
+// Currentlly hardcoded to use 90 degree turns
+void MovementControl::rotate() {
+	std::cout << "ROTATING" << std::endl;
+
+	float MAX_ROTATION_SPEED = 0.1;
+	float MIN_ROTATION_SPEED = 0.06;
+
+	// New rotation requested, init rotation procedure
+	if ( ! mIsRotating) {
+		mIsRotating = true;
+		mTargetAngle = 90.0f;
+		mCurrentRelativeAngle = 0.0f;
+	}
+
+	// If here we continuing a previously started rotation
+	if (mCurrentRelativeAngle < (mTargetAngle + 0.05f)) {
+	    float K_p = 1.0/200.0; // starts to slow down 20 degrees before final angle
+	    float angleError = mTargetAngle - mCurrentRelativeAngle;
+
+	    // lower speed as we come closer to "degreesToTravel"
+	    float rotationSpeed = K_p * angleError
+
+	    if (abs(rotationSpeed) > MAX_ROTATION_SPEED) {
+	    	// saturate speed to ROTATION_SPEED if too high
+	    	rotationSpeed = std::copysign(MAX_ROTATION_SPEED, rotationSpeed);
+	    } else {
+	    	// saturate speed to ROTATION_SPEED if too low
+	    	rotationSpeed = std::copysign(MIN_ROTATION_SPEED, rotationSpeed);
+	    }
+
+	    publishSpeeds(rotationSpeed, -rotationSpeed);
+		
+		mCurrentRelativeAngle = abs(mTotalAngle - mPreviousAngle);
+	} else {
+		// Rotation done! Reset current angle movement
+		std::cout << "TARGET ANGLE REACHED" << std::endl;
+		mIsRotating = false;
+		publishSpeeds(0.0f, 0.0f);
+	}
+}
+
+
 void MovementControl::doControl() {
 
-	// switch (state) {
-	// 	WallFollow: followWall
-	// }
+	
+	float FRONT_DISTANCE_CUTOFF = 0.1f;
 
-	followWall();
+	if (state != foundFrontWall && mDistances.frontShortRange < FRONT_DISTANCE_CUTOFF) {
+		std::cout << "GOING TO STATE: foundFrontWall" << std::endl;
+		state = foundFrontWall;
+		
+	} else if (mDistances.frontShortRange > FRONT_DISTANCE_CUTOFF) {
+		std::cout << "GOING TO STATE: followSideWall" << std::endl;
+		state = followSideWall;
+	} else {
+		std::cout << "GOING TO STATE: doNothing" << std::endl;
+		state = doNothing;
+	}
 
+	switch (state) {
+		case foundFrontWall:
+			rotate();
+			break;
+		case followSideWall:
+			followWall();
+			break;
+		case doNothing:
+			break;
+		default: std::cout << "UNKNOWN STATE" << std::endl;
+	}
 }
 
 int main(int argc, char **argv)
