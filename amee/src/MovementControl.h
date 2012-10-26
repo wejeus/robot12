@@ -34,7 +34,6 @@ private:
 		void doControl();
 	private:
 		void followWall();
-		void rotate();
 		void publishSpeeds(float left, float right);
 };
 #endif
