@@ -82,11 +82,14 @@ void MotorControl::publishOdometry() {
 	float tDistRight = -(mCurrentEncoder.right - mPrevEncoder.right) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
 	mOdometry.leftWheelDistance += tDistLeft;
 	mOdometry.rightWheelDistance += tDistRight;
-	mOdometry.angle += ((tDistRight - tDistLeft) / WHEEL_BASE) /  M_PI * 180.0f;
-	mOdometry.distance =  (mOdometry.leftWheelDistance + mOdometry.rightWheelDistance) / 2.0f;
+	mOdometry.angle += ((tDistRight - tDistLeft) / WHEEL_BASE) / M_PI * 180.0f;
 	
-	//TODO calculate x,y position and speed and publish
-
+	mOdometry.distance = (mOdometry.leftWheelDistance + mOdometry.rightWheelDistance) / 2.0f;
+	float tDistance = (tDistLeft + tDistRight) / 2.0f;
+	mOdometry.x += cos(mOdometry.angle / 180.0f * M_PI) * tDistance;
+	mOdometry.y += sin(mOdometry.angle / 180.0f * M_PI) * tDistance;
+	mOdometry.velocity = tDistance / (mCurrentEncoder.timestamp - mPrevEncoder.timestamp);
+	
 	odo_pub.publish(mOdometry);
 }
 
@@ -185,6 +188,9 @@ void MotorControl::init() {
 	mOdometry.rightWheelDistance = 0.0f;
 	mOdometry.distance = 0.0f;
 	mOdometry.angle = 0.0f;
+	mOdometry.x = 0.0f;
+	mOdometry.y = 0.0f;
+	mOdometry.velocity = 0.0f;
 	
 	mMotor.left = 0.0f;
 	mMotor.right = 0.0f;
@@ -232,9 +238,6 @@ int main(int argc, char **argv)
 	while(int_pub.getNumSubscribers() == 0 && ros::ok()) {
 		loop_rate.sleep();
 	} 
-
-	// set our control loop at 6Hz (TODO increase frequency when using Kalman filter)
-	
 	
 	// make sure the robot isn't moving on startup
 	control.setSpeed(0.0f, 0.0f);
