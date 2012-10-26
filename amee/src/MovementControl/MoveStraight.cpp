@@ -1,10 +1,8 @@
 #include "MoveStraight.h"
+#include "amee/Velocity.h"
 
 namespace amee{
 
-
-//default constructor
-MoveStraight::MoveStraight(){}
 
 MoveStraight::MoveStraight(ros::Publisher & pub){
 	mPub = pub;
@@ -16,19 +14,23 @@ MoveStraight::~MoveStraight(){}
 /**
  * Sets the velocity of the wheels, if no value is given the default value will be set
  **/
-void MoveStraight::init(const float vel = DEFAULT_VELOCITY):mVelocity(vel), mRunning(false){}
+void MoveStraight::init(const float vel) {
+	mVelocity = vel;
+	mRunning = true;
+}
 
-const bool& MoveStraight::isRunning() const {return mRunning;}
-const float& MoveStraight::getCurrentVelocity()const{return mVelocity;}
+void MoveStraight::init(const SensorData &data){
+	init();
+}
+
+bool MoveStraight::isRunning() const {return mRunning;}
 
 /**
  * Publishes a 
  **/
-void MoveStraight::doControl(SensorData &data){
-	mRunning = true;
+void MoveStraight::doControl(const SensorData &data){
 	Velocity v; v.right = mVelocity; v.left = mVelocity;
 	mPub.publish(v);
-	mRunning = false;	
 }
 
 

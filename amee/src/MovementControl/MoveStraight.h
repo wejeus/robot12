@@ -2,25 +2,26 @@
 #define MOVE_STRAIGHT_H
 
 #include "MovementState.h"
-#include "amee/Velocity.h"
+#include "ros/ros.h"
 
-namespace amee{
-	class MoveStraight : public MovementState{
-	#define DEFAULT_VELOCITY 0.15
-	public:
-		MoveStraight();
-		MoveStraight(ros::Publisher &);
-		~MoveStraight();
+namespace amee {
+	class MoveStraight : public MovementState {
+		
+		public:
+			MoveStraight(ros::Publisher &pub);
+			~MoveStraight();
 
-		virtual void init(SensorData &data);
-		void init(const float velocity);
-		virtual const bool& isRunning() const;
-		virtual void doControl(SensorData &data);
-		const float & getCurrentVelocity()const;
-	private:
-		bool mRunning;
-		ros::Publisher mPub;
-		float mVelocity;
+			static const float DEFAULT_VELOCITY = 0.15f;
+
+			virtual void init(const SensorData &data);
+			void init(const float velocity = DEFAULT_VELOCITY);
+			virtual bool isRunning() const;
+			virtual void doControl(const SensorData &data);
+
+		private:
+			bool mRunning;
+			ros::Publisher mPub;
+			float mVelocity;
 	}; //MoveStraight
 
 }; //namespace amee

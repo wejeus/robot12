@@ -1,20 +1,23 @@
 #ifndef MOVE_STOP_H
 #define MOVE_STOP_H
 
-#include "MovementStates.h"
+#include "MovementState.h"
+#include "ros/ros.h"
 
-namespace amee{
-	class MoveStop : public MovementStates{
-	public:
-		MoveStop();
-		~MoveStop();
+namespace amee {
+	class MoveStop : public MovementState {
+		
+		public:
+			MoveStop(ros::Publisher &pub);
+			~MoveStop();
 
-		virtual void init();
-		virtual const bool& isRunning();
-		virtual void doControl();
-	private:
-		bool running;
-	}; //MoveStop
+			virtual void init(const SensorData &data);
+			virtual bool isRunning() const;
+			virtual void doControl(const SensorData &data);
+
+		private:
+			ros::Publisher mPub;
+	}; //MoveStraight
 
 }; //namespace amee
 

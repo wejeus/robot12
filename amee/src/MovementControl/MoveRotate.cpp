@@ -35,10 +35,11 @@ void MoveRotate::doControl(const SensorData& data) {
 	float MAX_ROTATION_SPEED = 0.1;
 	float MIN_ROTATION_SPEED = 0.06;
 
-	mCurrentRelativeAngle = abs(data.odometry.angle - mStartingAngle);
-	// std::cout << mCurrentRelativeAngle << std::endl;
-	// std::cout << data.odometry << std::endl;
-	if (fabs(mCurrentRelativeAngle - mTargetAngle) > 0.5) {
+	mCurrentRelativeAngle = data.odometry.angle - mStartingAngle;
+	std::cout << mCurrentRelativeAngle << std::endl;
+	std::cout << data.odometry << std::endl;
+	std::cout << "target=" << mTargetAngle << std::endl;
+	if (fabs(mCurrentRelativeAngle - mTargetAngle) > 0.8) {
 	    float K_p = 1.0/200.0; // starts to slow down 20 degrees before final angle
 	    float angleError = mTargetAngle - mCurrentRelativeAngle;
 
@@ -54,7 +55,7 @@ void MoveRotate::doControl(const SensorData& data) {
 	    	rotationSpeed = speedSign * MIN_ROTATION_SPEED;
 	    }
 
-	    publishSpeeds(rotationSpeed, -rotationSpeed);
+	    publishSpeeds(-rotationSpeed, rotationSpeed);
 		
 	} else {
 		// Rotation done! Reset current angle movement
