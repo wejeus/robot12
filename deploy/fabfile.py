@@ -60,7 +60,7 @@ def deploy():
     require('root_path', 'remote_deploy_path')
 
     # Upload
-    run('mkdir -p %s/amee' % env.remote_deploy_path)
+    #run('mkdir -p %s/amee' % env.remote_deploy_path)
 
     # Sync custom bin's
     rsync_project(
@@ -68,21 +68,27 @@ def deploy():
         remote_dir='%s/' % (env.remote_deploy_path),
     )
 
-    # Sync ROS project files
-    ros_files = ['manifest.xml', 'mainpage.dox']
-    for f in ros_files:
-        rsync_project(
-            local_dir='%s/amee/%s' % (env.root_path, f),
-            remote_dir='%s/amee/' % (env.remote_deploy_path),
-        )
+    rsync_project(
+        local_dir='%s/amee' % (env.root_path),
+        remote_dir='%s' % (env.remote_deploy_path),
+        exclude = 'build',
+    )
 
-    # Sync ROS project dirs
-    ros_dirs = ['amee/bin', 'amee/launch', 'amee/nodes', 'amee/msg_gen','amee/msg', 'amee/src']
-    for cur_dir in ros_dirs:
-        rsync_project(
-            local_dir='%s/%s' % (env.root_path, cur_dir),
-            remote_dir='%s/amee' % (env.remote_deploy_path),
-        )
+    # # Sync ROS project files
+    # ros_files = ['manifest.xml', 'mainpage.dox']
+    # for f in ros_files:
+    #     rsync_project(
+    #         local_dir='%s/amee/%s' % (env.root_path, f),
+    #         remote_dir='%s/amee/' % (env.remote_deploy_path),
+    #     )
+
+    # # Sync ROS project dirs
+    # ros_dirs = ['amee/bin', 'amee/launch', 'amee/nodes', 'amee/msg_gen','amee/msg', 'amee/src']
+    # for cur_dir in ros_dirs:
+    #     rsync_project(
+    #         local_dir='%s/%s' % (env.root_path, cur_dir),
+    #         remote_dir='%s/amee' % (env.remote_deploy_path),
+    #     )
 
 
 @task
