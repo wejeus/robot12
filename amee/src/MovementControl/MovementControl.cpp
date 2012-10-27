@@ -15,6 +15,7 @@ MovementControl::MovementControl(ros::Publisher pub) {
 	mRotationState = new MoveRotate(pub);
 	mStraightState = new MoveStraight(pub);
 	mStopState = new MoveStop(pub);
+	mFollowWallState = new MoveFollowWall(pub);
 	mCurrentState = mStopState;
 }
 
@@ -22,6 +23,7 @@ MovementControl::~MovementControl() {
 	delete mRotationState;
 	delete mStraightState;
 	delete mStopState;
+	delete mFollowWallState;
 }
 
 void MovementControl::setSpeedPublisher(ros::Publisher& pub) {

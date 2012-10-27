@@ -7,6 +7,9 @@ using namespace amee;
 		mVelPub = pub;
 	}
 
+	MoveFollowWall::~MoveFollowWall() {
+	}
+
 	void MoveFollowWall::init(const SensorData& data) {
 		linearSpeed = 0.1f;
 		K_p_keepRef = 0.15f;
@@ -18,6 +21,8 @@ using namespace amee;
 		noWallDistance = 0.15f;
 		wallDistTol = 0.01f;
 		error_sum = 0.0f;
+
+		mRunning = true;
 
 		ros::param::set("/linearSpeed",(double)linearSpeed);
 		ros::param::set("/K_p_keepRef", (double)K_p_keepRef);
@@ -38,8 +43,8 @@ using namespace amee;
 
 	void MoveFollowWall::doControl(const SensorData& data) {
 
-		float FRONT_DISTANCE_CUTOFF = 0.1f;
-
+		// float FRONT_DISTANCE_CUTOFF = 0.1f;
+		mSensorData = data;
 		followWall();
 
 		// if (state != foundFrontWall && mDistances.frontShortRange < FRONT_DISTANCE_CUTOFF) {
@@ -56,7 +61,7 @@ using namespace amee;
 
 		// switch (state) {
 		// 	case foundFrontWall:
-		// 		rotate();
+		// 		rotate(); // use MoveRotate for that
 		// 		break;
 		// 	case followSideWall:
 		// 		followWall();
@@ -65,6 +70,10 @@ using namespace amee;
 		// 		break;
 		// 	default: std::cout << "UNKNOWN STATE" << std::endl;
 		// }
+	}
+
+	bool MoveFollowWall::isRunning() const {
+		return mRunning;
 	}
 
 	void MoveFollowWall::followWall() {

@@ -121,8 +121,8 @@ void MotorControl::receive_speed(const amee::Velocity::ConstPtr &v) {
 void MotorControl::setSpeed(float vLeft, float vRight) {
 	mVelocity.left = vLeft;
 	mVelocity.right = vRight;
-	mMeasurementValidCounter = 2 * NUM_AVERAGED_MEASUREMENTS;
-	std::cout << "SET NEW SPEED!!! vLeft = " << vLeft << " vRight = " << vRight << std::endl;
+	// mMeasurementValidCounter = 2 * NUM_AVERAGED_MEASUREMENTS;
+	// std::cout << "SET NEW SPEED!!! vLeft = " << vLeft << " vRight = " << vRight << std::endl;
 	/*mOdometry.leftWheelDistance = 0.0f;
 	mOdometry.rightWheelDistance = 0.0f;
 	mOdometry.distance = 0.0f;

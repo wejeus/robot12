@@ -41,7 +41,7 @@ namespace amee{
 
 		ros::Publisher mVelPub;
 
-		bool running;
+		bool mRunning;
 		void followWall();
 		void rotate();
 		void publishSpeeds(float left, float right);
