@@ -1,6 +1,10 @@
 #include "MoveFollowWall.h"
 #include "amee/Velocity.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 using namespace amee;
 
     MoveFollowWall::MoveFollowWall(ros::Publisher& pub) {
@@ -13,7 +17,7 @@ using namespace amee;
     }
 
     void MoveFollowWall::init(const SensorData& data) {
-        linearSpeed = 0.1f;
+        linearSpeed = 0.2f;
         K_p_keepRef = 0.15f;
         K_p_reachRef = 0.3f;
         K_i_keepRef = 0.0f;
@@ -50,41 +54,55 @@ using namespace amee;
     // };
     void MoveFollowWall::doControl(const SensorData& data) {
 
-        float FRONT_DISTANCE_CUTOFF = 0.1f;
+        float FRONT_DISTANCE_CUTOFF = 0.2f;
+        float RIGHT_DISTANCE_CUTOFF = 0.4f;
         mSensorData = data;
         
-        // followWall();
-
-        if (mState == rotating) {
-
-        }
+        
 
         if (mState != foundFrontWall && mSensorData.irdistances.frontShortRange < FRONT_DISTANCE_CUTOFF) {
-             std::cout << "GOING TO STATE: foundFrontWall" << std::endl;
-             mRotater->init(mSensorData, 90);
-             mState = foundFrontWall;
-        } 
-        // else if (mSensorData.irdistances.frontShortRange > FRONT_DISTANCE_CUTOFF) {
-        //      std::cout << "GOING TO STATE: followSideWall" << std::endl;
-        //      state = followSideWall;
-        // }
-         // else {
-        //      std::cout << "GOING TO STATE: doNothing" << std::endl;
-        //      state = doNothing;
-        // }
+            float angleToWall = tan((mSensorData.irdistances.rightBack - mSensorData.irdistances.rightFront) / IR_BASE_RIGHT) * (180/M_PI);
+            angleToWall = (-1.0f) * angleToWall; // compensate for current location
+            std::cout << "GOING TO STATE: foundFrontWall" << std::endl;
+            mRotater->init(mSensorData, (90 + angleToWall));
+            mState = foundFrontWall;
+        } else if (mSensorData.irdistances.rightFront > RIGHT_DISTANCE_CUTOFF) {
+            // TODO: MoveStraight needs to be implemented to get this to work...
+            // std::cout << "GOING TO STATE: foundEndOfWall" << std::endl;
+            // mStraightMover->init(mSensorData, 0.1f);
+            // mState = foundEndOfWall;
+        }
+
 
         switch (mState) {
-             case foundFrontWall:
+            case foundFrontWall:
                 if (mRotater->isRunning()) {
                     mRotater->doControl(mSensorData); // use MoveRotate for that
                 } else {
+                    std::cout << "GOING TO STATE: followSideWall" << std::endl;
                     mState = followSideWall;
                 }
                 break;
-             case followSideWall:
+            case foundEndOfWall:
+                // Warning: this is a bit ugly state control...
+                if (mStraightMover->isRunning()) {
+                    mStraightMover->doControl(mSensorData);
+                } else {
+                    // Now we finished moving a bit forward, rotate around the wall then go back to wall following
+                    if ( ! mRotater->isRunning()) {
+                        mRotater->init(mSensorData, 90);
+                    } else {
+                        mRotater->doControl(mSensorData);
+                        // We need to check if finished here so we can go to a new state
+                        if ( ! mRotater->isRunning()) {
+                            mState = followWall;
+                        }
+                    }
+                }
+            case followSideWall:
                 followWall();
                 break;
-             default: std::cout << "UNKNOWN STATE" << std::endl;
+            default: std::cout << "UNKNOWN STATE" << std::endl;
         }
     }
 

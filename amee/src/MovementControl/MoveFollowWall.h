@@ -16,7 +16,7 @@ namespace amee{
 		virtual void doControl(const SensorData& data);
 		
 	private:
-		enum WallFollowState {foundFrontWall, followSideWall, rotating, movingStraight};
+		enum WallFollowState {foundFrontWall, followSideWall, foundEndOfWall};
 
 		static const float MOVEMENT_SPEED = 0.3;
 		static const float MAX_ROTATION_SPEED = 0.1;
