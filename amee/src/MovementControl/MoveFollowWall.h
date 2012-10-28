@@ -2,6 +2,7 @@
 #define MOVE_FOLLOW_WALL_H
 
 #include "MovementState.h"
+#include "MoveRotate.h"
 #include "ros/ros.h"
 
 namespace amee{
@@ -15,7 +16,7 @@ namespace amee{
 		virtual void doControl(const SensorData& data);
 		
 	private:
-		enum WallFollowState {foundFrontWall, followSideWall, doNothing, rotating, movingStraight};
+		enum WallFollowState {foundFrontWall, followSideWall, rotating, movingStraight};
 
 		static const float MOVEMENT_SPEED = 0.3;
 		static const float MAX_ROTATION_SPEED = 0.1;
@@ -37,7 +38,7 @@ namespace amee{
 		SensorData mSensorData;
 
 		// allows us to rotate by calling its doControl after we initialized it as long as we want to rotate
-		// MoveRotate mRotater;
+		amee::MoveRotate *mRotater;
 
 		ros::Publisher mVelPub;
 
