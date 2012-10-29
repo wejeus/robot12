@@ -40,11 +40,11 @@ void MovementControl::receive_distances(const IRDistances::ConstPtr &msg)
 
 void MovementControl::receive_odometry(const Odometry::ConstPtr &msg) {
 	mSensorData.odometry.angle = msg->angle;
+	mSensorData.odometry.distance = msg->distance;
 	// TODO others
 }
 
 void MovementControl::doControl() {
-
 	if (mCurrentState->isRunning()) {
 		mCurrentState->doControl(mSensorData);
 	}
@@ -53,12 +53,12 @@ void MovementControl::doControl() {
 void MovementControl::receive_command(const amee::MovementCommand::ConstPtr &msg) {
 	int type = msg->type;
 	float angle = msg->angle;
-
+	float distance = msg->distance;
 	switch(type) {
 		case TYPE_MOVE_STRAIGHT:
 			std::cout << "MOVE STRAIGHT COMMAND RECEIVED" << std::endl;
 			mCurrentState = mStraightState;
-			mStraightState->init();
+			mStraightState->init(mSensorData, distance);
 		break;
 		case TYPE_MOVE_ROTATE:		
 			std::cout << "ROTATE COMMAND RECEIVED" << std::endl;

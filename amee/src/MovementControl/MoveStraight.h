@@ -15,11 +15,16 @@ namespace amee {
 
 			virtual void init(const SensorData &data);
 			void init(const float velocity = DEFAULT_VELOCITY);
+			void init(const SensorData &data, float distance);
 			virtual bool isRunning() const;
 			virtual void doControl(const SensorData &data);
 
 		private:
+			bool mGoingDistance;
+			bool mFirstRun;
+			float mTargetDistance;
 			bool mRunning;
+			float mStartingDistance;
 			ros::Publisher mPub;
 			float mVelocity;
 	}; //MoveStraight

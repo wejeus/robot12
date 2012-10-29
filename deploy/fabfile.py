@@ -71,7 +71,7 @@ def deploy():
     rsync_project(
         local_dir='%s/amee' % (env.root_path),
         remote_dir='%s' % (env.remote_deploy_path),
-        exclude = ['build', 'src', 'msg_gen', 'nodes'],
+        exclude = ['build', 'nodes'],
     )
 
     # # Sync ROS project files

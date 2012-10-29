@@ -102,8 +102,8 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 				//distances[i] = log(mSensorCalibrations[i].alpha / (mLastReadings[i] - mSensorCalibrations[i].c)) / mSensorCalibrations[i].lambda;
 				//std::cout << mLastReadings[i] << " ";
 				distances[i] = 1.0f / (mSensorCalibrations[i].m * mLastReadings[i] + mSensorCalibrations[i].b) - mSensorCalibrations[i].k;
-				int lastDigit = (int)(distances[i] * 1000.0f) % 10;
-				distances[i] = lastDigit > 4 ? ceil(distances[i] * 100.0f) / 100.0f : floor(distances[i] * 100.0f) / 100.0f;
+				//int lastDigit = (int)(distances[i] * 1000.0f) % 10;
+				//distances[i] = lastDigit > 4 ? ceil(distances[i] * 100.0f) / 100.0f : floor(distances[i] * 100.0f) / 100.0f;
 			// } 
 		}
 		//std::cout << std::endl;
