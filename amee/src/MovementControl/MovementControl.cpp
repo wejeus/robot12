@@ -36,6 +36,7 @@ void MovementControl::receive_distances(const IRDistances::ConstPtr &msg)
 	mSensorData.irdistances.rightFront = msg->rightFront;
 	mSensorData.irdistances.rightBack = msg->rightBack;
 	mSensorData.irdistances.frontShortRange = msg->frontShortRange;
+	mSensorData.irdistances.wheelRight = msg->wheelRight;
 }
 
 void MovementControl::receive_odometry(const Odometry::ConstPtr &msg) {

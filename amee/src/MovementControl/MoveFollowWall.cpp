@@ -122,9 +122,10 @@ using namespace amee;
                     }
                 }
                 break;
-            case followSideWall: 
+            case followSideWall: {
                    followWall();
-                   if (mSensorData.irdistances.frontShortRange < FRONT_DISTANCE_CUTOFF) {
+                   bool obstacleOnTheRight = mSensorData.irdistances.wheelRight < FRONT_DISTANCE_CUTOFF && mSensorData.irdistances.wheelRight >= 0;
+                   if (mSensorData.irdistances.frontShortRange < FRONT_DISTANCE_CUTOFF || obstacleOnTheRight) { 
                         float angle_to_wall = tan((mSensorData.irdistances.rightBack - mSensorData.irdistances.rightFront) / IR_BASE_RIGHT) * (180/M_PI);
                         float sign = angle_to_wall >= 0 ? 1.0f : -1.0f; // compensate for current location
                         float angle_correction = angle_to_wall*sign;
@@ -137,6 +138,7 @@ using namespace amee;
                         wallDistanceError = mSensorData.irdistances.rightBack; // to be used later
                         mState = endWallHandlingBeforeRotation;
                     } 
+                }
                 break;
             default: std::cout << "UNKNOWN STATE" << std::endl;
         }

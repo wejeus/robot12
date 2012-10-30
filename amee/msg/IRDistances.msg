@@ -4,3 +4,5 @@ float32 leftFront
 float32 rightBack
 float32 rightFront
 float32 frontShortRange
+float32 wheelLeft
+float32 wheelRight
