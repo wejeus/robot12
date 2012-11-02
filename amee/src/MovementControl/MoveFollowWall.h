@@ -17,8 +17,18 @@ namespace amee{
 		virtual void doControl(const SensorData& data);
 		
 	private:
-		enum WallFollowState {foundFrontWall, followSideWall, checkForUTurn,
-			endWallHandlingBeforeRotation, endWallHandlingRotation, endWallHandlingAfterRotation};
+		enum WallFollowState {FollowWall, LookForEndOfWall, MoveTail,
+			RotateRight, RotateLeft, LookForBeginningOfWall};
+
+		struct State
+		{
+			WallFollowState mState;
+			bool initialized;
+			void set(WallFollowState state) {
+				mState = state;
+				initialized = false;
+			}
+		};
 
 		static const float MOVEMENT_SPEED = 0.3;
 		static const float MAX_ROTATION_SPEED = 0.1;
@@ -26,7 +36,7 @@ namespace amee{
 		static const float IR_BASE_RIGHT = 0.104;
 
 		static const float TOO_CLOSE_TO_WALL = 0.03f;
-		static const float TOO_FAR_FROM_WALL = 0.09f;
+		static const float TOO_FAR_FROM_WALL = 0.08f;
 
 		float linearSpeed;
 		float K_p_keepRef;
@@ -45,7 +55,7 @@ namespace amee{
 
 		float wallDistanceError;
 		
-		WallFollowState mState;		
+		State mState;		
 		SensorData mSensorData;
 
 		// allows us to rotate by calling its doControl after we initialized it as long as we want to rotate
@@ -55,8 +65,25 @@ namespace amee{
 		ros::Publisher mVelPub;
 
 		bool mRunning;
+
+		// variables for lookForBeginningOfWall
+		bool mFoundWallRightBack;
+		bool mFoundWallRightFront;
+
+		// states
+		void followWallState();
+		void lookForEndOfWallState();
+		void moveTailState();
+		void rotateRightState();
+		void rotateLeftState();
+		void lookForBeginningOfWallState();
+
 		void followWall();
-		void rotate();
+
+		// helper functions
+		bool seesWall(float distance);
+		bool wallInFront();
+
 		void publishSpeeds(float left, float right);
 
 
