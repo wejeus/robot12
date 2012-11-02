@@ -1,8 +1,9 @@
 #include "ros/ros.h"
-#include "sta_msgs/Int32.h"
-#include <stdio.d>
+#include "std_msgs/Int32.h"
+#include <stdio.h>
 #include <unistd.h>
 
+using namespace roboard_drivers;
 
 int main(int argc, char **argv){
 
