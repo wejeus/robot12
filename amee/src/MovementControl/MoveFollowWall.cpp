@@ -35,7 +35,7 @@ using namespace amee;
         last_error = 0.0f;
 
         mRunning = true;
-        mState = followSideWall;
+        mState.set(FollowWall);
 
         ros::param::set("/linearSpeed",(double)linearSpeed);
         ros::param::set("/K_p_keepRef", (double)K_p_keepRef);
@@ -61,86 +61,134 @@ using namespace amee;
     // };
     void MoveFollowWall::doControl(const SensorData& data) {
 
-        float FRONT_DISTANCE_CUTOFF = 0.1f;
-        float RIGHT_DISTANCE_CUTOFF = 0.22f;
         mSensorData = data;
-        
-        // For debug
-        // followWall();
-        // std::cout << "FRONT SENSOR: " << mSensorData.irdistances.frontShortRange << std::endl;
 
-        // FIXME (MAYBE) misses one iteration due to state change
-
-        switch (mState) {
-            case foundFrontWall:
-                if (mRotater->isRunning()) {
-                    mRotater->doControl(mSensorData); // use MoveRotate for that
-                } else {
-                    std::cout << "GOING TO STATE: followSideWall" << std::endl;
-                    mState = followSideWall;
-                }
+        switch (mState.mState) {
+            case FollowWall:
+               followWallState();
                 break;
-            case endWallHandlingBeforeRotation:
-                if (mStraightMove->isRunning()) {
-                    mStraightMove->doControl(mSensorData);
-                } else {
-                    // Now we finished moving a bit forward, rotate around the wall then go back to wall following
-                    std::cout << "GOING TO STATE: endWallHandlingRotation" << std::endl;
-                    mState = endWallHandlingRotation;
-                    mRotater->init(mSensorData,-90);
-                }
+            case LookForEndOfWall:
+                lookForEndOfWallState();
                 break;
-            case endWallHandlingRotation:
-                if (mRotater->isRunning()) {
-                    mRotater->doControl(mSensorData);
-                } else {
-                    std::cout << "GOING TO STATE: endWallHandlingAfterRotation" << std::endl;
-                    mState = endWallHandlingAfterRotation;
-                    mStraightMove->init(mSensorData, 2 * (wallDistanceError + 0.12f) + 0.02); //wallDistanceError
-                }
+            case MoveTail:
+                moveTailState();
                 break;
-            case endWallHandlingAfterRotation:
-                if (mStraightMove->isRunning()) {
-                    mStraightMove->doControl(mSensorData);
-                } else {
-                    std::cout << "GOING TO STATE: checkForUTurn" << std::endl;
-                    mState = checkForUTurn;
-                }
+            case RotateRight:
+                rotateRightState();
                 break;
-            case checkForUTurn:
-                {
-                    float rightFront = mSensorData.irdistances.rightFront;
-                    float rightBack = mSensorData.irdistances.rightBack;
-                    if (rightFront < RIGHT_DISTANCE_CUTOFF) { //rightBack < RIGHT_DISTANCE_CUTOFF &&
-                        std::cout << "GOING TO STATE: followSideWall" << std::endl;
-                        mState = followSideWall;
-                    } else {
-                        std::cout << "GOING TO STATE: endWallHandlingRotation" << std::endl;
-                        mRotater->init(mSensorData, -90);
-                        wallDistanceError = 0.0f;
-                        mState = endWallHandlingRotation;
-                    }
-                }
+            case RotateLeft:
+                rotateLeftState();
                 break;
-            case followSideWall: {
-                   followWall();
-                   bool obstacleOnTheRight = mSensorData.irdistances.wheelRight < FRONT_DISTANCE_CUTOFF && mSensorData.irdistances.wheelRight >= 0;
-                   if (mSensorData.irdistances.frontShortRange < FRONT_DISTANCE_CUTOFF || obstacleOnTheRight) { 
-                        float angle_to_wall = tan((mSensorData.irdistances.rightBack - mSensorData.irdistances.rightFront) / IR_BASE_RIGHT) * (180/M_PI);
-                        float sign = angle_to_wall >= 0 ? 1.0f : -1.0f; // compensate for current location
-                        float angle_correction = angle_to_wall*sign;
-                        std::cout << "GOING TO STATE: foundFrontWall" << std::endl;
-                        mRotater->init(mSensorData, (90 - angle_correction));
-                        mState = foundFrontWall;
-                    }  else if (mSensorData.irdistances.rightFront > RIGHT_DISTANCE_CUTOFF) {
-                        std::cout << "GOING TO STATE: endWallHandlingBeforeRotation" << std::endl;
-                        mStraightMove->init(mSensorData, 0.165f);
-                        wallDistanceError = mSensorData.irdistances.rightBack; // to be used later
-                        mState = endWallHandlingBeforeRotation;
-                    } 
-                }
+            case LookForBeginningOfWall:
+                lookForBeginningOfWallState();
                 break;
             default: std::cout << "UNKNOWN STATE" << std::endl;
+        }
+    }
+
+    void MoveFollowWall::lookForBeginningOfWallState() {
+        std::cout << "LookForBeginningOfWall" << std::endl;
+        if (!mState.initialized) {
+            mState.initialized = true;
+            mFoundWallRightBack = false;
+            mFoundWallRightFront = false;
+            mStraightMove->init();
+        }
+
+        if (wallInFront()) { // in case there is for whatever evil reason a wall in front
+            mState.set(RotateLeft);
+            return;
+        }
+        mFoundWallRightFront = mFoundWallRightFront || seesWall(mSensorData.irdistances.rightFront);
+        mFoundWallRightBack = mFoundWallRightBack || seesWall(mSensorData.irdistances.rightBack);
+
+        if (mFoundWallRightBack && mFoundWallRightFront) {
+            // both sensors have seen the wall, check if the wall is still there
+            if (seesWall(mSensorData.irdistances.rightBack) 
+                && seesWall(mSensorData.irdistances.rightFront)) {
+                mState.set(FollowWall);
+            } else {
+                mState.set(MoveTail);
+            }
+        } else {
+            mStraightMove->doControl(mSensorData);
+        }
+    }
+
+    void MoveFollowWall::rotateLeftState() {
+        std::cout << "RotateLeft" << std::endl;
+          if (!mState.initialized) {
+            mState.initialized = true;
+            mRotater->init(mSensorData, 90.0f);
+          }
+          if (mRotater->isRunning()) { 
+            mRotater->doControl(mSensorData);
+          } else {
+            mState.set(FollowWall);
+          }
+    }
+
+    void MoveFollowWall::rotateRightState() {
+        std::cout << "RotateRight" << std::endl;
+          if (!mState.initialized) {
+            mState.initialized = true;
+            mRotater->init(mSensorData, -90.0f);
+          }
+          if (mRotater->isRunning()) { 
+            mRotater->doControl(mSensorData);
+          } else {
+            mState.set(LookForBeginningOfWall);
+          }
+    }
+
+    void MoveFollowWall::moveTailState() {
+        std::cout << "MoveTail" << std::endl;
+        if (wallInFront()) {
+            mState.set(RotateLeft);
+        } else { 
+            if (!mState.initialized) {
+                mState.initialized = true;
+                mStraightMove->init(mSensorData, 0.09f);//TODO set as constant
+            }
+            if (mStraightMove->isRunning()) {
+                mStraightMove->doControl(mSensorData);
+            } else {
+                mState.set(RotateRight);   
+            }
+        }
+    }
+
+    void MoveFollowWall::lookForEndOfWallState() {
+        std::cout << "LookForEndOfWall" << std::endl;
+        if (seesWall(mSensorData.irdistances.rightFront)) {
+            mState.set(LookForBeginningOfWall); 
+        } else if (wallInFront()) {
+            mState.set(RotateLeft);
+        } else if (!seesWall(mSensorData.irdistances.rightFront) 
+            && !seesWall(mSensorData.irdistances.rightBack)) {
+            mState.set(MoveTail);
+        } else {
+            if (!mState.initialized) {
+                mState.initialized = true;
+                mStraightMove->init();
+            }
+            mStraightMove->doControl(mSensorData);
+        }
+    }
+
+    void MoveFollowWall::followWallState() {
+        std::cout << "FollowWall" << std::endl;
+        std::cout << mSensorData.irdistances << std::endl;
+        if (seesWall(mSensorData.irdistances.rightBack)
+            && seesWall(mSensorData.irdistances.rightFront)
+            && !wallInFront()) {
+                followWall();    
+         } else if (!seesWall(mSensorData.irdistances.rightFront)) {
+            mState.set(LookForEndOfWall);
+         } else if (wallInFront()) {
+            mState.set(RotateLeft);
+         } else {
+           std::cout << "HELP ME!!!! I'M LOST!!!!!" << std::endl;
         }
     }
 
@@ -148,8 +196,19 @@ using namespace amee;
         return mRunning;
     }
 
+    bool MoveFollowWall::seesWall(float distance) {
+        //TODO set as constants
+        return distance >= 0.0f && distance <= 0.14f;
+    }
+
+    bool MoveFollowWall::wallInFront() {
+        // TODO use constants
+        return (mSensorData.irdistances.frontShortRange <= 0.09f && mSensorData.irdistances.frontShortRange >= 0.0f)
+            || (mSensorData.irdistances.wheelRight <= 0.09f && mSensorData.irdistances.wheelRight >= 0.0f);
+    }
+
     void MoveFollowWall::followWall() {
-        std::cout << "Following wall" << std::endl;
+        // std::cout << "Following wall" << std::endl;
         //TODO make this nice (use floats and not double)
         double temp;    
         ros::param::getCached("/linearSpeed",temp);
