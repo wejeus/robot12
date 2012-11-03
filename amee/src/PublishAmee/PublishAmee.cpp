@@ -8,7 +8,7 @@ namespace amee{
 }//namespace amee
 
 
-ros::Rate loop_rate;
+ros::Rate * loop_rate;
 
 void printError(const char * m){
 	printf("Bad number of arguments, should be: %s\n", m); fflush(stdout);
@@ -16,7 +16,7 @@ void printError(const char * m){
 
 void wait(ros::Publisher &p){
 	while(ros::ok() && p.getNumSubscribers() == 0)
-		loop_rate.sleep();
+		loop_rate->sleep();
 }
 
 int main(int argc, char **argv){
@@ -29,7 +29,7 @@ int main(int argc, char **argv){
 	ros::init(argc, argv, "PublishAmee");
 	ros::NodeHandle nodeHandle;
 	ros::Publisher pub;
-	loop_rate = ros::Rate(10);
+	loop_rate = new ros::Rate(10);
 
 	
 	if(ros::ok()){
@@ -54,15 +54,15 @@ int main(int argc, char **argv){
 			wait(pub);
 			pub.publish(mc);
 		}else{
-			ROS_INFO("Don't know %s", argv[2]);
+			ROS_INFO("Don't know %s", argv[2]); return 0;
 		}
 
 		//TODO we should wait till the message is delivered
 		ros::spinOnce();
-		loop_rate.sleep();
+		loop_rate->sleep();
 	}
 
+	delete loop_rate;
 	return 0;
 }
-
 
