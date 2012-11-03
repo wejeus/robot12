@@ -19,11 +19,11 @@ int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "imuNodeTest");
 	ros::NodeHandle n;
-	imu_sub = n.subscribe("/imu", 1000, recive_imu);
+	imu_sub = n.subscribe("/imu", 1, recive_imu);
 	f_imu_pub = n.advertise<imu>("/amee/sensors/imu", 10);
 //	int_pub = n.advertise<std_msgs::Int32>("/imu_interval", 100000);
 
-	ros::Rate loop_rate(100);
+	ros::Rate loop_rate(1);
 	struct timeval start, end;
 
 	while(ros::ok()){
