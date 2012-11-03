@@ -148,7 +148,7 @@ using namespace amee;
         } else { 
             if (!mState.initialized) {
                 mState.initialized = true;
-                mStraightMove->init(mSensorData, 0.09f);//TODO set as constant
+                mStraightMove->init(mSensorData, 0.11f);//TODO set as constant
             }
             if (mStraightMove->isRunning()) {
                 mStraightMove->doControl(mSensorData);

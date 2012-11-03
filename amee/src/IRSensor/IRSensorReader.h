@@ -21,16 +21,15 @@ private:
 
 	static const int MAX_NUM_AVERAGED = 6;
 	static const int NUM_PORTS = 8;
-	//TODO all the other sensors
+		
+	// sensor ports (these are not the same as the numbers on the roboard!)
 	static const int RIGHT_FRONT = 1;
 	static const int RIGHT_BACK = 2;
 	static const int FRONT_SHORTRANGE = 3;
-
-	//TODO fix
 	static const int WHEEL_RIGHT = 6;
-	static const int WHEEL_LEFT = 4;
-	static const int LEFT_FRONT = 5;
-	static const int LEFT_BACK = 7;
+	static const int WHEEL_LEFT = 7;
+	static const int LEFT_FRONT = 0;
+	static const int LEFT_BACK = 5;
 
 
 public:
