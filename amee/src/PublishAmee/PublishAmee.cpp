@@ -20,9 +20,9 @@ void wait(ros::Publisher &p){
 }
 
 int main(int argc, char **argv){
-	if(argc <= 3){
-//		puts("Usage: ./PublishAmee /topic_name std_msgs/String hello");
-		puts("Usage: ./PublishAmee /serial/motor_speed roboard_drivers/Motor 0.2 0.3");
+	if(argc < 2){
+		puts("Usage:\n\t./PublishAmee forward 1.0");
+		puts("or:\n\t./PublishAmee /serial/motor_speed roboard_drivers/Motor 0.2 0.3");
 		return 0;
 	}
 
@@ -33,19 +33,19 @@ int main(int argc, char **argv){
 
 	
 	if(ros::ok()){
-		if(strcmp(argv[2], "roboard_drivers/Motor") == 0){
+		if(argc > 2 && strcmp(argv[2], "roboard_drivers/Motor") == 0){
 			pub = nodeHandle.advertise<Motor>(argv[1], 1);
 			if(argc < 5){ printError("left(f32) right(f32)"); return 0;}
 			Motor m; m.left = atof(argv[3]); m.right = atof(argv[4]);
 			wait(pub);
 			pub.publish(m);
-		}else if(strcmp(argv[2], "amee/Velocity") == 0){
+		}else if(argc > 2 && strcmp(argv[2], "amee/Velocity") == 0){
 			pub = nodeHandle.advertise<Velocity>(argv[1], 1);
 			if(argc < 5){ printError("right(f32) left(f32)"); return 0;}
 			Velocity v; v.right = atof(argv[3]); v.left = atof(argv[4]);
 			wait(pub);
 			pub.publish(v);
-		}else if(strcmp(argv[2], "amee/MovementCommand") == 0){
+		}else if(argc > 2 && strcmp(argv[2], "amee/MovementCommand") == 0){
 			pub = nodeHandle.advertise<MovementCommand>(argv[1], 1);
 			if(argc < 8){ printError("type(uint8) distance(f32) angle(f32) x(f32) y(f32)"); return 0;}
 			MovementCommand mc;

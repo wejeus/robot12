@@ -27,7 +27,7 @@ bool distReached(){
 }
 
 void calcPos(const Odometry::ConstPtr &odo){
-	ROS_INFO("dist (%0.2f, %0.2f) -> (%0.2f, %0.2f) = %0.2f", x_start, y_start, odo->x, odo->y, curDist);
+	ROS_INFO("dist (%0.2f, %0.2f) -> (%0.2f, %0.2f) = %0.2f", x_first, y_first, odo->x, odo->y, curDist);
 	if(first){
 		x_first = odo->x; y_first = odo->y;
 		first = false;
