@@ -21,7 +21,7 @@ float DIST_ERROR = 0.2f; //in meter
 float MIN_RUNNING_TIME = 10.0f; //in seconds
 
 bool distReached(){
-	if((curDist = sqrt(fabs(x_first - x_last) + fabs(y_first - y_last))) < DIST_ERROR)
+	if((curDist = sqrt(pow(x_first - x_last, 2) + pow(y_first - y_last, 2))) < DIST_ERROR)
 		return true;
 	return false;
 }
