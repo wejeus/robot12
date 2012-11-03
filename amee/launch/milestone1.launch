@@ -2,14 +2,14 @@
 
 <!--
     <group ns="roboard_drivers">
-        <node pkg="roboard_drivers" name="serializerNode" type="serializerNode"/>
         <node pkg="roboard_drivers" name="adcNode" type="adcNode"/>
+        <node pkg="roboard_drivers" name="imuNode" type="imuNode"/>
+        <node pkg="roboard_drivers" name="serializerNode" type="serializerNode"/>
     </group>
 -->
-
     <group ns="amee">
         <node pkg="amee" name="MotorControl" type="MotorControl"/>
-        <node pkg="amee" name="MovementControl" type="MovementControl.py"/>
+        <node pkg="amee" name="MovementControl" type="MovementControl"/>
 	<node pkg="amee" name="IRSensorReader" type="IRSensorReader"/>
     </group>
 

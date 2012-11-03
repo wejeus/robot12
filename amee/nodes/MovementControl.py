@@ -18,13 +18,22 @@ TYPE_FOLLOW_WALL = 4
 TYPE_STOP_FOLLOW_WALL = 5
 
 MOVEMENT_SPEED = 0.3
-MAX_ROTATION_SPEED = 1
-MIN_ROTATION_SPEED = 0.02
-MIN_SPEED = 0.1
-MAX_SPEED = 1
+MAX_ROTATION_SPEED = 0.1
+MIN_ROTATION_SPEED = 0.06
 
-REF_DISTANCE_TO_WALL = 0.1
+
+
 IR_BASE_RIGHT = 0.104
+
+linearSpeed = 0.1
+K_p_keepRef = 0.1
+K_p_reachRef = 0.3
+K_i_keepRef = 0.0
+K_i_reachRef = 0.0
+maxErrorSum = 100
+refDistance = 0.04
+noWallDistance = 0.15
+wallDistTol = 0.01
 
 
 # TODO: BUGFIX: positive/negative directions/angle is not handle correctly
@@ -43,7 +52,8 @@ def dot_product(vector1, vector2):
 class Controller:
     def __init__(self, publisherMotor):
         self.publisherMotor = publisherMotor
-        
+        self.followWall = False
+
         # distance/angle is mesured in respect to origin of start of movement
         self.totalDistance = 0.0 # Meters
         self.totalAngle = 0.0    # Degrees
@@ -61,34 +71,23 @@ class Controller:
     def move(self, rightVelocity, leftVelocity):
         self.publisherMotor.publish(rightVelocity, leftVelocity)
 
-    def move_straight(self, ref_distance):
-        rospy.loginfo("MOVING: %s METRES", ref_distance)
-        #ref_direction = 1 if ref_distance > 0 else -1
+    def move_straight(self, distance):
+        rospy.loginfo("MOVING: %s METRES", distance)
+        direction = 1 if distance > 0 else -1
         loopRate = rospy.Rate(5)
         
         lastDistance = self.totalDistance
         traveledDistance = 0
-        K_p = 1
-        error = ref_distance - traveledDistance
 
-	while abs(error) > 0.05:
-
-            speed = error * K_p
-
-            #saturate if speed is too high or too low
-            speed = math.copysign(MAX_SPEED, speed) if (abs(speed) > MAX_SPEED) else speed
-            speed = math.copysign(MIN_SPEED, speed) if (abs(speed) < MIN_SPEED) else speed  
-
-            self.move(speed, speed) # send speed to motor control node
-
-            traveledDistance = (self.totalDistance - lastDistance)  
-            error = ref_distance - traveledDistance
-
+        # full speed ahead!
+        self.move(direction*MOVEMENT_SPEED, direction*MOVEMENT_SPEED)
+        
+        while abs(traveledDistance) < abs(distance - 0.05):
             rospy.loginfo("distance travelled: %s", traveledDistance)
             loopRate.sleep()
-        
-	rospy.loginfo("DONE. MOVED: %s", traveledDistance)  
-         
+            traveledDistance = (self.totalDistance - lastDistance)  
+
+        rospy.loginfo("DONE. MOVED: %s", traveledDistance)    
         self.stop_motors()
 
     # FIXME Make sure angle is degrees...
@@ -109,20 +108,20 @@ class Controller:
         angleError = degreesToTravel - travelledAngle
 
         while abs(angleError) > 0.5:            
+            # lower speed as we come closer to "degreesToTravel"
             rotationSpeed = K_p * angleError
-
-            # saturate if rotation speed is too high or too low
+            # saturate speed to ROTATION_SPEED if too high
             rotationSpeed = math.copysign(MAX_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) > MAX_ROTATION_SPEED else rotationSpeed 
-            rotationSpeed = math.copysign(MIN_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) < MIN_ROTATION_SPEED else rotationSpeed
+            # saturate speed to ROTATION_SPEED if too low
+            rotationSpeed = math.copysign(MIN_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) < MIN_ROTATION_SPEED else rotationSpeed 
             
             self.move(rotationSpeed, -rotationSpeed)
 
+            rospy.loginfo("degrees rotated: %s", self.totalAngle)
+            rospy.loginfo("angle error: %s", angleError)
+            loopRate.sleep()
             travelledAngle = self.totalAngle - lastAngle
             angleError = degreesToTravel - travelledAngle
-
-            rospy.loginfo("angle error: %s", angleError)
-            rospy.loginfo("degrees rotated: %s", self.totalAngle)
-            loopRate.sleep()
 
         rospy.loginfo("DONE. ROTATED: %s", travelledAngle)
         rospy.loginfo("DONE. ROTATED TOTAL: %s", self.totalAngle)
@@ -137,37 +136,58 @@ class Controller:
         self.move_rotate(angle * (180/math.pi))
         self.move_straight(distance)
 
-    def follow_wall(self, stop_follow_wall):
+    def follow_wall(self):
         rospy.loginfo("Following wall")
 
-        loopRate = rospy.Rate(5)
+        self.followWall = True
+        loopRate = rospy.Rate(20)
+        error_sum = 0
 
-        K_p_1 = 1
-        #K_i_1 = 0
-        K_p_2 = 1
-        #K_i_2 = 0
+        while self.followWall:
+            #linearSpeed = rospy.get_param("/linearSpeed") # This updates the rotationSpeed on the ParamServer
+            #K_p_keepRef = rospy.get_param("/K_p_keepRef")
+            #K_p_reachRef = rospy.get_param("/K_p_reachRef")
+            #K_i_keepRef = rospy.get_param("/K_i_keepRef")
+            #K_i_reachRef = rospy.get_param("/K_i_reachRef")
+            #refDistance = rospy.get_param("/refDistance")
+            #maxErrorSum = rospy.get_param("/maxErrorSum")
 
-        linearSpeed = 0.5;
-        while not stop_follow_wall:
-            ir_right_mean = (self.ir_rightBack - self.ir_rightFront)/2
+
+            ir_right_mean = (self.ir_rightBack + self.ir_rightFront)/2
             angle_to_wall = math.tan((self.ir_rightBack - self.ir_rightFront) / IR_BASE_RIGHT)
             distance_to_wall = math.cos(angle_to_wall) * ir_right_mean
             
-            if abs(REF_DISTANCE_TO_WALL - distance_to_wall) < 0.05: # if we're at distance_to_wall +- 5cm 
+            rospy.loginfo("DISTANCE TO WALL: %s", distance_to_wall)
+            rospy.loginfo("ANGLE TO WALL: %s", angle_to_wall)
+
+            #if abs(refDistance - distance_to_wall) > noWallDistance:
+            #    self.move_straight(0.1)
+            #    self.move_rotate(90)
+            if abs(refDistance - distance_to_wall) < wallDistTol: # if we're at distance_to_wall +- 5cm
+                rospy.loginfo("KEEPING REFERENCE")
+
                 error = self.ir_rightBack - self.ir_rightFront
-                rotationSpeed = K_p_1 * error # TODO: add integrating control if needed
+                error_sum += error
+                rotationSpeed = K_p_keepRef * error + K_i_keepRef * error_sum # TODO: add integrating control if needed
+                rospy.loginfo("ERROR_SUM: %s", error_sum)
+
             else:
-                error = REF_DISTANCE_TO_WALL - ir_right_mean
-                rotationSpeed = K_p_2 * error # TODO: add integrating control if needed
+                rospy.loginfo("REACHING REFERENCE")
 
-           # rotationSpeed = math.copysign(MAX_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) > MAX_ROTATION_SPEED else rotationSpeed 
-           # rotationSpeed = math.copysign(MIN_ROTATION_SPEED, rotationSpeed) if abs(rotationSpeed) < MIN_ROTATION_SPEED else rotationSpeed
-	    self.move(linearSpeed + rotationSpeed, linearSpeed - rotationSpeed)
-            loopRate.sleep()
+                error = refDistance - ir_right_mean
+                error_sum += error
+                rotationSpeed = K_p_reachRef * error + K_i_reachRef * error_sum # TODO: add integrating control if needed
+                rospy.loginfo("ERROR_SUM: %s", error_sum)
 
+
+            error_sum = math.copysign(maxErrorSum, error_sum) if abs(error_sum) > maxErrorSum else error_sum
+
+            self.move(linearSpeed + rotationSpeed, linearSpeed - rotationSpeed)
+           #loopRate.sleep()
+
+        rospy.loginfo("Stop following wall")
+        self.followWall = False
         self.stop_motors()
-        rospy.loginfo("Stop following wall")            
-
 
    # ----------------------- ROS CALLBACKS ----------------------- #
 
@@ -189,9 +209,9 @@ class Controller:
         elif msg.type == TYPE_MOVE_COORDINATE:
             self.move_coordinate(msg.x, msg.y)
         elif msg.type == TYPE_FOLLOW_WALL:
-            self.follow_wall(False)
+            self.follow_wall()
         elif msg.type == TYPE_STOP_FOLLOW_WALL:
-            self.follow_wall(True)
+            self.followWall = False
         else:
             rospy.logwarn(NODE_NAME + ' UNKNOWN_MOVEMENT')
 
@@ -226,9 +246,29 @@ if __name__ == '__main__':
         #rospy.Subscriber("/KeyboardControl/KeyboardCommand", KeyboardCommand, controller.handle_keyboard_change)
         #rospy.Subscriber("/turtle1/command_velocity", turtleCommand, controller.handle_keyboard_change)
 
+        # Get/set the default values from ParamServer
+        rospy.set_param("/linearSpeed", linearSpeed)
+        rospy.set_param("/K_p_keepRef", K_p_keepRef)
+        rospy.set_param("/K_p_reachRef", K_p_reachRef)
+        rospy.set_param("/K_i_keepRef", K_i_keepRef)
+        rospy.set_param("/K_i_reachRef", K_i_reachRef)
+        rospy.set_param("/maxErrorSum", maxErrorSum)
+        rospy.set_param("/refDistance", refDistance)
+        rospy.set_param("/noWallDistance", noWallDistance)
+        rospy.set_param("/wallDistTol", wallDistTol)
+
+        # linearSpeed = rospy.get_param("/linearSpeed", linearSpeed)
+        # rotationSpeed = rospy.get_param("/rotationSpeed", rotationSpeed)
+        # K_p_keepRef = rospy.get_param("/K_p_keepRef")
+        # K_p_reachRef = rospy.get_param("/K_p_reachRef")
+        # refDistance = rospy.get_param("/refDistance")
+        # noWallDistance = rospy.get_param("/noWallDistance")
+        # wallDistTol = rospy.get_param("/wallDistTol")
+
         rospy.loginfo("... done! Entering spin() loop")
 
-        while not rospy.is_shutdown():
-            rospy.spin()
+        rospy.spin()
+       # while not rospy.is_shutdown():
+       #     rospy.spin()
 
     except rospy.ROSInterruptException: pass

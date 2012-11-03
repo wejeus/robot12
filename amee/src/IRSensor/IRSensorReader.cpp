@@ -3,6 +3,7 @@
 #include "IRSensorReader.h"
 #include <iostream>
 #include <cmath>
+#include <std_msgs/Int32.h>
 // #include "roboard_drivers/serial_adc_val.h"
 // #include "roboard_drivers/enable_adc_val.h"
 #include "amee/IRDistances.h"
@@ -18,15 +19,30 @@ IRSensorReader::IRSensorReader() {
 	mSensorCalibrations.resize(NUM_PORTS, baseCalib);
 	
 	// set values determined by manual calibration
+
+	// RIGHT FRONT SHORT RANGE
 	baseCalib.m = 0.0338;
 	baseCalib.b = 0.1818;
 	baseCalib.k = 0.0572;
 	mSensorCalibrations[RIGHT_FRONT] = baseCalib;
 
+	// RIGHT BACK SHORT RANGE
 	baseCalib.m = 0.0417;
 	baseCalib.b = -1.0692;
 	baseCalib.k = 0.049;
 	mSensorCalibrations[RIGHT_BACK] = baseCalib;
+
+	// FRONT SHORT RANGE
+	baseCalib.m = 0.0346;
+	baseCalib.b = -0.0489;
+	baseCalib.k = 0.0751;
+	mSensorCalibrations[FRONT_SHORTRANGE] = baseCalib;
+
+	// RIGHT LONG RANGE ABOVE OF THE WHEEL
+	baseCalib.m = 0.0181f;
+	baseCalib.b = -0.1464f;
+	baseCalib.k = 0.1373f;
+	mSensorCalibrations[WHEEL_RIGHT] = baseCalib;
 
 	mAveragedValues.resize(NUM_PORTS, 0);
 	mLastReadings.resize(NUM_PORTS,0);
@@ -92,8 +108,9 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 				//distances[i] = log(mSensorCalibrations[i].alpha / (mLastReadings[i] - mSensorCalibrations[i].c)) / mSensorCalibrations[i].lambda;
 				//std::cout << mLastReadings[i] << " ";
 				distances[i] = 1.0f / (mSensorCalibrations[i].m * mLastReadings[i] + mSensorCalibrations[i].b) - mSensorCalibrations[i].k;
-				int lastDigit = (int)(distances[i] * 1000.0f) % 10;
-				distances[i] = lastDigit > 4 ? ceil(distances[i] * 100.0f) / 100.0f : floor(distances[i] * 100.0f) / 100.0f;
+				// distances[i] = distances[i] >= 0.0f ? distances[i] : 0.0f;
+				//int lastDigit = (int)(distances[i] * 1000.0f) % 10;
+				//distances[i] = lastDigit > 4 ? ceil(distances[i] * 100.0f) / 100.0f : floor(distances[i] * 100.0f) / 100.0f;
 			// } 
 		}
 		//std::cout << std::endl;
@@ -102,7 +119,15 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 		distanceMsg.timestamp = msg->timestamp;
 		distanceMsg.rightFront = distances[RIGHT_FRONT];
 		distanceMsg.rightBack = distances[RIGHT_BACK];
-		//TODO publish all the other distances
+		distanceMsg.frontShortRange = distances[FRONT_SHORTRANGE];
+		distanceMsg.wheelRight = distances[WHEEL_RIGHT];
+
+		//TODO publish all the other correct distances
+		
+		// distanceMsg.leftBack = mLastReadings[LEFT_BACK];
+		// distanceMsg.leftFront = mLastReadings[RIGHT_BACK];
+		// distanceMsg.wheelLeft = mLastReadings[WHEEL_LEFT];
+		
 		distance_pub.publish(distanceMsg);
 
 		mNumAveraged = 0;
@@ -132,12 +157,21 @@ int main(int argc, char **argv)
 	ros::Subscriber raw_sensor_sub;
 	raw_sensor_sub = n.subscribe("/roboard/adc", 1000, &IRSensorReader::receiveRawData, &reader);
 
+	// set our reader loop at 100Hz
+	ros::Rate loop_rate(100);
+	ros::Publisher adc_interval = n.advertise<std_msgs::Int32>("roboard/adc_interval", 10);
+	while(adc_interval.getNumSubscribers() == 0 && ros::ok()) {
+	 	loop_rate.sleep();
+	 } 
+
+	std_msgs::Int32 interval;
+	interval.data = 10;
+	adc_interval.publish(interval);
+
 	// create publisher for distances
 	ros::Publisher distance_pub = n.advertise<IRDistances>("/amee/sensors/irdistances", 1000);
 	reader.setDistancePublisher(distance_pub);
-
-	// set our reader loop at 100Hz
-	ros::Rate loop_rate(100);
+	
 		
 	
 	while(ros::ok()){

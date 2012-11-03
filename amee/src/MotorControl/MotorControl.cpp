@@ -9,7 +9,7 @@
 #define TICS_PER_REVOLUTION 225.0f // encoder tics/rev
 #define REVOLUTION_PER_SEC_LEFT 1.0f 
 #define REVOLUTION_PER_SEC_RIGHT 1.0f
-#define NUM_AVERAGED_MEASUREMENTS 5
+#define NUM_AVERAGED_MEASUREMENTS 1
 
 using namespace amee;
 using namespace roboard_drivers;
@@ -22,20 +22,14 @@ void MotorControl::setOdometryPublisher(ros::Publisher pub) {
 	odo_pub = pub;
 }
 
-int MotorControl::getDesiredEncoderInterval() {
-	return mDesiredInterval;
-}
+inline void MotorControl::checkSpeedLimit(Motor& m){
 
-inline void MotorControl::checkWheelSpeed(float & wheel){
-	if(wheel < 0 && wheel < MIN_MOTOR_SPEED) wheel = MIN_MOTOR_SPEED;
-	else if(wheel > 0 && wheel > MAX_MOTOR_SPEED) wheel = MAX_MOTOR_SPEED;
-}
-
-inline void MotorControl::checkSpeedLimit(){
-//	printf("[%0.2f, %0.2f] -> ", mMotor.left, mMotor.right);
-	checkWheelSpeed(mMotor.left);
-	checkWheelSpeed(mMotor.right);
-//	printf("[%0.2f, %0.2f]\n", mMotor.left, mMotor.right);
+	float maxV = fabs(m.left) > fabs(m.right) ? fabs(m.left) : fabs(m.right);
+	
+	if (maxV > 1.0f) {
+		m.left = m.left / maxV;
+		m.right = m.right / maxV;
+	}
 }
 
 //Callback function for the "/encoder" topic. Stores the two last encoder values.
@@ -47,11 +41,11 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 	
 	mMeasurementValidCounter = mMeasurementValidCounter > 0 ? mMeasurementValidCounter - 1 : 0;
 
-	struct timeval start;
-	gettimeofday(&start, NULL);
+	//struct timeval start;
+	//gettimeofday(&start, NULL);
 	//std::cout << start.tv_sec << std::endl;
 
-	// We filter noise by calculating the average of multiple measurements (TODO replace by Kalman filter)
+	// We filter noise by calculating the average of multiple measurements (not really needed -> don't average)
 	// accumulate NUM_AVERAGED_MEASUREMENTS and then calculate the mean 
 	if (mMeasurementCounter < NUM_AVERAGED_MEASUREMENTS) {
 		mMeasurementAccumulator.left += left;
@@ -59,7 +53,6 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 		mMeasurementAccumulator.timestamp += timestamp;
 		++mMeasurementCounter; 	
 		
-		mDesiredInterval = 10;
 		
 	} else { // enough measurement accumulated, calculate mean now
 		// save old encoder mean
@@ -72,7 +65,6 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 		mCurrentEncoder.left = mMeasurementAccumulator.left / (float)(mMeasurementCounter);	
 		mCurrentEncoder.right = mMeasurementAccumulator.right / (float)(mMeasurementCounter);
 
-		mDesiredInterval = 1000;
 		
 		publishOdometry();
 
@@ -90,11 +82,14 @@ void MotorControl::publishOdometry() {
 	float tDistRight = -(mCurrentEncoder.right - mPrevEncoder.right) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
 	mOdometry.leftWheelDistance += tDistLeft;
 	mOdometry.rightWheelDistance += tDistRight;
-	mOdometry.angle += ((tDistRight - tDistLeft) / WHEEL_BASE) /  M_PI * 180.0f;
-	mOdometry.distance =  (mOdometry.leftWheelDistance + mOdometry.rightWheelDistance) / 2.0f;
+	mOdometry.angle += ((tDistRight - tDistLeft) / WHEEL_BASE) / M_PI * 180.0f;
 	
-	//TODO calculate x,y position and speed and publish
-
+	mOdometry.distance = (mOdometry.leftWheelDistance + mOdometry.rightWheelDistance) / 2.0f;
+	float tDistance = (tDistLeft + tDistRight) / 2.0f;
+	mOdometry.x += cos(mOdometry.angle / 180.0f * M_PI) * tDistance;
+	mOdometry.y += sin(mOdometry.angle / 180.0f * M_PI) * tDistance;
+	mOdometry.velocity = tDistance / (mCurrentEncoder.timestamp - mPrevEncoder.timestamp);
+	
 	odo_pub.publish(mOdometry);
 }
 
@@ -127,7 +122,7 @@ void MotorControl::setSpeed(float vLeft, float vRight) {
 	mVelocity.left = vLeft;
 	mVelocity.right = vRight;
 	mMeasurementValidCounter = 2 * NUM_AVERAGED_MEASUREMENTS;
-	std::cout << "SET NEW SPEED!!! vLeft = " << vLeft << " vRight = " << vRight << std::endl;
+	// std::cout << "SET NEW SPEED!!! vLeft = " << vLeft << " vRight = " << vRight << std::endl;
 	/*mOdometry.leftWheelDistance = 0.0f;
 	mOdometry.rightWheelDistance = 0.0f;
 	mOdometry.distance = 0.0f;
@@ -152,20 +147,24 @@ void MotorControl::drive()
 		float leftError = leftVPWM - pwmVelocity.left; // error on the left side
 		float rightError = rightVPWM - pwmVelocity.right; // error on the left side	
 	
-		mMotor.right	= mMotor.right + 0.002 * rightError;//set right motorspeed[-1,1]
-		mMotor.left	= mMotor.left + 0.002 * leftError;//set left motorspeed[-1,1]
+		// double temp;	
+		// ros::param::getCached("/MotorControl_Kp",temp);
+		// float K_p = (float)temp;
+		mMotor.right	= mMotor.right + K_p * rightError;//set right motorspeed[-1,1]
+		mMotor.left	= mMotor.left + K_p * leftError;//set left motorspeed[-1,1]
 
 	} else { // we have no valid measurements of the current speed, so just set it to the non controlled values
 
-		Velocity pwmVelocity;
-		calcWheelPWMVelocities(pwmVelocity);
+		// Velocity pwmVelocity;
+		// calcWheelPWMVelocities(pwmVelocity);
 
 		mMotor.left = leftVPWM;
 		mMotor.right = rightVPWM;
 	}
 	
 	//printf("set motor pwm velocities: %f %f \n", mMotor.left, mMotor.right);
-	checkSpeedLimit(); //check the limit before publishing it
+	checkSpeedLimit(mMotor); //check the limit before publishing it
+	std::cout << "PublishedSpeed(pwm): " << mMotor.left << " " << mMotor.right << std::endl;
 	mot_pub.publish(mMotor);
 }
 
@@ -189,10 +188,12 @@ void MotorControl::init() {
 	mOdometry.rightWheelDistance = 0.0f;
 	mOdometry.distance = 0.0f;
 	mOdometry.angle = 0.0f;
+	mOdometry.x = 0.0f;
+	mOdometry.y = 0.0f;
+	mOdometry.velocity = 0.0f;
 	
-	mMotor.left = 0;
-	mMotor.right = 0;
-	mDesiredInterval = 10;
+	mMotor.left = 0.0f;
+	mMotor.right = 0.0f;
 }
 
 // Returns true if the current measurements are valid. This is the case if the measurements have been made after
@@ -206,6 +207,8 @@ int main(int argc, char **argv)
 	
 	ros::init(argc, argv, "MotorControl");//Creates a node named "MotorControl"
 	ros::NodeHandle n;
+
+	// ros::param::set("/MotorControl_Kp",0.05);
 
 	// create the controller and initialize it
 	MotorControl control;
@@ -231,25 +234,21 @@ int main(int argc, char **argv)
 
 	//used to publish a topic that changes the intervall between the "/encoder" topics published.
 	int_pub = n.advertise<std_msgs::Int32>("/serial/encoder_interval", 100);
-	ros::Rate loop_rate(100);
+	ros::Rate loop_rate(40);
 	while(int_pub.getNumSubscribers() == 0 && ros::ok()) {
 		loop_rate.sleep();
 	} 
-
-	// set our control loop at 6Hz (TODO increase frequency when using Kalman filter)
-	
 	
 	// make sure the robot isn't moving on startup
 	control.setSpeed(0.0f, 0.0f);
 	
+	std_msgs::Int32 interval;
+	interval.data = 25;// encoder values get in every 25ms
+	// publish the encoder interval
+	int_pub.publish(interval);
 
 	while(ros::ok()){
 		
-		std_msgs::Int32 interval;
-		interval.data = 10;//control.getDesiredEncoderInterval();
-		// publish the encoder interval
-		int_pub.publish(interval);
-
 		// go to sleep for a short while
 		loop_rate.sleep();
 
