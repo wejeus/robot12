@@ -8,13 +8,15 @@ namespace amee{
 }//namespace amee
 
 
+ros::Rate loop_rate;
+
 void printError(const char * m){
 	printf("Bad number of arguments, should be: %s\n", m); fflush(stdout);
 }
 
 void wait(ros::Publisher &p){
-	while(p.getNumSubscribers() == 0)
-		usleep(200);
+	while(ros::ok() && p.getNumSubscribers() == 0)
+		loop_rate.sleep();
 }
 
 int main(int argc, char **argv){
@@ -27,7 +29,7 @@ int main(int argc, char **argv){
 	ros::init(argc, argv, "PublishAmee");
 	ros::NodeHandle nodeHandle;
 	ros::Publisher pub;
-	ros::Rate loop_rate = ros::Rate(10);
+	loop_rate = ros::Rate(10);
 
 	
 	if(ros::ok()){
