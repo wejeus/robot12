@@ -37,4 +37,5 @@ rosbuild_add_executable(MovementControl src/MovementControl/MovementControl.cpp 
 rosbuild_add_executable(KeyHandler src/KeyHandler/key_handler.cpp)
 rosbuild_add_executable(KeyHandlerTester src/KeyHandler/key_handler_listener.cpp)
 rosbuild_add_executable(PublishAmee src/PublishAmee/PublishAmee.cpp)
+rosbuild_add_executable(Localize src/Localize/Localize.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
