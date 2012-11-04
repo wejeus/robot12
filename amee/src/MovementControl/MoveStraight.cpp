@@ -20,6 +20,7 @@ void MoveStraight::init(const float vel) {
 	mVelocity = vel;
 	mRunning = true;
 	mFirstRun = true;
+	mGoingDistance = false;
 }
 
 void MoveStraight::init(const SensorData &data){

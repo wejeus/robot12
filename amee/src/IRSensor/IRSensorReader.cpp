@@ -25,6 +25,8 @@ IRSensorReader::IRSensorReader() {
 	baseCalib.b = 0.1818;
 	baseCalib.k = 0.0572;
 	mSensorCalibrations[RIGHT_FRONT] = baseCalib;
+	mSensorCalibrations[LEFT_FRONT] = baseCalib;
+	mSensorCalibrations[LEFT_BACK] = baseCalib;
 
 	// RIGHT BACK SHORT RANGE
 	baseCalib.m = 0.0417;
@@ -43,6 +45,7 @@ IRSensorReader::IRSensorReader() {
 	baseCalib.b = -0.1464f;
 	baseCalib.k = 0.1373f;
 	mSensorCalibrations[WHEEL_RIGHT] = baseCalib;
+	mSensorCalibrations[WHEEL_LEFT] = baseCalib;
 
 	mAveragedValues.resize(NUM_PORTS, 0);
 	mLastReadings.resize(NUM_PORTS,0);
@@ -121,12 +124,16 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 		distanceMsg.rightBack = distances[RIGHT_BACK];
 		distanceMsg.frontShortRange = distances[FRONT_SHORTRANGE];
 		distanceMsg.wheelRight = distances[WHEEL_RIGHT];
-
+		distanceMsg.leftBack = distances[LEFT_BACK];
+		distanceMsg.leftFront = distances[LEFT_FRONT];
+		distanceMsg.wheelLeft = distances[WHEEL_LEFT];
 		//TODO publish all the other correct distances
 		
-		// distanceMsg.leftBack = mLastReadings[LEFT_BACK];
-		// distanceMsg.leftFront = mLastReadings[RIGHT_BACK];
-		// distanceMsg.wheelLeft = mLastReadings[WHEEL_LEFT];
+		std::cout << "leftBack: " << mLastReadings[LEFT_BACK] << std::endl;
+		std::cout << "leftFront: " << mLastReadings[LEFT_FRONT] << std::endl;
+		std::cout << "wheelLeft: " << mLastReadings[WHEEL_LEFT] << std::endl;
+		
+		
 		
 		distance_pub.publish(distanceMsg);
 
