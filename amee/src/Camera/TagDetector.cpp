@@ -5,10 +5,13 @@
 #include <stdlib.h>
 #include <iostream>
 #include <ctype.h>
+
+#ifdef ROS
 #include "ros/ros.h"
 #include <std_msgs/Int32.h>
 #include <std_msgs/Int8MultiArray.h>
-
+#include "amee/Tag.h"
+#endif
 
 using namespace std;
 using namespace cv;
@@ -32,21 +35,52 @@ int SATURATION_COLOR_LOW = 83;
 int CANNY_LOW = 77;
 int CANNY_HIGH = 92;
 
+#ifdef ROS
+ros::Publisher mapPublisher;
+#endif
 
 // Flags
-bool SMOOTH_IMAGE = true;
+bool SMOOTH_IMAGE = false;
 bool FILTER_RED_TAG = true;
 bool EQUALIZE_HISTOGRAM = true;
 
 void streamCamera(VideoCapture &capture) {
     Mat frame;
+    Mat frameNext;
 
+    capture >> frame;
     while (true) {
-        capture >> frame;
+        capture >> frameNext;
         render(frame);
-        if(waitKey(30) >= 0) break;
+        flip(frameNext, frame, 0);
+
+        
+
+        // if (!frameCopy) {
+        //     frameCopy = CreateImage(frame.size().width, )
+        // }
+        // render(frame);
+        if(waitKey(10) >= 0) break;
     }
 }
+
+    // frame_copy = None
+    // while True:
+    //     frame = cv.QueryFrame(capture)
+    //     if not frame:
+    //         cv.WaitKey(0)
+    //         break
+    //     if not frame_copy:
+    //         frame_copy = cv.CreateImage((frame.width,frame.height), cv.IPL_DEPTH_8U, frame.nChannels)
+    //     if frame.origin == cv.IPL_ORIGIN_TL:
+    //         cv.Copy(frame, frame_copy)
+    //     else:
+    //         cv.Flip(frame, frame_copy, 0)
+        
+    //     render(frame_copy)
+
+    //     if cv.WaitKey(10) >= 0:
+    //         break
 
 void render(Mat &frame) {
     // void cvSmooth(const CvArr* src, CvArr* dst, int smoothtype=CV_GAUSSIAN, int param1=3, int param2=0, double param3=0, double param4=0)
@@ -54,7 +88,6 @@ void render(Mat &frame) {
     if (FILTER_RED_TAG) filterRedTag(frame, frame);
 
     imshow(windowResult, frame);
-    waitKey(3);
 }
 
 void initWindows() {
@@ -72,10 +105,11 @@ void initWindows() {
 }
 
 void filterRedTag(Mat &srcImg, Mat &destImg) {
-    
-    CvSize imgSize = srcImg.size();
-    Mat hsvImg = cvCreateImage(imgSize, IPL_DEPTH_8U, 3);
-    Mat binImg = cvCreateImage(imgSize, IPL_DEPTH_8U, 1);
+        
+    int imageCenter = srcImg.size().width/2;
+
+    Mat hsvImg;
+    Mat binImg;
 
     // void cvtColor(InputArray src, OutputArray dst, int code, int dstCn=0)
     cvtColor(srcImg, hsvImg, CV_RGB2HSV); // TODO: Change to BGR in ROS?
@@ -103,13 +137,29 @@ void filterRedTag(Mat &srcImg, Mat &destImg) {
             rect.points(vtx);
             for(int j = 0; j < 4; ++j) {
                 line(destImg, vtx[j], vtx[(j+1)%4], Scalar(0, 255, 0), 1, CV_AA);
+                // void circle(Mat& img, Point center, int radius, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
+                circle(destImg, rect.center, 3, Scalar(255, 0, 0), 2);
             }
 
-            // if rect is in horizonal center of image:
-            //     mark tag on map
+            int diff = imageCenter - rect.center.x;
+
+            if (abs(diff) < 20) {
+                cout << diff << endl;
+                circle(destImg, rect.center, 20, Scalar(0, 0, 255), 10);
+                #ifdef ROS
+                // mark tag on map!
+                Tag tag;
+                tag.distance = diff;
+                v.side = 1;
+                tagPublisher.publish(v);
+                #endif
+            }
+            
         }
     }
 
+    // Draw some helper lines
+    line(destImg, Point(imageCenter, 0), Point(imageCenter, srcImg.size().height), Scalar(255, 255, 0), 1, CV_AA);
 }
 
 
@@ -137,8 +187,7 @@ void *onButtonDoBlur(int state, void *pointer) {
     printf("ok");
 }
 
-// Mat mat;
-
+#ifdef ROS
 void cam0_cb(const std_msgs::Int8MultiArray::ConstPtr& array) {
     IplImage *img               = cvCreateImage(cvSize(320, 240), IPL_DEPTH_8U, 3);
     char * data                 = img->imageData;
@@ -155,14 +204,22 @@ void cam0_cb(const std_msgs::Int8MultiArray::ConstPtr& array) {
     render(mat);
     // Maybe release
 }
+#endif
 
 void initROS(int argc, char *argv[]) {
+    #ifdef ROS
     printf("Starting TagDetection using ROS\n");
     ros::init(argc, argv, "TagDetection");
     ros::NodeHandle n;
+
+    mapPublisher = n.advertise<Tag>("/amee/tag", 100);
+
     ros::Subscriber img0_sub = n.subscribe("/camera0_img", 1, cam0_cb);
     // ros::Subscriber img1_sub = n.subscribe("/camera1_img", 1, cam1_cb);
     ros::spin();
+    #else
+    printf("ROS IS NOT DEFINED");
+    #endif
 }
 
 void initLocalInput(int argc, char *argv[]) {
