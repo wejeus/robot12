@@ -54,12 +54,12 @@ void MoveAlignWall::doControl(const SensorData& data) {
     // std::cout << mCurrentRelativeAngle << std::endl;
     // std::cout << data.odometry << std::endl;
     // std::cout << "target=" << mTargetAngle << std::endl;
-    if (fabs(frontDist - backDist) > 0.8) {
+    if (fabs(frontDist - backDist) > 0.004) {
         float K_p = 1.0/2.0; // starts to slow down before final angle
-        float angleError = asin(frontDist - backDist);
+        float error = backDist - frontDist;
 
         // lower speed as we come closer to 0 error
-        float rotationSpeed = K_p * angleError;
+        float rotationSpeed = K_p * error;
         float speedSign = rotationSpeed > 0.0f ? 1.0 : -1.0f;
 
         if (fabs(rotationSpeed) > MAX_ROTATION_SPEED) {
@@ -80,7 +80,7 @@ void MoveAlignWall::doControl(const SensorData& data) {
 }
 
 void MoveAlignWall::stop() {
-    mIsRotating = false;
+    mIsRunning = false;
     publishSpeeds(0.0f, 0.0f);
 }
 

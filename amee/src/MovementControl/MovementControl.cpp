@@ -40,11 +40,16 @@ void MovementControl::receive_distances(const IRDistances::ConstPtr &msg)
 	mSensorData.irdistances.rightBack = msg->rightBack;
 	mSensorData.irdistances.frontShortRange = msg->frontShortRange;
 	mSensorData.irdistances.wheelRight = msg->wheelRight;
+	mSensorData.irdistances.leftBack = msg->leftBack;
+	mSensorData.irdistances.leftFront = msg->leftFront;
+	mSensorData.irdistances.wheelLeft = msg->wheelLeft;
 }
 
 void MovementControl::receive_odometry(const Odometry::ConstPtr &msg) {
 	mSensorData.odometry.angle = msg->angle;
 	mSensorData.odometry.distance = msg->distance;
+	mSensorData.odometry.x = msg->x;
+	mSensorData.odometry.y = msg->y;
 	// TODO others
 }
 
@@ -85,7 +90,7 @@ void MovementControl::receive_command(const amee::MovementCommand::ConstPtr &msg
 		break;
 		case TYPE_ALIGN_TO_WALL:
 			std::cout << "ALIGN TO WALL COMMAND RECEIVED" << std::endl;
-			mAlignWallState->init();
+			mAlignWallState->init(mSensorData);
 			mCurrentState = mAlignWallState;
 		break;
 		default: std::cout << "GAY COMMAND RECEIVED" << std::endl;
