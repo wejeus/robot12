@@ -7,6 +7,7 @@
 #include "MoveStraight.h"
 #include "MoveStop.h"
 #include "MoveFollowWall.h"
+#include "MoveAlignWall.h"
 
 using namespace amee;
 
@@ -16,6 +17,7 @@ MovementControl::MovementControl(ros::Publisher pub) {
 	mStraightState = new MoveStraight(pub);
 	mStopState = new MoveStop(pub);
 	mFollowWallState = new MoveFollowWall(pub);
+	mAlignWallState = new MoveAlignWall(pub);
 	mCurrentState = mStopState;
 }
 
@@ -24,6 +26,7 @@ MovementControl::~MovementControl() {
 	delete mStraightState;
 	delete mStopState;
 	delete mFollowWallState;
+	delete mAlignWallState;
 }
 
 void MovementControl::setSpeedPublisher(ros::Publisher& pub) {
@@ -79,6 +82,11 @@ void MovementControl::receive_command(const amee::MovementCommand::ConstPtr &msg
 		case TYPE_STOP:
 		 	std::cout << "STOP COMMAND RECEIVED" << std::endl;
 		 	mCurrentState = mStopState;
+		break;
+		case TYPE_ALIGN_TO_WALL:
+			std::cout << "ALIGN TO WALL COMMAND RECEIVED" << std::endl;
+			mAlignWallState->init();
+			mCurrentState = mAlignWallState;
 		break;
 		default: std::cout << "GAY COMMAND RECEIVED" << std::endl;
 	}
