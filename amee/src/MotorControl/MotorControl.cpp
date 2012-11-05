@@ -3,6 +3,7 @@
 #include "MotorControl.h"
 #include <iostream>
 #include <cmath>
+#include <sys/time.h>
 
 #define WHEEL_RADIUS 0.0365f
 #define WHEEL_BASE 0.237f
@@ -77,6 +78,10 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 }
 
 void MotorControl::publishOdometry() {
+	struct timeval time;
+	gettimeofday(&time, NULL);
+	mOdometry.timestamp = time.tv_sec+double(time.tv_usec)/1000000.0;
+
 	// calculate odometry stuff and publish it
 	float tDistLeft = -(mCurrentEncoder.left - mPrevEncoder.left) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
 	float tDistRight = -(mCurrentEncoder.right - mPrevEncoder.right) / TICS_PER_REVOLUTION * (2.0f * M_PI * WHEEL_RADIUS);
@@ -89,7 +94,7 @@ void MotorControl::publishOdometry() {
 	mOdometry.x += cos(mOdometry.angle / 180.0f * M_PI) * tDistance;
 	mOdometry.y += sin(mOdometry.angle / 180.0f * M_PI) * tDistance;
 	mOdometry.velocity = tDistance / (mCurrentEncoder.timestamp - mPrevEncoder.timestamp);
-	
+
 	odo_pub.publish(mOdometry);
 }
 

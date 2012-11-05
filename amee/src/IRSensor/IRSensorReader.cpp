@@ -4,8 +4,7 @@
 #include <iostream>
 #include <cmath>
 #include <std_msgs/Int32.h>
-// #include "roboard_drivers/serial_adc_val.h"
-// #include "roboard_drivers/enable_adc_val.h"
+#include <sys/time.h>
 #include "amee/IRDistances.h"
 
 using namespace amee;
@@ -134,7 +133,9 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 		//std::cout << std::endl;
 
 		IRDistances distanceMsg;
-		distanceMsg.timestamp = msg->timestamp;
+		struct timeval time;
+		gettimeofday(&time, NULL);
+		distanceMsg.timestamp = time.tv_sec+double(time.tv_usec)/1000000.0;  ;//msg->timestamp;
 		distanceMsg.rightFront = distances[RIGHT_FRONT];
 		distanceMsg.rightBack = distances[RIGHT_BACK];
 		distanceMsg.frontShortRange = distances[FRONT_SHORTRANGE];
@@ -144,6 +145,7 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 		distanceMsg.wheelLeft = distances[WHEEL_LEFT];
 		//TODO publish all the other correct distances
 		
+		std::cout << "timestamp: " << distanceMsg.timestamp << std::endl;
 		std::cout << "leftBack: " << mLastReadings[LEFT_BACK] << std::endl;
 		std::cout << "leftFront: " << mLastReadings[LEFT_FRONT] << std::endl;
 		std::cout << "wheelLeft: " << mLastReadings[WHEEL_LEFT] << std::endl;
