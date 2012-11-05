@@ -25,14 +25,24 @@ IRSensorReader::IRSensorReader() {
 	baseCalib.b = 0.1818;
 	baseCalib.k = 0.0572;
 	mSensorCalibrations[RIGHT_FRONT] = baseCalib;
-	mSensorCalibrations[LEFT_FRONT] = baseCalib;
-	mSensorCalibrations[LEFT_BACK] = baseCalib;
 
 	// RIGHT BACK SHORT RANGE
 	baseCalib.m = 0.0417;
 	baseCalib.b = -1.0692;
 	baseCalib.k = 0.049;
 	mSensorCalibrations[RIGHT_BACK] = baseCalib;
+
+	// LEFT FRONT SHORT RANGE
+	baseCalib.m = 0.0387;
+	baseCalib.b = -0.8602;
+	baseCalib.k = 0.0557;
+	mSensorCalibrations[LEFT_FRONT] = baseCalib;
+
+	// LEFT BACK SHORT RANGE
+	baseCalib.m = 0.0321;
+	baseCalib.b = 0.4011;
+	baseCalib.k = 0.0565;
+	mSensorCalibrations[LEFT_BACK] = baseCalib;
 
 	// FRONT SHORT RANGE
 	baseCalib.m = 0.0346;
@@ -45,6 +55,11 @@ IRSensorReader::IRSensorReader() {
 	baseCalib.b = -0.1464f;
 	baseCalib.k = 0.1373f;
 	mSensorCalibrations[WHEEL_RIGHT] = baseCalib;
+
+	// LEFT LONG RANGE ABOVE OF THE WHEEL
+	baseCalib.m = 0.0178f;
+	baseCalib.b = -0.2066f;
+	baseCalib.k = 0.1372f;
 	mSensorCalibrations[WHEEL_LEFT] = baseCalib;
 
 	mAveragedValues.resize(NUM_PORTS, 0);
@@ -132,7 +147,11 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 		std::cout << "leftBack: " << mLastReadings[LEFT_BACK] << std::endl;
 		std::cout << "leftFront: " << mLastReadings[LEFT_FRONT] << std::endl;
 		std::cout << "wheelLeft: " << mLastReadings[WHEEL_LEFT] << std::endl;
-		
+		std::cout << "rightBack: " << mLastReadings[RIGHT_BACK] << std::endl;
+		std::cout << "rightFront: " << mLastReadings[RIGHT_FRONT] << std::endl;
+		std::cout << "wheelRight: " << mLastReadings[WHEEL_RIGHT] << std::endl;
+		std::cout << "frontShort: " << mLastReadings[FRONT_SHORTRANGE] << std::endl;
+
 		
 		
 		distance_pub.publish(distanceMsg);
@@ -166,7 +185,7 @@ int main(int argc, char **argv)
 
 	// set our reader loop at 100Hz
 	ros::Rate loop_rate(100);
-	ros::Publisher adc_interval = n.advertise<std_msgs::Int32>("roboard/adc_interval", 10);
+	ros::Publisher adc_interval = n.advertise<std_msgs::Int32>("/roboard/adc_interval", 10);
 	while(adc_interval.getNumSubscribers() == 0 && ros::ok()) {
 	 	loop_rate.sleep();
 	 } 
