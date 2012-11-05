@@ -1,3 +1,4 @@
+float64 timestamp
 float32 leftWheelDistance
 float32 rightWheelDistance 
 float32 distance
