@@ -1,5 +1,8 @@
 #include "MoveFollowWall.h"
 #include "amee/Velocity.h"
+#include "MoveRotate.h"
+#include "MoveStraight.h"
+#include "MoveAlignWall.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -11,11 +14,13 @@ using namespace amee;
         mVelPub = pub;
         mRotater = new MoveRotate(pub);
         mStraightMove = new MoveStraight(pub);
+        mWallAligner = new MoveAlignWall(pub);
     }
 
     MoveFollowWall::~MoveFollowWall() {
         delete mRotater;
         delete mStraightMove;
+        delete mWallAligner;
     }
 
     void MoveFollowWall::init(const SensorData& data) {
@@ -82,7 +87,27 @@ using namespace amee;
             case LookForBeginningOfWall:
                 lookForBeginningOfWallState();
                 break;
+            case AlignToWall:
+                alignToWall();
+                break;
             default: std::cout << "UNKNOWN STATE" << std::endl;
+        }
+    }
+
+    // only go this state if you're sure there is a wall it can align to. If there is no wall it will dance or rotate at most 180 degrees, but the 
+    // robot will be lost, so make sure there is a wall before going into this state!
+    // After aligning it changes to FollowWall.
+    void MoveFollowWall::alignToWall() {
+        std::cout << "AlignToWall" << std::endl;
+        if (!mState.initialized) {
+            mState.initialized = true;
+            mWallAligner->init(mSensorData);
+        }
+
+        if (mWallAligner->isRunning()) {
+            mWallAligner->doControl(mSensorData);
+        } else {
+            mState.set(FollowWall);
         }
     }
 
@@ -106,7 +131,7 @@ using namespace amee;
             // both sensors have seen the wall, check if the wall is still there
             if (seesWall(mSensorData.irdistances.rightBack) 
                 && seesWall(mSensorData.irdistances.rightFront)) {
-                mState.set(FollowWall);
+                mState.set(AlignToWall);
             } else {
                 mState.set(MoveTail);
             }
@@ -124,7 +149,12 @@ using namespace amee;
           if (mRotater->isRunning()) { 
             mRotater->doControl(mSensorData);
           } else {
-            mState.set(FollowWall);
+            if (seesWall(mSensorData.irdistances.rightBack) 
+                && seesWall(mSensorData.irdistances.rightFront)) { // in most cases there will be a wall, but maybe there is a small hole
+                mState.set(AlignToWall);
+            } else { // if there is no wall go to FollowWall. It will imediately detect that there is something wrong and deal with it.
+                mState.set(FollowWall);    
+            }  
           }
     }
 
@@ -231,8 +261,8 @@ using namespace amee;
         maxErrorSum = (float) temp;
          
         float ir_right_mean = (mSensorData.irdistances.rightBack + mSensorData.irdistances.rightFront)/2.0f;
-        float angle_to_wall = tan((mSensorData.irdistances.rightBack - mSensorData.irdistances.rightFront) / IR_BASE_RIGHT);
-        float distance_to_wall = cos(angle_to_wall) * ir_right_mean;
+        // float angle_to_wall = tan((mSensorData.irdistances.rightBack - mSensorData.irdistances.rightFront) / IR_BASE_RIGHT);
+        // float distance_to_wall = cos(angle_to_wall) * ir_right_mean;
         
         // std::cout << "DISTANCE TO WALL: " << distance_to_wall << "\n";
         // std::cout << "ANGLE TO WALL: " << angle_to_wall << std::endl;
