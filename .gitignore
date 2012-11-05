@@ -6,3 +6,7 @@ amee/src/amee
 amee/build
 *.*~
 amee/bin/*
+amee/CMakeCache.txt
+amee/CMakeFiles/
+amee/cmake_install.cmake
+amee/Makefile

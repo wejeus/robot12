@@ -5,7 +5,10 @@
 #include <stdlib.h>
 #include <iostream>
 #include <ctype.h>
-// #include "RgbHsvConvert.h"
+#include "ros/ros.h"
+#include <std_msgs/Int32.h>
+#include <std_msgs/Int8MultiArray.h>
+
 
 using namespace std;
 using namespace cv;
@@ -13,6 +16,8 @@ using namespace cv;
 void streamCamera(VideoCapture &capture);
 void render(Mat &frame);
 void initWindows();
+void initROS(int argc, char *argv[]);
+void initLocalInput(int argc, char *argv[]);
 void filterRedTag(Mat &srcImg, Mat &destImg);
 void onSaturationColorHighChange(int value);
 void onSaturationColorLowChange(int value);
@@ -49,6 +54,7 @@ void render(Mat &frame) {
     if (FILTER_RED_TAG) filterRedTag(frame, frame);
 
     imshow(windowResult, frame);
+    waitKey(3);
 }
 
 void initWindows() {
@@ -131,30 +137,70 @@ void *onButtonDoBlur(int state, void *pointer) {
     printf("ok");
 }
 
-int main(int argc, char *argv[]) {
+// Mat mat;
+
+void cam0_cb(const std_msgs::Int8MultiArray::ConstPtr& array) {
+    IplImage *img               = cvCreateImage(cvSize(320, 240), IPL_DEPTH_8U, 3);
+    char * data                 = img->imageData;
+    
+    for(int i = 0; i < 320*240*3; i++)
+    {
+        data[i] = char(array->data.at(i));
+    }
+    // cvSaveImage("test.jpg" ,img);
+    // cvReleaseImage(&img);
+    // Mat mat = cvCreateMat(img->height,img->width,CV_32FC3 );
+    // cvConvert(img, mat);
+    Mat mat(img);
+    render(mat);
+    // Maybe release
+}
+
+void initROS(int argc, char *argv[]) {
+    printf("Starting TagDetection using ROS\n");
+    ros::init(argc, argv, "TagDetection");
+    ros::NodeHandle n;
+    ros::Subscriber img0_sub = n.subscribe("/camera0_img", 1, cam0_cb);
+    // ros::Subscriber img1_sub = n.subscribe("/camera1_img", 1, cam1_cb);
+    ros::spin();
+}
+
+void initLocalInput(int argc, char *argv[]) {
+
+    cout << "Starting TagDetection using local input" << endl;
 
     VideoCapture capture;
 
-    if (isdigit(*argv[1])) {
+    if (isdigit(*argv[2])) {
         cout << "Initializing camera: " << *argv[1] << endl;
-        capture.open(atoi(argv[1]));
+        capture.open(atoi(argv[2]));
         if (!capture.isOpened()) {
             fprintf(stderr, "ERROR: capture is NULL\n");
-            return -1;
+            return;
         }
     }
-
-    initWindows();
 
     if (capture.isOpened()) {
         streamCamera(capture);
         // cvReleaseCapture(&capture);
     } else {
-        Mat image = imread(argv[1], 1);
+        Mat image = imread(argv[2], 1);
         render(image);
         waitKey();
     }
+}
 
+int main(int argc, char *argv[]) {
+
+    initWindows();
+
+    if (argc >= 2 && *argv[1] == 'l') {
+        initLocalInput(argc, argv);
+    } else {
+        initROS(argc, argv);
+    }
+
+    cout << "Quitting ..." << endl;
     cvDestroyWindow(windowResult);
     return 0;
 }
@@ -164,6 +210,7 @@ int main(int argc, char *argv[]) {
 // Tuning of parameters
 // Get video stream from ROS
 // Publish detected tag to map
+// Try LAB color space instead of HSV
 
 /* NOTES */
 
