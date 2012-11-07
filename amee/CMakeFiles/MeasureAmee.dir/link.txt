@@ -1,0 +1,1 @@
+/usr/bin/c++   -g     -pthread CMakeFiles/MeasureAmee.dir/src/MeasureAmee/MeasureAmee.o  -o bin/MeasureAmee -rdynamic -L/opt/ros/fuerte/lib -lroscpp -lrostime -lrosconsole -lroscpp_serialization -lxmlrpcpp -Wl,-rpath,/opt/ros/fuerte/lib 

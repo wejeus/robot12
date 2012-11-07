@@ -1,0 +1,1 @@
+/usr/bin/c++   -g     -pthread CMakeFiles/MotorControl.dir/src/MotorControl/MotorControl.o  -o bin/MotorControl -rdynamic -L/opt/ros/fuerte/lib -lroscpp -lrostime -lrosconsole -lroscpp_serialization -lxmlrpcpp -Wl,-rpath,/opt/ros/fuerte/lib 
