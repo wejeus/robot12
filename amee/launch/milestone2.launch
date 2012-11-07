@@ -4,7 +4,7 @@
         <node pkg="amee" name="MotorControl" type="MotorControl"/>
         <node pkg="amee" name="MovementControl" type="MovementControl"/>
         <node pkg="amee" name="IRSensorReader" type="IRSensorReader"/>
-        <node pkg="amee" name="Localize" type="Localize"/>
+        <!-- <node pkg="amee" name="Localize" type="Localize"/> -->
     </group>
 
 </launch>

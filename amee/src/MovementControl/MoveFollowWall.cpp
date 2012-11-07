@@ -240,25 +240,25 @@ using namespace amee;
     void MoveFollowWall::followWall() {
         // std::cout << "Following wall" << std::endl;
         //TODO make this nice (use floats and not double)
-        double temp;    
-        ros::param::getCached("/linearSpeed",temp);
-        linearSpeed = (float) temp;
-        ros::param::getCached("/K_p_keepRef", temp);
-        K_p_keepRef = (float) temp;
-        ros::param::getCached("/K_p_reachRef", temp);
-        K_p_reachRef = (float) temp;
-        ros::param::getCached("/K_i_keepRef", temp);
-        K_i_keepRef = (float) temp;
-        ros::param::getCached("/K_i_reachRef", temp);
-        K_i_reachRef = (float) temp;
+        // double temp;    
+        // ros::param::getCached("/linearSpeed",temp);
+        // linearSpeed = (float) temp;
+        // ros::param::getCached("/K_p_keepRef", temp);
+        // K_p_keepRef = (float) temp;
+        // ros::param::getCached("/K_p_reachRef", temp);
+        // K_p_reachRef = (float) temp;
+        // ros::param::getCached("/K_i_keepRef", temp);
+        // K_i_keepRef = (float) temp;
+        // ros::param::getCached("/K_i_reachRef", temp);
+        // K_i_reachRef = (float) temp;
 
-        ros::param::getCached("/K_d", temp); // added derivative control
-        K_d = (float) temp;
+        // ros::param::getCached("/K_d", temp); // added derivative control
+        // K_d = (float) temp;
 
-        ros::param::getCached("/refDistance", temp);
-        refDistance = (float) temp;
-        ros::param::getCached("/maxErrorSum", temp);
-        maxErrorSum = (float) temp;
+        // ros::param::getCached("/refDistance", temp);
+        // refDistance = (float) temp;
+        // ros::param::getCached("/maxErrorSum", temp);
+        // maxErrorSum = (float) temp;
          
         float ir_right_mean = (mSensorData.irdistances.rightBack + mSensorData.irdistances.rightFront)/2.0f;
         // float angle_to_wall = tan((mSensorData.irdistances.rightBack - mSensorData.irdistances.rightFront) / IR_BASE_RIGHT);
