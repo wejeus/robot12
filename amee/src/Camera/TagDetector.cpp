@@ -54,7 +54,7 @@ bool LOCAL = false;
 
 void show(const string& winname, InputArray mat) {
     if (DISPLAY_GRAPHICAL) {
-        imshow(winname, mat);
+        imshow(winname.c_str(), mat);
     }
 }
 
@@ -181,7 +181,7 @@ void *onButtonDoBlur(int state, void *pointer) {
 void cam0_cb(const std_msgs::Int8MultiArray::ConstPtr& array) {
     IplImage *img               = cvCreateImage(cvSize(320, 240), IPL_DEPTH_8U, 3);
     char * data                 = img->imageData;
-    
+    cout << "adsf" << endl;
     for(int i = 0; i < 320*240*3; i++)
     {
         data[i] = char(array->data.at(i));
@@ -192,7 +192,7 @@ void cam0_cb(const std_msgs::Int8MultiArray::ConstPtr& array) {
     // cvConvert(img, mat);
     Mat mat(img);
     render(mat);
-    // Maybe release
+    waitKey(10); // For some reason we have to wait to get the graphical stuff to show..?
 }
 #endif
 
@@ -271,7 +271,10 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (DISPLAY_GRAPHICAL) initWindows();
+    if (DISPLAY_GRAPHICAL) {
+        cout << "Will do graphical display" << endl;
+        initWindows();
+    }
 
     if (LOCAL) {
         initLocalInput(source);
@@ -301,3 +304,5 @@ int main(int argc, char *argv[]) {
 // Do Opencv (current release) use 180 or 360 for hsv colors?
 
 // parameters for ros::init(argc, argv, "TagDetection");
+
+// Camera update using ROS is really slow! Only 1 sec updates, maybe only due to CamereNode?
