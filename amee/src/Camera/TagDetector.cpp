@@ -142,7 +142,7 @@ void filterRedTag(Mat &srcImg, Mat &destImg) {
     for(int i = 0; i < contours.size(); ++i) {
         RotatedRect rect = minAreaRect(contours[i]);
         if (contourArea(contours[i]) > TAG_MIN_PIXEL_AREA) {
-            log("AREA: %f\n", contourArea(contours[i]));
+            // log("AREA: %f\n", contourArea(contours[i]));
             Point2f vtx[4];
             rect.points(vtx);
             for(int j = 0; j < 4; ++j) {
@@ -153,7 +153,7 @@ void filterRedTag(Mat &srcImg, Mat &destImg) {
 
             int diff = imageCenter - rect.center.x;
 
-            if (abs(diff) < 40) {
+            if (abs(diff) < 100) {
                 log("TAG FOUND! Distance from normal: %d\n", diff);
                 circle(destImg, rect.center, 20, Scalar(0, 0, 255), 10);
                 #ifdef ROS

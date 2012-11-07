@@ -50,4 +50,8 @@ rosbuild_add_executable(Mapper src/Mapper/Mapper.cpp src/Amee.cpp)
 rosbuild_add_executable(TagDetector src/Camera/TagDetector.cpp)
 target_link_libraries(TagDetector opencv_core opencv_highgui opencv_imgproc opencv_video)
 
+rosbuild_add_executable(CameraNode src/Camera/CameraNode.cpp)
+target_link_libraries(CameraNode v4l2)
+target_link_libraries(CameraNode opencv_core opencv_highgui)
+
 #target_link_libraries(example ${PROJECT_NAME})
