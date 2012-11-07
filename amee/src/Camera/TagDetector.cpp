@@ -5,6 +5,10 @@
 #include <stdlib.h>
 #include <iostream>
 #include <ctype.h>
+#include <string>
+#include <unistd.h>
+
+#define ROS
 
 #ifdef ROS
 #include "ros/ros.h"
@@ -15,6 +19,7 @@
 
 using namespace std;
 using namespace cv;
+using namespace amee;
 
 void streamCamera(VideoCapture &capture);
 void render(Mat &frame);
@@ -27,6 +32,7 @@ void onSaturationColorLowChange(int value);
 void onCannyHighChange(int value);
 void onCannyLowChange(int value);
 void *onButtonDoBlur(int state, void *pointer);
+void show(const string& winname, InputArray mat);
 
 char windowResult[] = "result";
 char windowThresh[] = "tresh";
@@ -43,51 +49,35 @@ ros::Publisher mapPublisher;
 bool SMOOTH_IMAGE = false;
 bool FILTER_RED_TAG = true;
 bool EQUALIZE_HISTOGRAM = true;
+bool DISPLAY_GRAPHICAL = false;
+bool LOCAL = false;
+
+void show(const string& winname, InputArray mat) {
+    if (DISPLAY_GRAPHICAL) {
+        imshow(winname, mat);
+    }
+}
 
 void streamCamera(VideoCapture &capture) {
     Mat frame;
     Mat frameNext;
 
     capture >> frame;
+    // TODO: flip is not needed..?
     while (true) {
         capture >> frameNext;
         render(frame);
         flip(frameNext, frame, 0);
-
-        
-
-        // if (!frameCopy) {
-        //     frameCopy = CreateImage(frame.size().width, )
-        // }
-        // render(frame);
         if(waitKey(10) >= 0) break;
     }
 }
-
-    // frame_copy = None
-    // while True:
-    //     frame = cv.QueryFrame(capture)
-    //     if not frame:
-    //         cv.WaitKey(0)
-    //         break
-    //     if not frame_copy:
-    //         frame_copy = cv.CreateImage((frame.width,frame.height), cv.IPL_DEPTH_8U, frame.nChannels)
-    //     if frame.origin == cv.IPL_ORIGIN_TL:
-    //         cv.Copy(frame, frame_copy)
-    //     else:
-    //         cv.Flip(frame, frame_copy, 0)
-        
-    //     render(frame_copy)
-
-    //     if cv.WaitKey(10) >= 0:
-    //         break
 
 void render(Mat &frame) {
     // void cvSmooth(const CvArr* src, CvArr* dst, int smoothtype=CV_GAUSSIAN, int param1=3, int param2=0, double param3=0, double param4=0)
     if (SMOOTH_IMAGE) GaussianBlur(frame, frame, Size(7,7), 1.5, 1.5);
     if (FILTER_RED_TAG) filterRedTag(frame, frame);
 
-    imshow(windowResult, frame);
+    show(windowResult, frame);
 }
 
 void initWindows() {
@@ -124,7 +114,7 @@ void filterRedTag(Mat &srcImg, Mat &destImg) {
     
     // void Canny(InputArray image, OutputArray edges, double threshold1, double threshold2, int apertureSize=3, bool L2gradient=false )
     Canny(binImg, binImg, CANNY_LOW, CANNY_HIGH);
-    imshow(windowThresh, binImg); // For debug output
+    show(windowThresh, binImg); // For debug output
 
     vector<vector<Point> > contours;
     // void findContours(InputOutputArray image, OutputArrayOfArrays contours, OutputArray hierarchy, int mode, int method, Point offset=Point())
@@ -150,8 +140,8 @@ void filterRedTag(Mat &srcImg, Mat &destImg) {
                 // mark tag on map!
                 Tag tag;
                 tag.distance = diff;
-                v.side = 1;
-                tagPublisher.publish(v);
+                tag.side = 1;
+                mapPublisher.publish(tag);
                 #endif
             }
             
@@ -222,15 +212,20 @@ void initROS(int argc, char *argv[]) {
     #endif
 }
 
-void initLocalInput(int argc, char *argv[]) {
+void initLocalInput(string source) {
 
     cout << "Starting TagDetection using local input" << endl;
 
+    if (!strcmp(source.c_str(), "")) {
+        cout << "No input source!" << endl;
+        return;
+    }
+
     VideoCapture capture;
 
-    if (isdigit(*argv[2])) {
-        cout << "Initializing camera: " << *argv[1] << endl;
-        capture.open(atoi(argv[2]));
+    if (isdigit(*source.c_str())) {
+        cout << "Initializing camera: " << source << endl;
+        capture.open(atoi(source.c_str()));
         if (!capture.isOpened()) {
             fprintf(stderr, "ERROR: capture is NULL\n");
             return;
@@ -241,7 +236,8 @@ void initLocalInput(int argc, char *argv[]) {
         streamCamera(capture);
         // cvReleaseCapture(&capture);
     } else {
-        Mat image = imread(argv[2], 1);
+        cout << "Reading image: " << source << endl;
+        Mat image = imread(source.c_str(), 1);
         render(image);
         waitKey();
     }
@@ -249,16 +245,43 @@ void initLocalInput(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
 
-    initWindows();
+    int c;
+    string source;
+    while ((c = getopt (argc, argv, "lds:")) != -1) {
+        switch (c) {
+            case 'l':
+                LOCAL = true;
+                break;
+            case 'd':
+                DISPLAY_GRAPHICAL = true;
+                break;
+            case 's':
+                source = optarg;     
+                break;
+            case '?':
+                if (optopt == 's')
+                    fprintf (stderr, "Option -%c requires an argument. Image or camera.\n", optopt);
+                else if (isprint (optopt))
+                    fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+                else
+                    fprintf (stderr,"Unknown option character `\\x%x'.\n", optopt);
+                return 1;
+            default:
+                abort();
+        }
+    }
 
-    if (argc >= 2 && *argv[1] == 'l') {
-        initLocalInput(argc, argv);
+    if (DISPLAY_GRAPHICAL) initWindows();
+
+    if (LOCAL) {
+        initLocalInput(source);
     } else {
         initROS(argc, argv);
     }
 
     cout << "Quitting ..." << endl;
-    cvDestroyWindow(windowResult);
+    
+    if (DISPLAY_GRAPHICAL) cvDestroyWindow(windowResult);
     return 0;
 }
 
@@ -276,3 +299,5 @@ int main(int argc, char *argv[]) {
 // When you see in the reference manual or in OpenCV source code a function that takes InputArray, it means that you can actually pass Mat, Matx, vector<T> etc. (see above the complete list).
 
 // Do Opencv (current release) use 180 or 360 for hsv colors?
+
+// parameters for ros::init(argc, argv, "TagDetection");

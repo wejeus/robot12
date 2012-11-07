@@ -43,7 +43,7 @@ rosbuild_add_executable(KeyHandlerTester src/KeyHandler/key_handler_listener.cpp
 rosbuild_add_executable(PublishAmee src/PublishAmee/PublishAmee.cpp)
 rosbuild_add_executable(IMUReader src/IMUSensor/IMUReader.cpp)
 rosbuild_add_executable(Mapper src/Mapper/Mapper.cpp)
-#rosbuild_add_executable(TagDetector src/Camera/TagDetector.cpp) TODO ADD ME AGAIN
-#target_link_libraries(TagDetector opencv_core opencv_highgui opencv_imgproc opencv_video) TODO ADD ME AGAIN
-#target_link_libraries(TagDetector cv)
+rosbuild_add_executable(TagDetector src/Camera/TagDetector.cpp)
+target_link_libraries(TagDetector opencv_core opencv_highgui opencv_imgproc opencv_video)
+
 #target_link_libraries(example ${PROJECT_NAME})

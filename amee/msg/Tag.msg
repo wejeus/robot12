@@ -1,2 +1,2 @@
 float32 distance
-int side
+int8 side
