@@ -11,7 +11,7 @@ ros::Publisher f_imu_pub;
 void recive_imu(const imu::ConstPtr &msg)
 {
 	//printf("got encoder L:%i , R:%i\n",msg->left,msg->right);
-	printf("acc[%f,%f,%f] gyro[%f,%f,%f] magnetic[%f,%f,%f]\n",msg->acc_x,msg->acc_y,msg->acc_z,msg->gyro_x,msg->gyro_y,msg->gyro_z,msg->comp_x,msg->comp_y,msg->comp_z);
+	// printf("acc[%f,%f,%f] gyro[%f,%f,%f] magnetic[%f,%f,%f]\n",msg->acc_x,msg->acc_y,msg->acc_z,msg->gyro_x,msg->gyro_y,msg->gyro_z,msg->comp_x,msg->comp_y,msg->comp_z);
 	f_imu_pub.publish(msg);
 }
 

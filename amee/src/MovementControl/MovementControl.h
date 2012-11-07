@@ -11,6 +11,7 @@ class MoveRotate;
 class MoveStraight;
 class MoveStop;
 class MoveFollowWall;
+class MoveAlignWall;
 
 class MovementControl {
 
@@ -29,6 +30,7 @@ class MovementControl {
 		static const int TYPE_MOVE_COORDINATE = 3;
 		static const int TYPE_FOLLOW_WALL = 4;
 		static const int TYPE_STOP = 5;
+		static const int TYPE_ALIGN_TO_WALL = 6;
 
 	private:
 
@@ -44,6 +46,7 @@ class MovementControl {
 		amee::MoveStraight* mStraightState;
 		amee::MoveStop* mStopState;
 		amee::MoveFollowWall* mFollowWallState;
+		amee::MoveAlignWall* mAlignWallState;
 		//TODO add other states here
 
 };

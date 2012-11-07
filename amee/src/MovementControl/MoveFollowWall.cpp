@@ -1,5 +1,8 @@
 #include "MoveFollowWall.h"
 #include "amee/Velocity.h"
+#include "MoveRotate.h"
+#include "MoveStraight.h"
+#include "MoveAlignWall.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -11,11 +14,13 @@ using namespace amee;
         mVelPub = pub;
         mRotater = new MoveRotate(pub);
         mStraightMove = new MoveStraight(pub);
+        mWallAligner = new MoveAlignWall(pub);
     }
 
     MoveFollowWall::~MoveFollowWall() {
         delete mRotater;
         delete mStraightMove;
+        delete mWallAligner;
     }
 
     void MoveFollowWall::init(const SensorData& data) {
@@ -82,12 +87,32 @@ using namespace amee;
             case LookForBeginningOfWall:
                 lookForBeginningOfWallState();
                 break;
+            case AlignToWall:
+                alignToWall();
+                break;
             default: std::cout << "UNKNOWN STATE" << std::endl;
         }
     }
 
+    // only go this state if you're sure there is a wall it can align to. If there is no wall it will dance or rotate at most 180 degrees, but the 
+    // robot will be lost, so make sure there is a wall before going into this state!
+    // After aligning it changes to FollowWall.
+    void MoveFollowWall::alignToWall() {
+        //std::cout << "AlignToWall" << std::endl;
+        if (!mState.initialized) {
+            mState.initialized = true;
+            mWallAligner->init(mSensorData);
+        }
+
+        if (mWallAligner->isRunning()) {
+            mWallAligner->doControl(mSensorData);
+        } else {
+            mState.set(FollowWall);
+        }
+    }
+
     void MoveFollowWall::lookForBeginningOfWallState() {
-        std::cout << "LookForBeginningOfWall" << std::endl;
+        //std::cout << "LookForBeginningOfWall" << std::endl;
         if (!mState.initialized) {
             mState.initialized = true;
             mFoundWallRightBack = false;
@@ -106,7 +131,7 @@ using namespace amee;
             // both sensors have seen the wall, check if the wall is still there
             if (seesWall(mSensorData.irdistances.rightBack) 
                 && seesWall(mSensorData.irdistances.rightFront)) {
-                mState.set(FollowWall);
+                mState.set(AlignToWall);
             } else {
                 mState.set(MoveTail);
             }
@@ -116,7 +141,7 @@ using namespace amee;
     }
 
     void MoveFollowWall::rotateLeftState() {
-        std::cout << "RotateLeft" << std::endl;
+        // std::cout << "RotateLeft" << std::endl;
           if (!mState.initialized) {
             mState.initialized = true;
             mRotater->init(mSensorData, 90.0f);
@@ -124,12 +149,17 @@ using namespace amee;
           if (mRotater->isRunning()) { 
             mRotater->doControl(mSensorData);
           } else {
-            mState.set(FollowWall);
+            if (seesWall(mSensorData.irdistances.rightBack) 
+                && seesWall(mSensorData.irdistances.rightFront)) { // in most cases there will be a wall, but maybe there is a small hole
+                mState.set(AlignToWall);
+            } else { // if there is no wall go to FollowWall. It will imediately detect that there is something wrong and deal with it.
+                mState.set(FollowWall);    
+            }  
           }
     }
 
     void MoveFollowWall::rotateRightState() {
-        std::cout << "RotateRight" << std::endl;
+        // std::cout << "RotateRight" << std::endl;
           if (!mState.initialized) {
             mState.initialized = true;
             mRotater->init(mSensorData, -90.0f);
@@ -142,7 +172,7 @@ using namespace amee;
     }
 
     void MoveFollowWall::moveTailState() {
-        std::cout << "MoveTail" << std::endl;
+        // std::cout << "MoveTail" << std::endl;
         if (wallInFront()) {
             mState.set(RotateLeft);
         } else { 
@@ -159,7 +189,7 @@ using namespace amee;
     }
 
     void MoveFollowWall::lookForEndOfWallState() {
-        std::cout << "LookForEndOfWall" << std::endl;
+        // std::cout << "LookForEndOfWall" << std::endl;
         if (seesWall(mSensorData.irdistances.rightFront)) {
             mState.set(LookForBeginningOfWall); 
         } else if (wallInFront()) {
@@ -177,8 +207,8 @@ using namespace amee;
     }
 
     void MoveFollowWall::followWallState() {
-        std::cout << "FollowWall" << std::endl;
-        std::cout << mSensorData.irdistances << std::endl;
+        // std::cout << "FollowWall" << std::endl;
+        // std::cout << mSensorData.irdistances << std::endl;
         if (seesWall(mSensorData.irdistances.rightBack)
             && seesWall(mSensorData.irdistances.rightFront)
             && !wallInFront()) {
@@ -188,7 +218,7 @@ using namespace amee;
          } else if (wallInFront()) {
             mState.set(RotateLeft);
          } else {
-           std::cout << "HELP ME!!!! I'M LOST!!!!!" << std::endl;
+           // std::cout << "HELP ME!!!! I'M LOST!!!!!" << std::endl;
         }
     }
 
@@ -210,29 +240,29 @@ using namespace amee;
     void MoveFollowWall::followWall() {
         // std::cout << "Following wall" << std::endl;
         //TODO make this nice (use floats and not double)
-        double temp;    
-        ros::param::getCached("/linearSpeed",temp);
-        linearSpeed = (float) temp;
-        ros::param::getCached("/K_p_keepRef", temp);
-        K_p_keepRef = (float) temp;
-        ros::param::getCached("/K_p_reachRef", temp);
-        K_p_reachRef = (float) temp;
-        ros::param::getCached("/K_i_keepRef", temp);
-        K_i_keepRef = (float) temp;
-        ros::param::getCached("/K_i_reachRef", temp);
-        K_i_reachRef = (float) temp;
+        // double temp;    
+        // ros::param::getCached("/linearSpeed",temp);
+        // linearSpeed = (float) temp;
+        // ros::param::getCached("/K_p_keepRef", temp);
+        // K_p_keepRef = (float) temp;
+        // ros::param::getCached("/K_p_reachRef", temp);
+        // K_p_reachRef = (float) temp;
+        // ros::param::getCached("/K_i_keepRef", temp);
+        // K_i_keepRef = (float) temp;
+        // ros::param::getCached("/K_i_reachRef", temp);
+        // K_i_reachRef = (float) temp;
 
-        ros::param::getCached("/K_d", temp); // added derivative control
-        K_d = (float) temp;
+        // ros::param::getCached("/K_d", temp); // added derivative control
+        // K_d = (float) temp;
 
-        ros::param::getCached("/refDistance", temp);
-        refDistance = (float) temp;
-        ros::param::getCached("/maxErrorSum", temp);
-        maxErrorSum = (float) temp;
+        // ros::param::getCached("/refDistance", temp);
+        // refDistance = (float) temp;
+        // ros::param::getCached("/maxErrorSum", temp);
+        // maxErrorSum = (float) temp;
          
         float ir_right_mean = (mSensorData.irdistances.rightBack + mSensorData.irdistances.rightFront)/2.0f;
-        float angle_to_wall = tan((mSensorData.irdistances.rightBack - mSensorData.irdistances.rightFront) / IR_BASE_RIGHT);
-        float distance_to_wall = cos(angle_to_wall) * ir_right_mean;
+        // float angle_to_wall = tan((mSensorData.irdistances.rightBack - mSensorData.irdistances.rightFront) / IR_BASE_RIGHT);
+        // float distance_to_wall = cos(angle_to_wall) * ir_right_mean;
         
         // std::cout << "DISTANCE TO WALL: " << distance_to_wall << "\n";
         // std::cout << "ANGLE TO WALL: " << angle_to_wall << std::endl;
