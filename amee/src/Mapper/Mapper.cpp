@@ -180,8 +180,13 @@ void Mapper::doMapping() {
 		for (int i = 0; i < mMeasurements.size(); ++i) {
 			Measurement m = mMeasurements[i];
 			std::cout << i <<": is valid? " << m.valid << " x " << m.pos.x << " y " << m.pos.y << std::endl;
+			if (m.valid) {
+				mMap.addMeasurement(m.pos);
+			}
 		}
-		visualize();
+		// visualize();
+		mMap.print();
+
 	}
 
 

@@ -28,6 +28,7 @@ class Map {
 			}
 		};
 		void addMeasurement(Point pos);
+		void print();
 		Map();
 		~Map();
 	

@@ -39,6 +39,6 @@ bool VerticalWallSegment::isInRange(const Map::Point& pos) {
 	return inXRange && inYRange;
 }
 
-Orientation VerticalWallSegment::getOrientation() {
+WallSegment::Orientation VerticalWallSegment::getOrientation() const {
 	return Vertical;
 }
