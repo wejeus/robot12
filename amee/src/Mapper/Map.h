@@ -6,6 +6,8 @@
 
 namespace amee {
 
+class WallSegment;
+
 class Map {
 
 	public:
@@ -18,7 +20,6 @@ class Map {
 				r.y = y + b.y;
 				return r;
 			}
-
 			void rotate(float angle) {
 				float tx = x;
 				float ty = y;
@@ -27,9 +28,11 @@ class Map {
 			}
 		};
 		void addMeasurement(Point pos);
+		Map();
+		~Map();
 	
 	private:
-		//std::vector<WallSegment> mWalls;
+		std::vector<WallSegment*> mWalls;
 
 	};
 }
