@@ -47,7 +47,7 @@ void MoveAlignWall::doControl(const SensorData& data) {
 
     if (fabs(mStartingAngle - data.odometry.angle) > 180.0f) { 
         // make sure we don't end up rotating all the time when there is something wrong
-        std::cout << "There seems to be no wall. Stop!" << std::endl;
+        // std::cout << "There seems to be no wall. Stop!" << std::endl;
         stop();
     }
 

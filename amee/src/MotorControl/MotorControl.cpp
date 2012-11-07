@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cmath>
 #include <sys/time.h>
+#include "../Amee.h"
 
 #define WHEEL_RADIUS 0.0365f
 #define WHEEL_BASE 0.237f
@@ -141,7 +142,7 @@ void MotorControl::drive()
 	// TODO this calculation has only need to be done once (in setSpeed(..))
 	float leftVPWM = -mVelocity.left / (2.0f * M_PI * WHEEL_RADIUS * REVOLUTION_PER_SEC_LEFT);
 	float rightVPWM = -mVelocity.right / (2.0f * M_PI * WHEEL_RADIUS * REVOLUTION_PER_SEC_RIGHT);
-	std::cout << "Target(pwm): " << leftVPWM << " " << rightVPWM << std::endl;
+	// std::cout << "Target(pwm): " << leftVPWM << " " << rightVPWM << std::endl;
 	
 	if (measurementsValid()) {//measurementsValid()) {
 		// calculate current velocity (in pwm) based on the last two encoder values 
@@ -169,7 +170,7 @@ void MotorControl::drive()
 	
 	//printf("set motor pwm velocities: %f %f \n", mMotor.left, mMotor.right);
 	checkSpeedLimit(mMotor); //check the limit before publishing it
-	std::cout << "PublishedSpeed(pwm): " << mMotor.left << " " << mMotor.right << std::endl;
+	// log("PublishedSpeed(pwm): %d %d\n", mMotor.left, mMotor.right);
 	mot_pub.publish(mMotor);
 }
 

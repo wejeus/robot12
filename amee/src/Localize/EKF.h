@@ -29,7 +29,6 @@ public:
 	Eigen::Vector2f u_t_1;	
 	
 	Eigen::Vector3f z;
-	//Eigen::Vector3f z_t_1;
 	Eigen::Vector3f z_hat;
 
 	Eigen::Matrix3f G; // jacobian of g (motion model)
@@ -42,24 +41,22 @@ public:
 
 	Eigen::Matrix3f I;
 
-	//void init();
+	void init();
 
 	void setR(float processNoise);
 	void setQ(float measurementNoise);
 
 	Eigen::Vector3f g(Eigen::Vector2f u, Eigen::Vector3f mu_t_1);
 	Eigen::Vector3f h(Eigen::Vector3f mu_bar, Eigen::Vector3f mu_bar_t_1);
-	void estimate(amee::Pose pose, amee::Velocity controlSignal, amee::Odometry measurement);
+	void estimate(amee::Velocity controlSignal, amee::Odometry measurement);
 
 	amee::Pose getMu();
 	amee::Pose getSigma();
 	amee::Pose getPose();
 
-	amee::Pose pose;
+	void setStartPose(amee::Pose pose);
 
-
-protected:
-	
+	amee::Pose mPose;	
 		
 };
 #endif

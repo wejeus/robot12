@@ -65,35 +65,35 @@ void MovementControl::receive_command(const amee::MovementCommand::ConstPtr &msg
 	float distance = msg->distance;
 	switch(type) {
 		case TYPE_MOVE_STRAIGHT:
-			std::cout << "MOVE STRAIGHT COMMAND RECEIVED" << std::endl;
+			// std::cout << "MOVE STRAIGHT COMMAND RECEIVED" << std::endl;
 			mCurrentState = mStraightState;
 			mStraightState->init(mSensorData, distance);
 		break;
 		case TYPE_MOVE_ROTATE:		
-			std::cout << "ROTATE COMMAND RECEIVED" << std::endl;
+			// std::cout << "ROTATE COMMAND RECEIVED" << std::endl;
 			mCurrentState = mRotationState;
 			mRotationState->init(mSensorData, angle);
 		break;
 		case TYPE_MOVE_COORDINATE:
-		 	std::cout << "MOVE TO COORDINATE" << std::endl;
+		 	// std::cout << "MOVE TO COORDINATE" << std::endl;
 		 	//TODO initialize MoveCoonrdinate here
 		 	// and change state
 		break;
 		case TYPE_FOLLOW_WALL:
-		 	std::cout << "FOLLOW WALL" << std::endl;
+		 	// std::cout << "FOLLOW WALL" << std::endl;
 		 	mFollowWallState->init(mSensorData);
 		 	mCurrentState = mFollowWallState;
 		break;
 		case TYPE_STOP:
-		 	std::cout << "STOP COMMAND RECEIVED" << std::endl;
+		 	// std::cout << "STOP COMMAND RECEIVED" << std::endl;
 		 	mCurrentState = mStopState;
 		break;
 		case TYPE_ALIGN_TO_WALL:
-			std::cout << "ALIGN TO WALL COMMAND RECEIVED" << std::endl;
+			// std::cout << "ALIGN TO WALL COMMAND RECEIVED" << std::endl;
 			mAlignWallState->init(mSensorData);
 			mCurrentState = mAlignWallState;
 		break;
-		default: std::cout << "GAY COMMAND RECEIVED" << std::endl;
+		// default: std::cout << "GAY COMMAND RECEIVED" << std::endl;
 	}
 }
 

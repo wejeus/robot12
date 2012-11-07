@@ -70,6 +70,7 @@ void log(char* fmt, ...) {
 
     va_end(args);
 }
+
 void show(const string& winname, InputArray mat) {
     if (DISPLAY_GRAPHICAL) {
         imshow(winname.c_str(), mat);

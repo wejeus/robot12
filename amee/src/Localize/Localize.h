@@ -5,7 +5,7 @@
 #include "amee/Velocity.h"
 #include "amee/Odometry.h"
 #include "amee/Pose.h"
-#include "Eigen/Eigen"
+#include "roboard_drivers/Motor.h"
 
 class Localize {
 
@@ -33,7 +33,7 @@ public:
 	void init();
 
 	void receiveEncoder(const amee::Odometry::ConstPtr &msg);
-	void receiveMotorSpeed(const amee::Velocity::ConstPtr &v);
+	void receiveMotorSpeed(const roboard_drivers::Motor::ConstPtr &v);
 	void receiveControlSignal(const amee::Velocity::ConstPtr &msg);
 	
 	void publishPose(ros::Publisher pose_pub);
