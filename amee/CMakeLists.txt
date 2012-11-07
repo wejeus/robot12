@@ -36,6 +36,7 @@ include_directories(/home/robot/ros_workspace/hg/eigen/include)
 #target_link_libraries(${PROJECT_NAME} another_library)
 #rosbuild_add_boost_directories()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
+
 rosbuild_add_executable(MotorControl src/MotorControl/MotorControl.cpp src/Amee.cpp)
 rosbuild_add_executable(IRSensorReader src/IRSensor/IRSensorReader.cpp src/Amee.cpp)
 rosbuild_add_executable(MovementControl src/MovementControl/MovementControl.cpp src/MovementControl/MoveRotate.cpp src/MovementControl/MoveStraight.cpp src/MovementControl/MoveStop.cpp src/MovementControl/MoveFollowWall.cpp src/MovementControl/MoveAlignWall.cpp src/Amee.cpp) 
