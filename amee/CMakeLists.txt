@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 2.4.6)
+
 include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 
 # Set the build type.  Options are:
@@ -20,11 +21,12 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #find_package(Qt4 REQUIRED)
 #####################################################
 
-
 #uncomment if you have defined messages
 rosbuild_genmsg()
 #uncomment if you have defined services
 #rosbuild_gensrv()
+
+include_directories(/home/robot/ros_workspace/hg/eigen/include)
 
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
@@ -40,4 +42,6 @@ rosbuild_add_executable(KeyHandlerTester src/KeyHandler/key_handler_listener.cpp
 rosbuild_add_executable(PublishAmee src/PublishAmee/PublishAmee.cpp)
 rosbuild_add_executable(Localize src/Localize/Localize.cpp)
 rosbuild_add_executable(IMUReader src/IMUSensor/IMUReader.cpp)
+
+#target_link_libraries(/home/robot/ros_workspace/hg eigen)
 #target_link_libraries(example ${PROJECT_NAME})
