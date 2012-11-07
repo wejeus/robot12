@@ -17,9 +17,13 @@ Map::~Map() {
 
 void Map::addMeasurement(Point pos) {
 	bool belongsToWall = false;
-	for (unsigned int i = 0; i < mWalls.size(); ++i) {
-		belongsToWall = belongsToWall || mWalls[i]->addMeasurement(pos);
+	unsigned int i = 0;
+	while (i < mWalls.size()) {// !belongsToWall
+		bool temp = mWalls[i]->addMeasurement(pos);
+		belongsToWall = belongsToWall || temp;
+		++i;
 	}
+	std::cout << "belongsToWall " << belongsToWall << std::endl;
 	if (!belongsToWall) {
 		WallSegment* horizontalWall = new HorizontalWallSegment(pos);
 		WallSegment* verticalWall = new VerticalWallSegment(pos);
@@ -31,4 +35,10 @@ void Map::addMeasurement(Point pos) {
 
 void Map::print() {
 	std::cout << "Map has " << mWalls.size() << " walls" << "\n";
+}
+
+void Map::getVisualization(MapVisualization& vis) {
+	for (unsigned int i = 0; i < mWalls.size(); ++i) {
+		vis.walls.push_back(mWalls[i]->getVisualization());
+	}
 }

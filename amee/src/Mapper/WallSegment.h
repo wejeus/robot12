@@ -2,6 +2,7 @@
 #define WALLSEGMENT_H
 
 #include "Map.h"
+#include "amee/WallVisualization.h"
 
 namespace amee {
 
@@ -14,6 +15,7 @@ class WallSegment {
 		/* Adds the given point to this wall if it's close enough. If it was close enough it returns true, otherwise false.	*/
 		virtual bool addMeasurement(const Map::Point& pos) = 0;
 		// virtual Orientation getOrientation() const = 0;
+		virtual WallVisualization getVisualization() = 0;
 
 		static const float ORTHOGONAL_TOLERANCE = 0.02f;
 		static const float WALL_THICKNESS = 0.015f;

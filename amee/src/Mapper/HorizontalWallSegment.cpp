@@ -18,6 +18,16 @@ HorizontalWallSegment::HorizontalWallSegment(Map::Point pos) {
 HorizontalWallSegment::~HorizontalWallSegment() {
 }
 
+WallVisualization HorizontalWallSegment::getVisualization(){
+	WallVisualization vis;
+	vis.startX = mFrom.x;
+	vis.startY = mFrom.y;
+	vis.endX = mTo.x;
+	vis.endY = mTo.y;
+	vis.type = 0;
+	return vis;
+}
+
 bool HorizontalWallSegment::addMeasurement(const Map::Point& p) {
 	if (isInRange(p)) {
 		++mNumberOfPoints;

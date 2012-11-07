@@ -3,6 +3,7 @@
 
 #include <vector> 
 #include "ros/ros.h"
+#include "amee/MapVisualization.h"
 
 namespace amee {
 
@@ -29,6 +30,7 @@ class Map {
 		};
 		void addMeasurement(Point pos);
 		void print();
+		void getVisualization(MapVisualization& vis);
 		Map();
 		~Map();
 	

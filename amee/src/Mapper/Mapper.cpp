@@ -1,7 +1,7 @@
 #include "Mapper.h"
 #include <iostream>
 #include <cmath>
-#include <visualization_msgs/Marker.h>
+#include <amee/MapVisualization.h>
 
 using namespace amee;
 
@@ -103,65 +103,9 @@ void Mapper::setVisualizationPublisher(ros::Publisher pub) {
 }
 
 void Mapper::visualize() {
-	visualization_msgs::Marker points;
-    points.header.frame_id = "/map_visual";
-    points.header.stamp = ros::Time::now();
-    points.ns = "points_and_lines";
-    points.action = visualization_msgs::Marker::ADD;
-    points.pose.orientation.w = 1.0;
-
-    points.id = 0;
-
-
-
-    points.type = visualization_msgs::Marker::POINTS;
-    // line_strip.type = visualization_msgs::Marker::LINE_STRIP;
-    // line_list.type = visualization_msgs::Marker::LINE_LIST;
-
-
-
-    // POINTS markers use x and y scale for width/height respectively
-    points.scale.x = 0.2;
-    points.scale.y = 0.2;
-
-    // // LINE_STRIP/LINE_LIST markers use only the x component of scale, for the line width
-    // line_strip.scale.x = 0.1;
-    // line_list.scale.x = 0.1;
-
-    // Points are green
-    points.color.g = 1.0f;
-    points.color.a = 1.0;
-
-    // // Line strip is blue
-    // line_strip.color.b = 1.0;
-    // line_strip.color.a = 1.0;
-
-    // // Line list is red
-    // line_list.color.r = 1.0;
-    // line_list.color.a = 1.0;
-
-    // Create the vertices for the points and lines
-    for (unsigned int i = 0; i < mMeasurements.size(); ++i)
-    {
-
-      geometry_msgs::Point p;
-      p.x = mMeasurements[i].pos.x;
-      p.y = mMeasurements[i].pos.y;
-      p.z = 0.0f;
-
-      points.points.push_back(p);
-      // line_strip.points.push_back(p);
-
-      // The line list needs two points for each line
-      // line_list.points.push_back(p);
-      // p.z += 1.0;
-      // line_list.points.push_back(p);
-    }
-
-
-    vis_pub.publish(points);
-    // marker_pub.publish(line_strip);
-    // marker_pub.publish(line_list);
+	MapVisualization vis;
+	mMap.getVisualization(vis);
+	vis_pub.publish(vis);
 }
 
 void Mapper::doMapping() {
@@ -184,7 +128,7 @@ void Mapper::doMapping() {
 				mMap.addMeasurement(m.pos);
 			}
 		}
-		// visualize();
+		visualize();
 		mMap.print();
 
 	}
@@ -192,6 +136,38 @@ void Mapper::doMapping() {
 
 	//TODO
 	// std::cout << "Diff in timestamp: " << (mOdometry.timestamp - mDistances.timestamp) << std::endl;
+}
+
+void mapTest(ros::Publisher& vispub) {
+	Map map;
+
+	Map::Point p;
+	p.x = 0;
+	p.y = 0;
+	for (int i = 0; i < 100; ++i) {
+		p.x += 0.01f; 
+		map.addMeasurement(p);
+	}
+
+	for (int i = 0; i < 100; ++i) {
+		p.y += 0.01f;
+		map.addMeasurement(p); 
+	}
+
+	for (int i = 0; i < 10; ++i) {
+		p.x -= 0.01f;
+		map.addMeasurement(p);
+	}
+
+	for (int i = 0; i < 10; ++i) {
+		p.y -= 0.01f;
+		map.addMeasurement(p);
+	}
+
+	MapVisualization vis;
+	map.getVisualization(vis);
+	vispub.publish(vis);
+
 }
 
 int main(int argc, char **argv)
@@ -211,11 +187,11 @@ int main(int argc, char **argv)
 	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &Mapper::receive_distances, &mapper);
 	ros::Subscriber odo_sub = n.subscribe("/amee/motor_control/odometry", 100, &Mapper::receive_odometry, &mapper);
 
-  	ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 10);
+  	ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);
 
     mapper.setVisualizationPublisher(marker_pub);
 
-	ros::Rate loop_rate(30);
+	ros::Rate loop_rate(10); //30
 	
 	while(ros::ok()){
 		
@@ -227,6 +203,7 @@ int main(int argc, char **argv)
 		
 		// map!
 		mapper.doMapping();
+		//mapTest(marker_pub);
 	}
 
 	return 0;

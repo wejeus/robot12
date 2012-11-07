@@ -18,6 +18,16 @@ VerticalWallSegment::VerticalWallSegment(Map::Point pos) {
 VerticalWallSegment::~VerticalWallSegment() {
 }
 
+WallVisualization VerticalWallSegment::getVisualization(){
+	WallVisualization vis;
+	vis.startX = mFrom.x;
+	vis.startY = mFrom.y;
+	vis.endX = mTo.x;
+	vis.endY = mTo.y;
+	vis.type = 1;
+	return vis;
+}
+
 bool VerticalWallSegment::addMeasurement(const Map::Point& p) {
 	if (isInRange(p)) {
 		++mNumberOfPoints;
@@ -35,7 +45,7 @@ bool VerticalWallSegment::addMeasurement(const Map::Point& p) {
 
 bool VerticalWallSegment::isInRange(const Map::Point& pos) {
 	bool inYRange = (mFrom.y - PARALLEL_TOLERANCE <= pos.y) && (pos.y <= mTo.y + PARALLEL_TOLERANCE);
-	bool inXRange = (mFrom.x - WALL_THICKNESS / 2.0f - ORTHOGONAL_TOLERANCE <= pos.x) && (mFrom.x + WALL_THICKNESS / 2.0f + ORTHOGONAL_TOLERANCE >= pos.x);
+	bool inXRange = (mFrom.x - WALL_THICKNESS / 2.0f - ORTHOGONAL_TOLERANCE <= pos.x) && (pos.x <= mFrom.x + WALL_THICKNESS / 2.0f + ORTHOGONAL_TOLERANCE);
 	return inXRange && inYRange;
 }
 
