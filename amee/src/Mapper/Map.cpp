@@ -16,26 +16,38 @@ Map::~Map() {
 }
 
 void Map::reduceNumWalls(const Point& pos, float distance) {
-	std::list<WallSegment*> closeHorizontals;
-	std::list<WallSegment*> closeVerticals;
+	// std::list<WallSegment*>::iterator prevHorizontal; // move all in one loop
 
-	for (std::list<WallSegment*>::iterator iter = mWalls.begin(), end = mWalls.end(); iter != end; ++iter) {
-		WallSegment* wall = (*iter);
-		float dist = wall->distanceTo(pos);
-		if (dist < distance) {
-			if (wall->getType() == WallSegment::HORIZONTAL) {
-				closeVerticals.push_back(wall);
-			} else {
-				closeVerticals.push_back(wall);
-			}
-		} else if (wall->isSmall()) {
-			iter = mWalls.erase(iter);
-			--iter; // decrease iter so that we don't skip a wall
-			delete wall;
-		}	
-	}
+	// for (std::list<WallSegment*>::iterator iter = mWalls.begin(), end = mWalls.end(); iter != end; ++iter) {
+	// 	WallSegment* wall = (*iter);
+	// 	float dist = wall->distanceTo(pos);
+	// 	if (dist < distance) {
+	// 		if (wall->getType() == WallSegment::HORIZONTAL) {
+	// 			closeHorizontals.push_back(wall);
+	// 		} else {
+	// 			closeVerticals.push_back(wall);
+	// 		}
+	// 	} else if (wall->isSmall()) {
+	// 		iter = mWalls.erase(iter);
+	// 		--iter; // decrease iter so that we don't skip a wall
+	// 		delete wall;
+	// 	}	
+	// }
 
-	// TODO merge walls
+	// std::list<WallSegment*>::iterator current = closeVerticals.begin(), end = closeVerticals.end();
+	// ++current;
+	// std::list<WallSegment*>::iterator prev = closeVerticals.begin();
+	// for (; current != end; ++current) {
+	// 	WallSegment* currentWall = *current;
+	// 	if ((*prev)->mergeWall(currentWall)) { // if prev and current were merged
+	// 		current = closeVerticals.erase(current); // remove current
+	// 		--current;
+	// 		delete currentWall;
+	// 	}
+	// }
+
+
+	// TODO merge horizontal walls
 }
 
 void Map::addMeasurement(Point pos) {

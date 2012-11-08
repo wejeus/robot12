@@ -57,7 +57,15 @@ bool VerticalWallSegment::mergeWall(WallSegment* wall) {
 		return false;
 	}
 	// if we reached this point, we want to merge the walls.
-	
+
+	// this is done by setting this wall to the new merged wall, the other wall can be deleted (not here).
+	mFrom = lowerFrom;
+	mTo = upperTo;
+
+	mXAcc += vWall->mXAcc;
+	mNumberOfPoints += vWall->mNumberOfPoints;
+	mFrom.x = mXAcc / mNumberOfPoints;
+	mTo.x = mFrom.x;
 
 	return true;
 

@@ -23,7 +23,8 @@ class WallSegment {
 
 		virtual bool isSmall() = 0; 
 
-		/** Tries to merge this wall with the given one. Returns true if merging was successful. */
+		/** Tries to merge this wall with the given one. Returns true if merging was successful. If successful the given wall can
+		be deleted since this instance will represent the merged wall. */
 		virtual bool mergeWall(WallSegment* wall) = 0;
 
 		static const float ORTHOGONAL_TOLERANCE = 0.02f;
