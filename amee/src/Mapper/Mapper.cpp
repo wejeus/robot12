@@ -155,6 +155,14 @@ void Mapper::visualize() {
 				vis.currentMeasurements.push_back(p);
 			}
 		}
+
+		for (unsigned int i = 0; i < mTagPositions.size(); ++i) {
+			Point p;
+			p.x = mTagPositions[i].x;
+			p.y = mTagPositions[i].y;
+			vis.tags.push_back(p);
+		}
+
 		vis_pub.publish(vis);
 	}
 	++mVisualizeTimer;
@@ -214,6 +222,13 @@ void Mapper::doMapping() {
 	// std::cout << "Diff in timestamp: " << (mPose.timestamp - mDistances.timestamp) << std::endl;
 }
 
+void Mapper::receive_tag(const amee::Tag::ConstPtr& msg) {
+	Map::Point p;
+	p.x = mCurrentPos.x;
+	p.y = mCurrentPos.y;
+	mTagPositions.push_back(p);
+}
+
 void mapTest(ros::Publisher& vispub) {
 	Map map;
 
@@ -263,6 +278,7 @@ int main(int argc, char **argv)
 	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &Mapper::receive_distances, &mapper);
 	ros::Subscriber odo_sub = n.subscribe("/amee/pose", 100, &Mapper::receive_pose, &mapper);
 	ros::Subscriber state_sub = n.subscribe("/amee/follow_wall_states",10, &Mapper::init, &mapper);
+	ros::Subscriber tag_sub = n.subscribe("/amee/tag",10, &Mapper::receive_tag, &mapper);
 
   	ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);
 

@@ -4,6 +4,7 @@
 #include "ros/ros.h"
 #include "amee/IRDistances.h"
 #include "amee/FollowWallStates.h"
+#include "amee/Tag.h"
 #include "Map.h"
 #include <vector>
 
@@ -16,6 +17,7 @@ class Mapper {
 		~Mapper();
 		void receive_distances(const amee::IRDistances::ConstPtr &msg);
 		void receive_pose(const amee::Pose::ConstPtr &msg);
+		void receive_tag(const amee::Tag::ConstPtr &msg);
 		void doMapping();
 		void init(const amee::FollowWallStates::ConstPtr &msg);
 		void setVisualizationPublisher(ros::Publisher pub);
@@ -43,6 +45,7 @@ class Mapper {
 		};
 
 		std::vector<Measurement> mMeasurements;
+		std::vector<Map::Point> mTagPositions;
 
 		void calculateMeasurements();
 		bool isValidDistance(float dist);
