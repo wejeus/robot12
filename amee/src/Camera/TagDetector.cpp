@@ -35,6 +35,8 @@ void onCannyLowChange(int value);
 void *onButtonDoBlur(int state, void *pointer);
 void show(const string& winname, InputArray mat);
 void log(char* fmt, ...);
+void onGaussianKernelChange(int value);
+void onGaussianSigmaChange(int value);
 
 char windowResult[] = "result";
 char windowThresh[] = "tresh";
@@ -42,6 +44,8 @@ int SATURATION_COLOR_HIGH = 109;
 int SATURATION_COLOR_LOW = 0;
 int CANNY_LOW = 77;
 int CANNY_HIGH = 92;
+int GAUSSIAN_KERNEL_SIZE = 7;
+int GAUSSIAN_SIGMA = 1.5;
 double TAG_MIN_PIXEL_AREA = 1500.0;
 
 
@@ -76,24 +80,34 @@ void show(const string& winname, InputArray mat) {
         imshow(winname.c_str(), mat);
     }
 }
-
+int camera_interval     = 100;
 void streamCamera(VideoCapture &capture) {
     Mat frame;
     Mat frameNext;
-
-    capture >> frame;
+    // struct timeval start, end;
+    // capture >> frame;
     // TODO: flip is not needed..?
     while (true) {
-        capture >> frameNext;
+        // gettimeofday(&end, NULL);
+        // while(double(end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec)) < camera_interval*1000.0) {
+        //     oop_rate.sleep();
+        //     gettimeofday(&end, NULL);
+        // }
+        // capture >> frameNext;
+        capture >> frame;
         render(frame);
-        flip(frameNext, frame, 0);
-        if(waitKey(10) >= 0) break;
+        // flip(frameNext, frame, 0);
+        if(waitKey(50) >= 0) break;
+        usleep(camera_interval*1000);
     }
 }
 
 void render(Mat &frame) {
     // void cvSmooth(const CvArr* src, CvArr* dst, int smoothtype=CV_GAUSSIAN, int param1=3, int param2=0, double param3=0, double param4=0)
-    if (SMOOTH_IMAGE) GaussianBlur(frame, frame, Size(7,7), 1.5, 1.5);
+    //
+
+    // void GaussianBlur(InputArray src, OutputArray dst, Size ksize, double sigmaX, double sigmaY=0, int borderType=BORDER_DEFAULT )
+    if (SMOOTH_IMAGE) GaussianBlur(frame, frame, Size(GAUSSIAN_KERNEL_SIZE, GAUSSIAN_KERNEL_SIZE), GAUSSIAN_SIGMA, GAUSSIAN_SIGMA);
     if (FILTER_RED_TAG) filterRedTag(frame, frame);
 
     show(windowResult, frame);
@@ -111,6 +125,8 @@ void initWindows() {
     cvCreateTrackbar("SaturationColorLow", windowResult, &SATURATION_COLOR_LOW, 360,  onSaturationColorLowChange);
     cvCreateTrackbar("CannyHigh", windowResult, &CANNY_HIGH, 360,  onCannyHighChange);
     cvCreateTrackbar("CannyLow", windowResult, &CANNY_LOW, 360,  onCannyLowChange);
+    cvCreateTrackbar("GaussianKernelSize", windowResult, &GAUSSIAN_KERNEL_SIZE, 10,  onGaussianKernelChange);
+    cvCreateTrackbar("GaussianSigma", windowResult, &GAUSSIAN_SIGMA, 10,  onGaussianSigmaChange);
 }
 
 void filterRedTag(Mat &srcImg, Mat &destImg) {
@@ -189,8 +205,23 @@ void onCannyHighChange(int value) {
 }
 
 void onCannyLowChange(int value) {
-    log("CANNY_LOW: %s\n", value);
+    log("CANNY_LOW: %d\n", value);
     CANNY_LOW = value;
+}
+
+void onGaussianKernelChange(int value) {
+    if ((value % 2) == 2) {
+        GAUSSIAN_KERNEL_SIZE = value+1;
+    }    
+    else {
+        GAUSSIAN_KERNEL_SIZE = value;
+    }
+    log("GAUSSIAN_KERNEL_SIZE: %d\n", GAUSSIAN_KERNEL_SIZE);
+}
+
+void onGaussianSigmaChange(int value) {
+    log("GAUSSIAN_SIGMA: %d\n", value);
+    GAUSSIAN_SIGMA = (value/10) + 1;
 }
 
 void *onButtonDoBlur(int state, void *pointer) {
@@ -246,6 +277,10 @@ void initLocalInput(string source) {
     if (isdigit(*source.c_str())) {
         log("Initializing camera: %s\n", source.c_str());
         capture.open(atoi(source.c_str()));
+        // bool VideoCapture::set(int propId, double value)
+        
+        cout << capture.set(CV_CAP_PROP_FRAME_WIDTH, 320);
+        cout << capture.set(CV_CAP_PROP_FRAME_HEIGHT, 240);
         if (!capture.isOpened()) {
             log("ERROR: capture is NULL\n");
             return;
