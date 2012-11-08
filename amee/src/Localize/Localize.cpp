@@ -22,13 +22,35 @@ void Localize::init()
 }
 
 void Localize::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
+	mLastOdometry = mOdometry;
+	std::cout << mLastOdometry.timestamp << " " << mOdometry.timestamp << std::endl;
 	mOdometry.x = msg->x;
 	mOdometry.y = msg->y;
 	mOdometry.angle = msg->angle;
+	mOdometry.timestamp = msg->timestamp;
+	mOdometry.leftWheelDistance = msg->leftWheelDistance;
+	mOdometry.rightWheelDistance = msg->rightWheelDistance;
+	//std::cout << "Odometry " << mOdometry.x << " " << mOdometry.y << " " << mOdometry.angle << std::endl;
+	mPose.theta += mOdometry.angle - mLastOdometry.angle;
+
+	// Calc x & y with corrected theta
+	float leftDistance = mOdometry.leftWheelDistance - mLastOdometry.leftWheelDistance;
+	float rightDistance = mOdometry.rightWheelDistance - mLastOdometry.rightWheelDistance;
+	float distance = (leftDistance + rightDistance) / 2.0f;
+
+	//std::cout << "distance: " << leftDistance << " " << rightDistance << std::endl;
+
+	mPose.x += cos(mPose.theta / 180.0f * M_PI) * distance;
+	mPose.y += sin(mPose.theta / 180.0f * M_PI) * distance;
+	mPose.theta = mPose.theta - floor(mPose.theta / 360) * 360.0f;
 }
 
 void Localize::receiveFollowWallState(const amee::FollowWallStates::ConstPtr &msg) {
 	followWallState.state = msg->state;
+	if(followWallState.state == amee::MoveFollowWall::ALIGNED_TO_WALL) {
+		mPose.theta -= mPose.theta - floor(mPose.theta / 90.0f + 0.5f) * 90.0f;
+	}
+	mPose.theta = mPose.theta - floor(mPose.theta / 360) * 360.0f;
 }
 
 int main(int argc, char **argv) 
@@ -56,22 +78,10 @@ int main(int argc, char **argv)
 	// -- Estimate pose
 	while(ros::ok())
 	{
-		localize.mLastOdometry = localize.mOdometry; // save old odometry values
 		ros::spinOnce(); // call all callbacks
-
-		// dont manipulate x & y.
-		localize.mPose.x = localize.mOdometry.x;
-		localize.mPose.y = localize.mOdometry.y;
-		localize.mPose.theta += localize.mOdometry.angle - localize.mLastOdometry.angle;
-
-		// Correct angle if aligned to wall
-		if(localize.followWallState.state == amee::MoveFollowWall::ALIGNED_TO_WALL) {
-			localize.mPose.theta -= localize.mPose.theta - floor(localize.mPose.theta / 90 + 0.5) * 90.0f;
-		}
 
 		// -- Publish pose
 		pose_pub.publish(localize.mPose);
-
 		// Sleep for a while
 		loop_rate.sleep(); 
 
