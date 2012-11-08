@@ -8,7 +8,7 @@
 #include <string>
 #include <unistd.h>
 
-// #define ROS
+#define ROS
 
 #ifdef ROS
 #include "ros/ros.h"
@@ -117,7 +117,7 @@ void streamCamera(VideoCapture &capture) {
         if (DISPLAY_GRAPHICAL) {
             if(waitKey(camera_interval) >= 0) break;
         } else {
-            usleep(camera_interval*1000);
+            usleep(camera_interval*100);
         }
     }
 }
@@ -165,9 +165,17 @@ void filterRedTag(Mat &srcImg, Mat &destImg) {
     inRange(hsvImg, Scalar(SATURATION_COLOR_LOW, 100, 100), Scalar(SATURATION_COLOR_HIGH, 255, 255), binImg);
 
     int numberOfRedPixels = countNonZero(binImg);
-    if (numberOfRedPixels > 3000) {
-        cout << "FOUND TAG, NUMBER OF RED PIXELS: " << numberOfRedPixels << endl;
+    if (numberOfRedPixels > 600) {
+        cout << "FOUND TAG" << endl;
+        #ifdef ROS
+        // mark tag on map!
+        Tag tag;
+        tag.distance = 0;
+        tag.side = 1;
+        mapPublisher.publish(tag);
+        #endif
     }
+    cout << numberOfRedPixels << endl;
     // void Canny(InputArray image, OutputArray edges, double threshold1, double threshold2, int apertureSize=3, bool L2gradient=false )
     // Canny(binImg, binImg, CANNY_LOW, CANNY_HIGH);
     if (DISPLAY_GRAPHICAL) show(windowThresh, binImg); // For debug output
@@ -264,7 +272,7 @@ void cam0_cb(const std_msgs::Int8MultiArray::ConstPtr& array) {
     // cvConvert(img, mat);
     Mat mat(img);
     render(mat);
-    waitKey(10); // For some reason we have to wait to get the graphical stuff to show..?
+    // waitKey(10); // For some reason we have to wait to get the graphical stuff to show..?
 }
 #endif
 
