@@ -8,8 +8,8 @@ import pygame
 pygame.init() 
 
 #create the screen
-xMax = 800
-yMax = 600
+xMax = 1280
+yMax = 768
 window = pygame.display.set_mode((xMax, yMax)) 
 pygame.display.flip()
 #draw a line - see http://www.pygame.org/docs/ref/draw.html for more 
@@ -42,7 +42,7 @@ def drawAmee(x,y,theta):
   pygame.draw.line(window,(255,0,0),start,end)  
 
 def transform(x,y):
-  return (int(1.0/3.0 * xMax) + int(x / 6 * xMax),yMax-200 - int(y / 6 * yMax))
+  return (int(2.0/3.0 * xMax) + int(x / 6 * xMax),yMax-100 - int(y / 6 * yMax))
 
 if __name__ == '__main__':
     # Register this node

@@ -41,8 +41,8 @@ void Mapper::receive_pose(const Pose::ConstPtr &msg) {
 }
 
 void Mapper::init(const FollowWallStates::ConstPtr &msg) {
-	if (msg->state == amee::MoveFollowWall::ALIGNED_TO_WALL) {
-		mStartAngle = mPose.theta;
+	if (msg->state == amee::MoveFollowWall::ALIGNED_TO_WALL && !mInitialized) {
+		mStartAngle = mPose.theta - (mPose.theta - floor(mPose.theta / 90.0f + 0.5f) * 90.0f);
 		mStartPos.x = mPose.x;
 		mStartPos.y = mPose.y;
 		mInitialized = true;
@@ -175,7 +175,7 @@ void Mapper::setAngleToN90Deg() {
 void Mapper::cleanMap() {
 	if (mCleanTimer == 8) {
 		mCleanTimer = 0;
-		mMap.reduceNumWalls(mCurrentPos, 0.3f);
+		mMap.reduceNumWalls(mCurrentPos, 0.4f);
 	}
 	++mCleanTimer;
 }
@@ -187,8 +187,8 @@ void Mapper::doMapping() {
 		mCurrentPos.y = mPose.y - mStartPos.y;
 		
 		// rotate odometry coordinate system so that it is parallel to the map's system
-		mCurrentPos.rotate(-mStartAngle); 
-		mCurrentAngle = mPose.theta - mStartAngle;
+		//mCurrentPos.rotate(-mStartAngle); 
+		mCurrentAngle = mPose.theta;// - mStartAngle;
 		std::cout << "Current position in maze: " << mCurrentPos.x << ", " << mCurrentPos.y << std::endl;
 		std::cout << "Current angle in maze: " << mCurrentAngle * (180.0f / M_PI) << std::endl;
 	
