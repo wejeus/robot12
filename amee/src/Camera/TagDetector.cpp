@@ -8,7 +8,7 @@
 #include <string>
 #include <unistd.h>
 
-#define ROS
+// #define ROS
 
 #ifdef ROS
 #include "ros/ros.h"
@@ -40,7 +40,7 @@ void onGaussianSigmaChange(int value);
 
 char windowResult[] = "result";
 char windowThresh[] = "tresh";
-int SATURATION_COLOR_HIGH = 109;
+int SATURATION_COLOR_HIGH = 20;
 int SATURATION_COLOR_LOW = 0;
 int CANNY_LOW = 77;
 int CANNY_HIGH = 92;
@@ -54,11 +54,16 @@ ros::Publisher mapPublisher;
 #endif
 
 // Flags
-bool SMOOTH_IMAGE = true;
+bool SMOOTH_IMAGE = false;
 bool FILTER_RED_TAG = true;
 bool EQUALIZE_HISTOGRAM = true;
 bool DISPLAY_GRAPHICAL = false;
 bool LOCAL = false;
+int camera_interval = 10;
+
+Mat hsvImg;
+Mat binImg;
+Mat frame;
 
 // Can only handle C types
 void log(char* fmt, ...) {
@@ -80,10 +85,9 @@ void show(const string& winname, InputArray mat) {
         imshow(winname.c_str(), mat);
     }
 }
-int camera_interval     = 100;
+
 void streamCamera(VideoCapture &capture) {
-    Mat frame;
-    Mat frameNext;
+    // Mat frameNext;
     // struct timeval start, end;
     // capture >> frame;
     // TODO: flip is not needed..?
@@ -94,11 +98,27 @@ void streamCamera(VideoCapture &capture) {
         //     gettimeofday(&end, NULL);
         // }
         // capture >> frameNext;
-        capture >> frame;
-        render(frame);
-        // flip(frameNext, frame, 0);
-        if(waitKey(50) >= 0) break;
-        usleep(camera_interval*1000);
+        // capture >> frame;
+        // render(frame);
+        // // flip(frameNext, frame, 0);
+        // if(waitKey(50) >= 0) break;
+        // usleep(camera_interval*1000);
+
+        if (!capture.grab()) { 
+            cout << "Could not grab new frame!" << endl;
+        } else {
+            if (!capture.retrieve(frame)) {
+                cout << "Could not decode and return new frame!" << endl;
+            } else {
+                render(frame);
+            }
+        }
+        
+        if (DISPLAY_GRAPHICAL) {
+            if(waitKey(camera_interval) >= 0) break;
+        } else {
+            usleep(camera_interval*1000);
+        }
     }
 }
 
@@ -131,10 +151,7 @@ void initWindows() {
 
 void filterRedTag(Mat &srcImg, Mat &destImg) {
         
-    int imageCenter = srcImg.size().width/2;
-
-    Mat hsvImg;
-    Mat binImg;
+    // int imageCenter = srcImg.size().width/2;
 
     // void cvtColor(InputArray src, OutputArray dst, int code, int dstCn=0)
     cvtColor(srcImg, hsvImg, CV_BGR2HSV); // TODO: Change to BGR in ROS?
@@ -145,47 +162,51 @@ void filterRedTag(Mat &srcImg, Mat &destImg) {
     // if (EQUALIZE_HISTOGRAM) equalizeHist(hsvImg, hsvImg);
 
     // void inRange(InputArray src, InputArray lowerb, InputArray upperb, OutputArray dst)
-    inRange(hsvImg, Scalar(SATURATION_COLOR_LOW, 0, 0), Scalar(SATURATION_COLOR_HIGH, 255, 255), binImg);
-    
-    // void Canny(InputArray image, OutputArray edges, double threshold1, double threshold2, int apertureSize=3, bool L2gradient=false )
-    Canny(binImg, binImg, CANNY_LOW, CANNY_HIGH);
-    show(windowThresh, binImg); // For debug output
+    inRange(hsvImg, Scalar(SATURATION_COLOR_LOW, 100, 100), Scalar(SATURATION_COLOR_HIGH, 255, 255), binImg);
 
-    vector<vector<Point> > contours;
-    // void findContours(InputOutputArray image, OutputArrayOfArrays contours, OutputArray hierarchy, int mode, int method, Point offset=Point())
-    findContours(binImg, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-
-    for(int i = 0; i < contours.size(); ++i) {
-        RotatedRect rect = minAreaRect(contours[i]);
-        if (contourArea(contours[i]) > TAG_MIN_PIXEL_AREA) {
-            // log("AREA: %f\n", contourArea(contours[i]));
-            Point2f vtx[4];
-            rect.points(vtx);
-            for(int j = 0; j < 4; ++j) {
-                line(destImg, vtx[j], vtx[(j+1)%4], Scalar(0, 255, 0), 1, CV_AA);
-                // void circle(Mat& img, Point center, int radius, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
-                circle(destImg, rect.center, 3, Scalar(255, 0, 0), 2);
-            }
-
-            int diff = imageCenter - rect.center.x;
-
-            if (abs(diff) < 100) {
-                log("TAG FOUND! Distance from normal: %d\n", diff);
-                circle(destImg, rect.center, 20, Scalar(0, 0, 255), 10);
-                #ifdef ROS
-                // mark tag on map!
-                // Tag tag;
-                // tag.distance = diff;
-                // tag.side = 1;
-                // mapPublisher.publish(tag);
-                #endif
-            }
-            
-        }
+    int numberOfRedPixels = countNonZero(binImg);
+    if (numberOfRedPixels > 3000) {
+        cout << "FOUND TAG, NUMBER OF RED PIXELS: " << numberOfRedPixels << endl;
     }
+    // void Canny(InputArray image, OutputArray edges, double threshold1, double threshold2, int apertureSize=3, bool L2gradient=false )
+    // Canny(binImg, binImg, CANNY_LOW, CANNY_HIGH);
+    if (DISPLAY_GRAPHICAL) show(windowThresh, binImg); // For debug output
+
+    // vector<vector<Point> > contours;
+    // // void findContours(InputOutputArray image, OutputArrayOfArrays contours, OutputArray hierarchy, int mode, int method, Point offset=Point())
+    // findContours(binImg, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+
+    // for(int i = 0; i < contours.size(); ++i) {
+    //     RotatedRect rect = minAreaRect(contours[i]);
+    //     if (contourArea(contours[i]) > TAG_MIN_PIXEL_AREA) {
+    //         // log("AREA: %f\n", contourArea(contours[i]));
+    //         Point2f vtx[4];
+    //         rect.points(vtx);
+    //         for(int j = 0; j < 4; ++j) {
+    //             line(destImg, vtx[j], vtx[(j+1)%4], Scalar(0, 255, 0), 1, CV_AA);
+    //             // void circle(Mat& img, Point center, int radius, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
+    //             circle(destImg, rect.center, 3, Scalar(255, 0, 0), 2);
+    //         }
+
+    //         int diff = imageCenter - rect.center.x;
+
+    //         if (abs(diff) < 100) {
+    //             log("TAG FOUND! Distance from normal: %d\n", diff);
+    //             circle(destImg, rect.center, 20, Scalar(0, 0, 255), 10);
+    //             #ifdef ROS
+    //             // mark tag on map!
+    //             // Tag tag;
+    //             // tag.distance = diff;
+    //             // tag.side = 1;
+    //             // mapPublisher.publish(tag);
+    //             #endif
+    //         }
+            
+    //     }
+    // }
 
     // Draw some helper lines
-    line(destImg, Point(imageCenter, 0), Point(imageCenter, srcImg.size().height), Scalar(255, 255, 0), 1, CV_AA);
+    // line(destImg, Point(imageCenter, 0), Point(imageCenter, srcImg.size().height), Scalar(255, 255, 0), 1, CV_AA);
 }
 
 
@@ -273,14 +294,16 @@ void initLocalInput(string source) {
     }
 
     VideoCapture capture;
+    // capture.set(CV_CAP_PROP_FPS, 1.0);
 
     if (isdigit(*source.c_str())) {
         log("Initializing camera: %s\n", source.c_str());
         capture.open(atoi(source.c_str()));
         // bool VideoCapture::set(int propId, double value)
         
-        cout << capture.set(CV_CAP_PROP_FRAME_WIDTH, 320);
-        cout << capture.set(CV_CAP_PROP_FRAME_HEIGHT, 240);
+        // cout << capture.set(CV_CAP_PROP_FRAME_WIDTH, 320);
+        // cout << capture.set(CV_CAP_PROP_FRAME_HEIGHT, 240);
+        
         if (!capture.isOpened()) {
             log("ERROR: capture is NULL\n");
             return;
