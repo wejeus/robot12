@@ -60,7 +60,7 @@ bool EQUALIZE_HISTOGRAM = true;
 bool DISPLAY_GRAPHICAL = false;
 bool LOCAL = false;
 bool PUBLISH_ROS = false;
-int camera_interval = 200;
+int camera_interval = 300;
 
 Mat hsvImg;
 Mat binImg;
@@ -299,6 +299,8 @@ void initLocalInput(string source) {
 
     log("Starting TagDetection using local input.\n");
 
+    mapPublisher = n.advertise<Tag>("/amee/tag", 100);
+    
     if (!strcmp(source.c_str(), "")) {
         log("No input source!\n");
         return;
