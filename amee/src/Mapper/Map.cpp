@@ -10,20 +10,44 @@ Map::Map() {
 }
 
 Map::~Map() {
-	for (unsigned int i = 0; i < mWalls.size(); ++i) {
-		delete mWalls[i];
+	for (std::list<WallSegment*>::const_iterator iter = mWalls.begin(), end = mWalls.end(); iter != end; ++iter) {
+		delete *iter;	
 	}
+}
+
+void Map::reduceNumWalls(const Point& pos, float distance) {
+	std::list<WallSegment*> closeHorizontals;
+	std::list<WallSegment*> closeVerticals;
+
+	for (std::list<WallSegment*>::iterator iter = mWalls.begin(), end = mWalls.end(); iter != end; ++iter) {
+		WallSegment* wall = (*iter);
+		float dist = wall->distanceTo(pos);
+		if (dist < distance) {
+			if (wall->getType() == WallSegment::HORIZONTAL) {
+				closeVerticals.push_back(wall);
+			} else {
+				closeVerticals.push_back(wall);
+			}
+		} else if (wall->isSmall()) {
+			iter = mWalls.erase(iter);
+			--iter; // decrease iter so that we don't skip a wall
+			delete wall;
+		}	
+	}
+
+	// TODO merge walls
 }
 
 void Map::addMeasurement(Point pos) {
 	bool belongsToWall = false;
-	unsigned int i = 0;
-	while (i < mWalls.size()) {// !belongsToWall
-		bool temp = mWalls[i]->addMeasurement(pos);
+	std::list<WallSegment*>::const_iterator iterator = mWalls.begin(), end = mWalls.end();
+
+	while (iterator != end) {// !belongsToWall
+		bool temp = (*iterator)->addMeasurement(pos); // TODO do not add to all
 		belongsToWall = belongsToWall || temp;
-		++i;
+		++iterator;
 	}
-	std::cout << "belongsToWall " << belongsToWall << std::endl;
+	// std::cout << "belongsToWall " << belongsToWall << std::endl;
 	if (!belongsToWall) {
 		WallSegment* horizontalWall = new HorizontalWallSegment(pos);
 		WallSegment* verticalWall = new VerticalWallSegment(pos);
@@ -38,7 +62,7 @@ void Map::print() {
 }
 
 void Map::getVisualization(MapVisualization& vis) {
-	for (unsigned int i = 0; i < mWalls.size(); ++i) {
-		vis.walls.push_back(mWalls[i]->getVisualization());
+	for (std::list<WallSegment*>::const_iterator iter = mWalls.begin(), end = mWalls.end(); iter != end; ++iter) {
+		vis.walls.push_back((*iter)->getVisualization());
 	}
 }

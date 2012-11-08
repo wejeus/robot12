@@ -1,7 +1,7 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include <vector> 
+#include <list> 
 #include "ros/ros.h"
 #include "amee/MapVisualization.h"
 
@@ -31,11 +31,15 @@ class Map {
 		void addMeasurement(Point pos);
 		void print();
 		void getVisualization(MapVisualization& vis);
+		/** Tries to reduce the number of walls by unifying walls that are close to the given pos (if the seem to be one wall)
+			and removes small walls that are far from the given pos. 
+		*/
+		void reduceNumWalls(const Point& pos, float distance);
 		Map();
 		~Map();
 	
 	private:
-		std::vector<WallSegment*> mWalls;
+		std::list<WallSegment*> mWalls;
 
 	};
 }

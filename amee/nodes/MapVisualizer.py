@@ -9,7 +9,7 @@ pygame.init()
 
 #create the screen
 xMax = 800
-yMax = 800
+yMax = 600
 window = pygame.display.set_mode((xMax, yMax)) 
 pygame.display.flip()
 #draw a line - see http://www.pygame.org/docs/ref/draw.html for more 
@@ -19,23 +19,30 @@ pygame.display.flip()
 
 def refresh(msg):
   window.fill((0, 0, 0))
-  print "Refresh"
+  #print "Refresh"
   for wall in msg.walls:
-    startX = wall.startX/8 * xMax
-    startY = wall.startY/8 * yMax
-    endX = wall.endX/8 * xMax
-    endY = wall.endY/8 * yMax
     color = (255,0,0)
     if (wall.type == 1):
       color = (0,255,0)
-    pygame.draw.line(window, color,(startX + xMax/2,startY + yMax/2),(endX + xMax/2, endY + yMax/2))
+    start = transform(wall.startX,wall.startY)
+    end = transform(wall.endX,wall.endY)
+    pygame.draw.line(window, color,start,end)
     #pygame.draw.line(window, (255,255,255),(0,0),(xMax, yMax))
-    print startY
-    print startX
-    print endX
-    print endY
-    pygame.display.flip() 
-    
+    #print startY
+    #print startX
+    #print endX
+    #print endY
+  drawAmee(msg.robotPose.x,msg.robotPose.y,msg.robotPose.theta)
+  pygame.display.flip() 
+
+def drawAmee(x,y,theta):
+  pygame.draw.circle(window,(255,255,255),transform(x,y),5)  
+  start = transform(x,y)
+  end = (int(start[0] + 5 * math.cos(theta)),int(start[1] - 5 * math.sin(theta)))
+  pygame.draw.line(window,(255,0,0),start,end)  
+
+def transform(x,y):
+  return (int(1.0/3.0 * xMax) + int(x / 6 * xMax),yMax-200 - int(y / 6 * yMax))
 
 if __name__ == '__main__':
     # Register this node

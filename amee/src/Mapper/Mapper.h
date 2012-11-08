@@ -5,6 +5,7 @@
 #include "amee/IRDistances.h"
 #include "amee/Odometry.h"
 #include "Map.h"
+#include <vector>
 
 namespace amee {
 
@@ -30,6 +31,9 @@ class Mapper {
 		amee::Map::Point mStartPos;
 		float mStartAngle;
 
+		int mVisualizeTimer;
+		int mCleanTimer;
+
 		amee::Map::Point mCurrentPos; // current position in map coordinates
 		float mCurrentAngle; // current angle in map coordinates
 
@@ -43,6 +47,8 @@ class Mapper {
 		void calculateMeasurements();
 		bool isValidDistance(float dist);
 		void visualize();
+		void setAngleToN90Deg();
+		void cleanMap();
 	};
 }
 #endif

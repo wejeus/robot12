@@ -53,6 +53,9 @@ void Mapper::init() {
 	base.pos.x = 0.0f;
 	base.pos.y = 0.0f;
 	mMeasurements.resize(7,base);
+
+	mVisualizeTimer = 0;
+	mCleanTimer = 0;
 }
 
 void Mapper::calculateMeasurements() {
@@ -62,7 +65,7 @@ void Mapper::calculateMeasurements() {
 	if (isValidDistance(mDistances.rightBack)) {
 		// right back position of 0
 		Map::Point p;
-		p.x = -0.05f;
+		p.x = -0.052f;
 		p.y = -0.12f;
 
 		// add distance vector (positive y is left of the robot, negative y right)
@@ -79,7 +82,7 @@ void Mapper::calculateMeasurements() {
 	if (isValidDistance(mDistances.rightFront)) {
 		// right front position of 0
 		Map::Point p;
-		p.x = 0.05f;
+		p.x = 0.052f;
 		p.y = -0.12f;
 
 		// add distance vector (positive y is left of the robot, negative y right)
@@ -91,11 +94,44 @@ void Mapper::calculateMeasurements() {
 	} else {
 		mMeasurements[1].valid = false;
 	}
+	// left front
+	if (isValidDistance(mDistances.leftFront)) {
+		// left front position of 0
+		Map::Point p;
+		p.x = 0.052f;
+		p.y = 0.12f;
+
+		// add distance vector (positive y is left of the robot, negative y right)
+		p.y += mDistances.leftFront;
+
+		mMeasurements[2].valid = true;
+		p.rotate(mCurrentAngle);
+		mMeasurements[2].pos = p + mCurrentPos;
+	} else {
+		mMeasurements[2].valid = false;
+	}
+
+	// left back
+	if (isValidDistance(mDistances.leftBack)) {
+		// left back position of 0
+		Map::Point p;
+		p.x = -0.052f;
+		p.y = 0.12f;
+
+		// add distance vector (positive y is left of the robot, negative y right)
+		p.y += mDistances.leftBack;
+
+		mMeasurements[3].valid = true;
+		p.rotate(mCurrentAngle);
+		mMeasurements[3].pos = p + mCurrentPos;
+	} else {
+		mMeasurements[3].valid = false;
+	}
 	
 }
 
 bool Mapper::isValidDistance(float dist) {
-	return dist >= 0.0f && dist <= 15.0f;
+	return dist >= 0.0f && dist <= 0.15f;
 }
 
 void Mapper::setVisualizationPublisher(ros::Publisher pub) {
@@ -103,9 +139,45 @@ void Mapper::setVisualizationPublisher(ros::Publisher pub) {
 }
 
 void Mapper::visualize() {
-	MapVisualization vis;
-	mMap.getVisualization(vis);
-	vis_pub.publish(vis);
+	if (mVisualizeTimer == 15) {
+		mVisualizeTimer = 0;
+		MapVisualization vis;
+		mMap.getVisualization(vis);
+		vis.robotPose.x = mCurrentPos.x;
+		vis.robotPose.y = mCurrentPos.y;
+		vis.robotPose.theta = mCurrentAngle;
+
+		for (unsigned int i = 0; i < mMeasurements.size(); ++i) {
+			if (mMeasurements[i].valid) {
+				Point p;
+				p.x = mMeasurements[i].pos.x;
+				p.y = mMeasurements[i].pos.y;
+				vis.currentMeasurements.push_back(p);
+			}
+		}
+		vis_pub.publish(vis);
+	}
+	++mVisualizeTimer;
+}
+
+void Mapper::setAngleToN90Deg() {
+	// float diffToPi = M_PI - mCurrentAngle;
+	// diffToPi = diffToPi >= 0.0f ? diffToPi : -diffToPi;
+	// float diffToHalfPi = M_PI/2.0f - mCurrentAngle;
+	// diffToHalfPi = diffToHalfPi >= 0.0f ? diffToHalfPi : -diffToHalfPi;
+	// float diffToThreeHalfPi = 3.0f / 2.0f * M_PI - mCurrentAngle;
+	// diffToThreeHalfPi = diffToThreeHalfPi >= 0.0f ? diffToThreeHalfPi : -diffToThreeHalfPi;
+
+	float timesPi = mCurrentAngle / (M_PI / 2);
+	mCurrentAngle = floor(timesPi + 0.5f) * (M_PI/2.0f);
+	std::cout << "setting angle to " << mCurrentAngle << std::endl;
+}
+void Mapper::cleanMap() {
+	if (mCleanTimer == 8) {
+		mCleanTimer = 0;
+		mMap.reduceNumWalls(mCurrentPos, 0.3f);
+	}
+	++mCleanTimer;
 }
 
 void Mapper::doMapping() {
@@ -115,19 +187,23 @@ void Mapper::doMapping() {
 		mCurrentPos.y = mOdometry.y - mStartPos.y;
 		
 		// rotate odometry coordinate system so that it is parallel to the map's system
-		mCurrentPos.rotate(mStartAngle); 
+		mCurrentPos.rotate(-mStartAngle); 
 		mCurrentAngle = mOdometry.angle - mStartAngle;
 		std::cout << "Current position in maze: " << mCurrentPos.x << ", " << mCurrentPos.y << std::endl;
 		std::cout << "Current angle in maze: " << mCurrentAngle * (180.0f / M_PI) << std::endl;
+	
+		// setAngleToN90Deg();	
+	
 		calculateMeasurements();
 
-		for (int i = 0; i < mMeasurements.size(); ++i) {
+		for (unsigned int i = 0; i < mMeasurements.size(); ++i) {
 			Measurement m = mMeasurements[i];
-			std::cout << i <<": is valid? " << m.valid << " x " << m.pos.x << " y " << m.pos.y << std::endl;
+			// std::cout << i <<": is valid? " << m.valid << " x " << m.pos.x << " y " << m.pos.y << std::endl;
 			if (m.valid) {
 				mMap.addMeasurement(m.pos);
 			}
 		}
+		cleanMap();
 		visualize();
 		mMap.print();
 
@@ -191,7 +267,7 @@ int main(int argc, char **argv)
 
     mapper.setVisualizationPublisher(marker_pub);
 
-	ros::Rate loop_rate(10); //30
+	ros::Rate loop_rate(30); //30
 	
 	while(ros::ok()){
 		
@@ -203,7 +279,7 @@ int main(int argc, char **argv)
 		
 		// map!
 		mapper.doMapping();
-		//mapTest(marker_pub);
+		// mapTest(marker_pub);
 	}
 
 	return 0;

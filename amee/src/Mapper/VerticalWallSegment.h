@@ -13,8 +13,11 @@ class VerticalWallSegment : public WallSegment{
 		virtual ~VerticalWallSegment();
 		/* Adds the given point to this wall if it's close enough. If it was close enough it returns true, otherwise false.	*/
 		virtual bool addMeasurement(const Map::Point& pos);
-		virtual WallSegment::Orientation getOrientation() const;
 		virtual WallVisualization getVisualization();
+		virtual float distanceTo(const Map::Point& pos);
+		virtual int getType();
+		virtual bool isSmall();
+		virtual bool mergeWall(WallSegment* wall);
 	private:
 		Map::Point mFrom, mTo;
 		unsigned int mNumberOfPoints;
