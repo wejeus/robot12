@@ -16,7 +16,7 @@ class MoveAlignWall;
 class MovementControl {
 
 	public:
-		MovementControl(ros::Publisher pub);
+		MovementControl(ros::Publisher& pub, ros::Publisher& statespub);
 		~MovementControl();
 		void receive_distances(const amee::IRDistances::ConstPtr &msg);
 		void receive_odometry(const amee::Odometry::ConstPtr &msg);
