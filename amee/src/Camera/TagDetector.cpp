@@ -60,7 +60,7 @@ bool EQUALIZE_HISTOGRAM = true;
 bool DISPLAY_GRAPHICAL = false;
 bool LOCAL = false;
 bool PUBLISH_ROS = false;
-int camera_interval = 300;
+int camera_interval = 200;
 
 Mat hsvImg;
 Mat binImg;

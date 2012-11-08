@@ -8,8 +8,8 @@ import pygame
 pygame.init() 
 
 #create the screen
-xMax = 800
-yMax = 600
+xMax = 1280
+yMax = 800
 window = pygame.display.set_mode((xMax, yMax)) 
 pygame.display.flip()
 #draw a line - see http://www.pygame.org/docs/ref/draw.html for more 
@@ -23,7 +23,7 @@ def refresh(msg):
   for wall in msg.walls:
     color = (255,20,147)
     if (wall.type == 1):
-      color = (255,255,0)
+    	color = (255,20,147)
     start = transform(wall.startX,wall.startY)
     end = transform(wall.endX,wall.endY)
     pygame.draw.line(window, color,start,end)
@@ -49,7 +49,7 @@ def drawTag(x,y):
   pygame.draw.rect(window,(255,0,0),rect,2)
 
 def transform(x,y):
-  return (int(2.0/3.0 * xMax) + int(x / 6 * xMax),yMax-500 - int(y / 6 * yMax))
+  return (int(1.0/4.0 * xMax) + int(x / 6 * xMax),yMax-100 - int(y / 6 * yMax))
 
 if __name__ == '__main__':
     # Register this node
