@@ -1,1 +1,0 @@
-/usr/bin/c++   -g     -pthread CMakeFiles/IRSensorReader.dir/src/IRSensor/IRSensorReader.o  -o bin/IRSensorReader -rdynamic -L/opt/ros/fuerte/lib -lroscpp -lrostime -lrosconsole -lroscpp_serialization -lxmlrpcpp -Wl,-rpath,/opt/ros/fuerte/lib 

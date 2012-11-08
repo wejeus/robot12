@@ -6,6 +6,7 @@
 #include "amee/Odometry.h"
 #include "amee/Pose.h"
 #include "Eigen/Eigen"
+#include "roboard_drivers/Encoder.h"
 
 class EKF {
 
@@ -48,7 +49,7 @@ public:
 
 	Eigen::Vector3f g(Eigen::Vector2f u, Eigen::Vector3f mu_t_1);
 	Eigen::Vector3f h(Eigen::Vector3f mu_bar, Eigen::Vector3f mu_bar_t_1);
-	void estimate(amee::Velocity controlSignal, amee::Odometry measurement);
+	void estimate(amee::Velocity controlSignal, roboard_drivers::Encoder measurement);
 
 	amee::Pose getMu();
 	amee::Pose getSigma();

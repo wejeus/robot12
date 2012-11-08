@@ -3,6 +3,7 @@
 #include "MoveRotate.h"
 #include "MoveStraight.h"
 #include "MoveAlignWall.h"
+#include "amee/FollowWallStates.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -10,8 +11,10 @@
 
 using namespace amee;
 
-    MoveFollowWall::MoveFollowWall(ros::Publisher& pub) {
+    MoveFollowWall::MoveFollowWall(ros::Publisher& pub, ros::Publisher& statesPub) {
         mVelPub = pub;
+        mFollowWallStatesPub = statesPub;
+
         mRotater = new MoveRotate(pub);
         mStraightMove = new MoveStraight(pub);
         mWallAligner = new MoveAlignWall(pub);
@@ -50,6 +53,8 @@ using namespace amee;
         ros::param::set("/K_d", (double)K_d);
         ros::param::set("/refDistance", (double)refDistance);
         ros::param::set("/maxErrorSum", (double)maxErrorSum);
+
+        ros::Publisher pub_follewWallStates;
     }
 
     void MoveFollowWall::publishSpeeds(float left, float right) {
@@ -107,8 +112,18 @@ using namespace amee;
         if (mWallAligner->isRunning()) {
             mWallAligner->doControl(mSensorData);
         } else {
+            
+            amee::FollowWallStates followWallState;
+            followWallState.state = ALIGNED_TO_WALL;
+            struct timeval time;
+            gettimeofday(&time, NULL);
+            followWallState.timestamp = time.tv_sec+double(time.tv_usec)/1000000.0;          
+
+            mFollowWallStatesPub.publish(followWallState);
+
             mState.set(FollowWall);
         }
+
     }
 
     void MoveFollowWall::lookForBeginningOfWallState() {

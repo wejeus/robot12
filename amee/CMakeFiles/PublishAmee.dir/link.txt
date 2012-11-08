@@ -1,1 +1,0 @@
-/usr/bin/c++   -g     -pthread CMakeFiles/PublishAmee.dir/src/PublishAmee/PublishAmee.o  -o bin/PublishAmee -rdynamic -L/opt/ros/fuerte/lib -lroscpp -lrostime -lrosconsole -lroscpp_serialization -lxmlrpcpp -Wl,-rpath,/opt/ros/fuerte/lib 

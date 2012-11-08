@@ -1,5 +1,6 @@
 
 #include "Amee.h"
+#include <sys/time.h>
 
 // Can only handle C types
 void log(char* fmt, ...) {
@@ -14,4 +15,10 @@ void log(char* fmt, ...) {
     #endif
 
     va_end(args);
+}
+inline double timeNow(){
+	struct timeval time;
+	gettimeofday(&time, NULL);
+	
+	return time.tv_sec+double(time.tv_usec)/1000000.0;
 }

@@ -11,13 +11,15 @@ namespace amee{
 
 	class MoveFollowWall : public MovementState {
 	public:
-		MoveFollowWall(ros::Publisher& pub);
+		MoveFollowWall(ros::Publisher& pub, ros::Publisher& statesPub);
 		~MoveFollowWall();
 
 		virtual void init(const SensorData& data);
 		virtual bool isRunning() const;
 		virtual void doControl(const SensorData& data);
-		
+
+		static const float ALIGNED_TO_WALL = 1;
+
 	private:
 		enum WallFollowState {FollowWall, LookForEndOfWall, MoveTail,
 			RotateRight, RotateLeft, LookForBeginningOfWall, AlignToWall};
@@ -66,6 +68,7 @@ namespace amee{
 		amee::MoveAlignWall *mWallAligner;
 
 		ros::Publisher mVelPub;
+		ros::Publisher mFollowWallStatesPub;
 
 		bool mRunning;
 

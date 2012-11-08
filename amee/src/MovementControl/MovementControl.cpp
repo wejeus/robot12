@@ -8,15 +8,16 @@
 #include "MoveStop.h"
 #include "MoveFollowWall.h"
 #include "MoveAlignWall.h"
+#include "amee/FollowWallStates.h"
 
 using namespace amee;
 
 
-MovementControl::MovementControl(ros::Publisher pub) {
+MovementControl::MovementControl(ros::Publisher& pub, ros::Publisher& statesPub) {
 	mRotationState = new MoveRotate(pub);
 	mStraightState = new MoveStraight(pub);
 	mStopState = new MoveStop(pub);
-	mFollowWallState = new MoveFollowWall(pub);
+	mFollowWallState = new MoveFollowWall(pub, statesPub);
 	mAlignWallState = new MoveAlignWall(pub);
 	mCurrentState = mStopState;
 }
@@ -107,11 +108,11 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "MovementControlNode");//Creates a node named "MotorControl"
 	ros::NodeHandle n;
 
-	ros::Publisher	vel_pub;
-	vel_pub = n.advertise<Velocity>("/amee/motor_control/set_wheel_velocities", 100);
+	ros::Publisher vel_pub = n.advertise<Velocity>("/amee/motor_control/set_wheel_velocities", 100);
+	ros::Publisher wall_pub = n.advertise<FollowWallStates>("/amee/follow_wall_states", 100);
 
 	// create the controller and initialize it
-	MovementControl control(vel_pub);
+	MovementControl control(vel_pub, wall_pub);
 	
 
 	ros::Subscriber dist_sub;
