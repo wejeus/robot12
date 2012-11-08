@@ -21,7 +21,7 @@ def refresh(msg):
   window.fill((0, 0, 0))
   #print "Refresh"
   for wall in msg.walls:
-    color = (255,255,0)
+    color = (255,20,147)
     if (wall.type == 1):
       color = (255,255,0)
     start = transform(wall.startX,wall.startY)
