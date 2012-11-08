@@ -3,7 +3,7 @@
 
 #include "ros/ros.h"
 #include "amee/IRDistances.h"
-#include "amee/Odometry.h"
+#include "amee/FollowWallStates.h"
 #include "Map.h"
 #include <vector>
 
@@ -17,7 +17,7 @@ class Mapper {
 		void receive_distances(const amee::IRDistances::ConstPtr &msg);
 		void receive_pose(const amee::Pose::ConstPtr &msg);
 		void doMapping();
-		void init();
+		void init(const amee::FollowWallStates::ConstPtr &msg);
 		void setVisualizationPublisher(ros::Publisher pub);
 	
 	private:
