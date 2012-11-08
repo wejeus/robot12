@@ -16,38 +16,35 @@ Map::~Map() {
 }
 
 void Map::reduceNumWalls(const Point& pos, float distance) {
-	// std::list<WallSegment*>::iterator prevHorizontal; // move all in one loop
-
-	// for (std::list<WallSegment*>::iterator iter = mWalls.begin(), end = mWalls.end(); iter != end; ++iter) {
-	// 	WallSegment* wall = (*iter);
-	// 	float dist = wall->distanceTo(pos);
-	// 	if (dist < distance) {
-	// 		if (wall->getType() == WallSegment::HORIZONTAL) {
-	// 			closeHorizontals.push_back(wall);
-	// 		} else {
-	// 			closeVerticals.push_back(wall);
-	// 		}
-	// 	} else if (wall->isSmall()) {
-	// 		iter = mWalls.erase(iter);
-	// 		--iter; // decrease iter so that we don't skip a wall
-	// 		delete wall;
-	// 	}	
-	// }
-
-	// std::list<WallSegment*>::iterator current = closeVerticals.begin(), end = closeVerticals.end();
-	// ++current;
-	// std::list<WallSegment*>::iterator prev = closeVerticals.begin();
-	// for (; current != end; ++current) {
-	// 	WallSegment* currentWall = *current;
-	// 	if ((*prev)->mergeWall(currentWall)) { // if prev and current were merged
-	// 		current = closeVerticals.erase(current); // remove current
-	// 		--current;
-	// 		delete currentWall;
-	// 	}
-	// }
-
-
-	// TODO merge horizontal walls
+	std::list<WallSegment*>::iterator prevHorizontal = mWalls.begin();
+	std::list<WallSegment*>::iterator prevVertical = mWalls.begin(); 
+	std::list<WallSegment*>::iterator iter = mWalls.begin();
+	++iter;
+	for (std::list<WallSegment*>::iterator end = mWalls.end(); iter != end; ++iter) {
+		WallSegment* wall = (*iter);
+		float dist = wall->distanceTo(pos);
+		if (dist < distance) {
+			if (wall->getType() == WallSegment::HORIZONTAL) {
+				if ((*prevHorizontal)->mergeWall(wall)) {
+					prevHorizontal = mWalls.erase(iter);
+					--prevHorizontal;
+					iter = prevHorizontal;
+					delete wall;
+				}
+			} else {
+				if ((*prevVertical)->mergeWall(wall)) {
+					prevVertical = mWalls.erase(iter);
+					--prevVertical;
+					iter = prevVertical;
+					delete wall;
+				}
+			}
+		} else if (wall->isSmall()) {
+			iter = mWalls.erase(iter);
+			--iter; // decrease iter so that we don't skip a wall
+			delete wall;
+		}	
+	}
 }
 
 void Map::addMeasurement(Point pos) {

@@ -62,11 +62,11 @@ int main(int argc, char **argv)
 		// dont manipulate x & y.
 		localize.mPose.x = localize.mOdometry.x;
 		localize.mPose.y = localize.mOdometry.y;
-		localize.mPose.theta += localize.mOdometry.angle - localize.mLastOdometry.angle;
+		localize.mPose.theta = localize.mOdometry.angle;
 
 		// Correct angle if aligned to wall
 		if(localize.followWallState.state == amee::MoveFollowWall::ALIGNED_TO_WALL) {
-			localize.mPose.theta -= localize.mPose.theta - floor(localize.mPose.theta / 90 + 0.5) * 90.0f;
+			// localize.mPose.theta -= localize.mPose.theta - floor(localize.mPose.theta / 90 + 0.5) * 90.0f;
 		}
 
 		// -- Publish pose
