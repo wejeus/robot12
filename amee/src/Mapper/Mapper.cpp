@@ -26,16 +26,16 @@ void Mapper::receive_distances(const IRDistances::ConstPtr &msg)
 	mDistances.wheelLeft = msg->wheelLeft;
 }
 
-void Mapper::receive_odometry(const Odometry::ConstPtr &msg) {
+void Mapper::receive_pose(const Pose::ConstPtr &msg) {
 	// TODO others and synchronize with distances
-	mOdometry.timestamp = msg->timestamp;
+	mPose.timestamp = msg->timestamp;
 	// we want the angle in radians and in [0,2PI]
-	mOdometry.angle = msg->angle;
-	mOdometry.angle -= (floor(mOdometry.angle / 360.0f) * 360.0f); // move angle in [0,360]
-	mOdometry.angle = mOdometry.angle * M_PI / 180.0f; 
-	mOdometry.distance = msg->distance;
-	mOdometry.x = msg->x;
-	mOdometry.y = msg->y;
+	mPose.theta = msg->theta;
+	mPose.theta -= (floor(mPose.theta / 360.0f) * 360.0f); // move angle in [0,360]
+	mPose.theta = mPose.theta * M_PI / 180.0f; 
+	// mPose.distance = msg->distance;
+	mPose.x = msg->x;
+	mPose.y = msg->y;
 
 	if (!mInitialized) {
 		init();
@@ -44,9 +44,9 @@ void Mapper::receive_odometry(const Odometry::ConstPtr &msg) {
 }
 
 void Mapper::init() {
-	mStartAngle = mOdometry.angle;
-	mStartPos.x = mOdometry.x;
-	mStartPos.y = mOdometry.y;
+	mStartAngle = mPose.theta;
+	mStartPos.x = mPose.x;
+	mStartPos.y = mPose.y;
 	mInitialized = true;
 	Measurement base;
 	base.valid = false;
@@ -183,12 +183,12 @@ void Mapper::cleanMap() {
 void Mapper::doMapping() {
 	if (mInitialized) {
 		// set origin
-		mCurrentPos.x = mOdometry.x - mStartPos.x;
-		mCurrentPos.y = mOdometry.y - mStartPos.y;
+		mCurrentPos.x = mPose.x - mStartPos.x;
+		mCurrentPos.y = mPose.y - mStartPos.y;
 		
 		// rotate odometry coordinate system so that it is parallel to the map's system
 		mCurrentPos.rotate(-mStartAngle); 
-		mCurrentAngle = mOdometry.angle - mStartAngle;
+		mCurrentAngle = mPose.theta - mStartAngle;
 		std::cout << "Current position in maze: " << mCurrentPos.x << ", " << mCurrentPos.y << std::endl;
 		std::cout << "Current angle in maze: " << mCurrentAngle * (180.0f / M_PI) << std::endl;
 	
@@ -211,7 +211,7 @@ void Mapper::doMapping() {
 
 
 	//TODO
-	// std::cout << "Diff in timestamp: " << (mOdometry.timestamp - mDistances.timestamp) << std::endl;
+	// std::cout << "Diff in timestamp: " << (mPose.timestamp - mDistances.timestamp) << std::endl;
 }
 
 void mapTest(ros::Publisher& vispub) {
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
 	// create subscriber for distances
 	ros::Subscriber dist_sub;
 	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &Mapper::receive_distances, &mapper);
-	ros::Subscriber odo_sub = n.subscribe("/amee/motor_control/odometry", 100, &Mapper::receive_odometry, &mapper);
+	ros::Subscriber odo_sub = n.subscribe("/amee/pose", 100, &Mapper::receive_pose, &mapper);
 
   	ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);
 

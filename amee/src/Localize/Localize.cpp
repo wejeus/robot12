@@ -47,7 +47,7 @@ int main(int argc, char **argv)
 	ros::Publisher  pose_pub;
 
 	odo_sub            = n.subscribe("/amee/motor_control/odometry", 100, &Localize::receiveOdometry, &localize);  // Subscribe encoder
-	followWallState_sub= n.subscribe("/amee/followWallStates", 100, &Localize::receiveFollowWallState, &localize); // Subscribe motorSpeed
+	followWallState_sub= n.subscribe("/amee/follow_wall_states", 100, &Localize::receiveFollowWallState, &localize); // Subscribe motorSpeed
 
 	pose_pub = n.advertise<amee::Pose>("/amee/pose", 100); // Publish pose
 	

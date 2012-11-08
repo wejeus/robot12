@@ -15,7 +15,7 @@ class Mapper {
 		Mapper(ros::Publisher pub);
 		~Mapper();
 		void receive_distances(const amee::IRDistances::ConstPtr &msg);
-		void receive_odometry(const amee::Odometry::ConstPtr &msg);
+		void receive_pose(const amee::Pose::ConstPtr &msg);
 		void doMapping();
 		void init();
 		void setVisualizationPublisher(ros::Publisher pub);
@@ -25,7 +25,7 @@ class Mapper {
 		ros::Publisher vis_pub;
 
 		amee::IRDistances mDistances;
-		amee::Odometry mOdometry;
+		amee::Pose mPose;
 		amee::Map mMap;
 		bool mInitialized;
 		amee::Map::Point mStartPos;
