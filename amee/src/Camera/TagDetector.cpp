@@ -5,10 +5,19 @@
 #include <stdlib.h>
 #include <iostream>
 #include <ctype.h>
+#include <string>
+#include <unistd.h>
+
+#define ROS
+
+#ifdef ROS
 #include "ros/ros.h"
 #include <std_msgs/Int32.h>
 #include <std_msgs/Int8MultiArray.h>
-
+#include "amee/Tag.h"
+#include <ros/console.h>
+using namespace amee;
+#endif
 
 using namespace std;
 using namespace cv;
@@ -24,37 +33,105 @@ void onSaturationColorLowChange(int value);
 void onCannyHighChange(int value);
 void onCannyLowChange(int value);
 void *onButtonDoBlur(int state, void *pointer);
+void show(const string& winname, InputArray mat);
+void log(char* fmt, ...);
+void onGaussianKernelChange(int value);
+void onGaussianSigmaChange(int value);
 
 char windowResult[] = "result";
 char windowThresh[] = "tresh";
-int SATURATION_COLOR_HIGH = 139;
-int SATURATION_COLOR_LOW = 83;
+int SATURATION_COLOR_HIGH = 20;
+int SATURATION_COLOR_LOW = 0;
 int CANNY_LOW = 77;
 int CANNY_HIGH = 92;
+int GAUSSIAN_KERNEL_SIZE = 7;
+int GAUSSIAN_SIGMA = 1.5;
+double TAG_MIN_PIXEL_AREA = 1500.0;
 
+
+#ifdef ROS
+ros::Publisher mapPublisher;
+#endif
 
 // Flags
-bool SMOOTH_IMAGE = true;
+bool SMOOTH_IMAGE = false;
 bool FILTER_RED_TAG = true;
 bool EQUALIZE_HISTOGRAM = true;
+bool DISPLAY_GRAPHICAL = false;
+bool LOCAL = false;
+bool PUBLISH_ROS = false;
+int camera_interval = 200;
+
+Mat hsvImg;
+Mat binImg;
+Mat frame;
+
+// Can only handle C types
+void log(char* fmt, ...) {
+    va_list args;
+    va_start(args,fmt);
+
+    #ifdef ROS
+    // ROS_DEBUG(fmt, args);
+    vprintf(fmt, args);
+    #else
+    vprintf(fmt, args);
+    #endif
+
+    va_end(args);
+}
+
+void show(const string& winname, InputArray mat) {
+    if (DISPLAY_GRAPHICAL) {
+        imshow(winname.c_str(), mat);
+    }
+}
 
 void streamCamera(VideoCapture &capture) {
-    Mat frame;
-
+    // Mat frameNext;
+    // struct timeval start, end;
+    // capture >> frame;
+    // TODO: flip is not needed..?
     while (true) {
-        capture >> frame;
-        render(frame);
-        if(waitKey(30) >= 0) break;
+        // gettimeofday(&end, NULL);
+        // while(double(end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec)) < camera_interval*1000.0) {
+        //     oop_rate.sleep();
+        //     gettimeofday(&end, NULL);
+        // }
+        // capture >> frameNext;
+        // capture >> frame;
+        // render(frame);
+        // // flip(frameNext, frame, 0);
+        // if(waitKey(50) >= 0) break;
+        // usleep(camera_interval*1000);
+
+        if (!capture.grab()) { 
+            cout << "Could not grab new frame!" << endl;
+        } else {
+            if (!capture.retrieve(frame)) {
+                cout << "Could not decode and return new frame!" << endl;
+            } else {
+                render(frame);
+            }
+        }
+        
+        if (DISPLAY_GRAPHICAL) {
+            if(waitKey(camera_interval) >= 0) break;
+        } else {
+            usleep(camera_interval*1000);
+        }
     }
 }
 
 void render(Mat &frame) {
     // void cvSmooth(const CvArr* src, CvArr* dst, int smoothtype=CV_GAUSSIAN, int param1=3, int param2=0, double param3=0, double param4=0)
-    if (SMOOTH_IMAGE) GaussianBlur(frame, frame, Size(7,7), 1.5, 1.5);
+    //
+
+    // void GaussianBlur(InputArray src, OutputArray dst, Size ksize, double sigmaX, double sigmaY=0, int borderType=BORDER_DEFAULT )
+    if (SMOOTH_IMAGE) GaussianBlur(frame, frame, Size(GAUSSIAN_KERNEL_SIZE, GAUSSIAN_KERNEL_SIZE), GAUSSIAN_SIGMA, GAUSSIAN_SIGMA);
     if (FILTER_RED_TAG) filterRedTag(frame, frame);
 
-    imshow(windowResult, frame);
-    waitKey(3);
+    show(windowResult, frame);
 }
 
 void initWindows() {
@@ -69,16 +146,16 @@ void initWindows() {
     cvCreateTrackbar("SaturationColorLow", windowResult, &SATURATION_COLOR_LOW, 360,  onSaturationColorLowChange);
     cvCreateTrackbar("CannyHigh", windowResult, &CANNY_HIGH, 360,  onCannyHighChange);
     cvCreateTrackbar("CannyLow", windowResult, &CANNY_LOW, 360,  onCannyLowChange);
+    cvCreateTrackbar("GaussianKernelSize", windowResult, &GAUSSIAN_KERNEL_SIZE, 10,  onGaussianKernelChange);
+    cvCreateTrackbar("GaussianSigma", windowResult, &GAUSSIAN_SIGMA, 10,  onGaussianSigmaChange);
 }
 
 void filterRedTag(Mat &srcImg, Mat &destImg) {
-    
-    CvSize imgSize = srcImg.size();
-    Mat hsvImg = cvCreateImage(imgSize, IPL_DEPTH_8U, 3);
-    Mat binImg = cvCreateImage(imgSize, IPL_DEPTH_8U, 1);
+        
+    // int imageCenter = srcImg.size().width/2;
 
     // void cvtColor(InputArray src, OutputArray dst, int code, int dstCn=0)
-    cvtColor(srcImg, hsvImg, CV_RGB2HSV); // TODO: Change to BGR in ROS?
+    cvtColor(srcImg, hsvImg, CV_BGR2HSV); // TODO: Change to BGR in ROS?
     
     // vector<cv::Mat> hsvChannels;
     // split(hsvImg, hsvChannels);
@@ -87,62 +164,107 @@ void filterRedTag(Mat &srcImg, Mat &destImg) {
 
     // void inRange(InputArray src, InputArray lowerb, InputArray upperb, OutputArray dst)
     inRange(hsvImg, Scalar(SATURATION_COLOR_LOW, 100, 100), Scalar(SATURATION_COLOR_HIGH, 255, 255), binImg);
-    
-    // void Canny(InputArray image, OutputArray edges, double threshold1, double threshold2, int apertureSize=3, bool L2gradient=false )
-    Canny(binImg, binImg, CANNY_LOW, CANNY_HIGH);
-    imshow(windowThresh, binImg); // For debug output
 
-    vector<vector<Point> > contours;
-    // void findContours(InputOutputArray image, OutputArrayOfArrays contours, OutputArray hierarchy, int mode, int method, Point offset=Point())
-    findContours(binImg, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-
-    for(int i = 0; i < contours.size(); ++i) {
-        RotatedRect rect = minAreaRect(contours[i]);
-        if (contourArea(contours[i]) > 1000) {
-            Point2f vtx[4];
-            rect.points(vtx);
-            for(int j = 0; j < 4; ++j) {
-                line(destImg, vtx[j], vtx[(j+1)%4], Scalar(0, 255, 0), 1, CV_AA);
-            }
-
-            // if rect is in horizonal center of image:
-            //     mark tag on map
+    int numberOfRedPixels = countNonZero(binImg);
+    if (numberOfRedPixels > 600) {
+        cout << "FOUND TAG" << endl;
+        #ifdef ROS
+        if (PUBLISH_ROS) {
+        // mark tag on map!
+            Tag tag;
+            tag.distance = 0;
+            tag.side = 1;
+            mapPublisher.publish(tag);
         }
+        #endif
     }
+    cout << numberOfRedPixels << endl;
+    // void Canny(InputArray image, OutputArray edges, double threshold1, double threshold2, int apertureSize=3, bool L2gradient=false )
+    // Canny(binImg, binImg, CANNY_LOW, CANNY_HIGH);
+    if (DISPLAY_GRAPHICAL) show(windowThresh, binImg); // For debug output
 
+    // vector<vector<Point> > contours;
+    // // void findContours(InputOutputArray image, OutputArrayOfArrays contours, OutputArray hierarchy, int mode, int method, Point offset=Point())
+    // findContours(binImg, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+
+    // for(int i = 0; i < contours.size(); ++i) {
+    //     RotatedRect rect = minAreaRect(contours[i]);
+    //     if (contourArea(contours[i]) > TAG_MIN_PIXEL_AREA) {
+    //         // log("AREA: %f\n", contourArea(contours[i]));
+    //         Point2f vtx[4];
+    //         rect.points(vtx);
+    //         for(int j = 0; j < 4; ++j) {
+    //             line(destImg, vtx[j], vtx[(j+1)%4], Scalar(0, 255, 0), 1, CV_AA);
+    //             // void circle(Mat& img, Point center, int radius, const Scalar& color, int thickness=1, int lineType=8, int shift=0)
+    //             circle(destImg, rect.center, 3, Scalar(255, 0, 0), 2);
+    //         }
+
+    //         int diff = imageCenter - rect.center.x;
+
+    //         if (abs(diff) < 100) {
+    //             log("TAG FOUND! Distance from normal: %d\n", diff);
+    //             circle(destImg, rect.center, 20, Scalar(0, 0, 255), 10);
+    //             #ifdef ROS
+    //             // mark tag on map!
+    //             // Tag tag;
+    //             // tag.distance = diff;
+    //             // tag.side = 1;
+    //             // mapPublisher.publish(tag);
+    //             #endif
+    //         }
+            
+    //     }
+    // }
+
+    // Draw some helper lines
+    // line(destImg, Point(imageCenter, 0), Point(imageCenter, srcImg.size().height), Scalar(255, 255, 0), 1, CV_AA);
 }
 
 
 void onSaturationColorHighChange(int value) {
-    cout << "SATURATION_COLOR_HIGH: " << value << endl;
+    log("SATURATION_COLOR_HIGH: %d\n", value);
     SATURATION_COLOR_HIGH = value;
 }
 
 void onSaturationColorLowChange(int value) {
-    cout << "SATURATION_COLOR_LOW: " << value << endl;
+    log("SATURATION_COLOR_LOW: %d\n", value);
     SATURATION_COLOR_LOW = value;
 }
 
 void onCannyHighChange(int value) {
-    cout << "CANNY_HIGH: " << value << endl;
+    log("CANNY_HIGH: %d\n", value);
     CANNY_HIGH = value;
 }
 
 void onCannyLowChange(int value) {
-    cout << "CANNY_LOW: " << value << endl;
+    log("CANNY_LOW: %d\n", value);
     CANNY_LOW = value;
 }
 
-void *onButtonDoBlur(int state, void *pointer) {
-    printf("ok");
+void onGaussianKernelChange(int value) {
+    if ((value % 2) == 2) {
+        GAUSSIAN_KERNEL_SIZE = value+1;
+    }    
+    else {
+        GAUSSIAN_KERNEL_SIZE = value;
+    }
+    log("GAUSSIAN_KERNEL_SIZE: %d\n", GAUSSIAN_KERNEL_SIZE);
 }
 
-// Mat mat;
+void onGaussianSigmaChange(int value) {
+    log("GAUSSIAN_SIGMA: %d\n", value);
+    GAUSSIAN_SIGMA = (value/10) + 1;
+}
 
+void *onButtonDoBlur(int state, void *pointer) {
+    log("ok\n");
+}
+
+#ifdef ROS
 void cam0_cb(const std_msgs::Int8MultiArray::ConstPtr& array) {
     IplImage *img               = cvCreateImage(cvSize(320, 240), IPL_DEPTH_8U, 3);
     char * data                 = img->imageData;
-    
+
     for(int i = 0; i < 320*240*3; i++)
     {
         data[i] = char(array->data.at(i));
@@ -153,29 +275,51 @@ void cam0_cb(const std_msgs::Int8MultiArray::ConstPtr& array) {
     // cvConvert(img, mat);
     Mat mat(img);
     render(mat);
-    // Maybe release
+    // waitKey(10); // For some reason we have to wait to get the graphical stuff to show..?
 }
+#endif
 
 void initROS(int argc, char *argv[]) {
-    printf("Starting TagDetection using ROS\n");
+    #ifdef ROS
+    log("Starting TagDetection using ROS\n");
     ros::init(argc, argv, "TagDetection");
     ros::NodeHandle n;
+
+    mapPublisher = n.advertise<Tag>("/amee/tag", 100);
+
     ros::Subscriber img0_sub = n.subscribe("/camera0_img", 1, cam0_cb);
     // ros::Subscriber img1_sub = n.subscribe("/camera1_img", 1, cam1_cb);
     ros::spin();
+    #else
+    log("ROS IS NOT DEFINED");
+    #endif
 }
 
-void initLocalInput(int argc, char *argv[]) {
+void initLocalInput(string source) {
 
-    cout << "Starting TagDetection using local input" << endl;
+    log("Starting TagDetection using local input.\n");
+
+    mapPublisher = n.advertise<Tag>("/amee/tag", 100);
+    
+    if (!strcmp(source.c_str(), "")) {
+        log("No input source!\n");
+        return;
+    }
 
     VideoCapture capture;
-
-    if (isdigit(*argv[2])) {
-        cout << "Initializing camera: " << *argv[1] << endl;
-        capture.open(atoi(argv[2]));
+    // capture.set(CV_CAP_PROP_FPS, 1.0);
+capture.set(CV_CAP_PROP_FRAME_WIDTH, 352);
+capture.set(CV_CAP_PROP_FRAME_HEIGHT, 288);
+    if (isdigit(*source.c_str())) {
+        log("Initializing camera: %s\n", source.c_str());
+        capture.open(atoi(source.c_str()));
+        // bool VideoCapture::set(int propId, double value)
+        
+        // cout << capture.set(CV_CAP_PROP_FRAME_WIDTH, 320);
+        // cout << capture.set(CV_CAP_PROP_FRAME_HEIGHT, 240);
+        
         if (!capture.isOpened()) {
-            fprintf(stderr, "ERROR: capture is NULL\n");
+            log("ERROR: capture is NULL\n");
             return;
         }
     }
@@ -184,7 +328,8 @@ void initLocalInput(int argc, char *argv[]) {
         streamCamera(capture);
         // cvReleaseCapture(&capture);
     } else {
-        Mat image = imread(argv[2], 1);
+        log("Reading image: %s\n", source.c_str());
+        Mat image = imread(source.c_str(), 1);
         render(image);
         waitKey();
     }
@@ -192,16 +337,49 @@ void initLocalInput(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
 
-    initWindows();
+    int c;
+    string source;
+    while ((c = getopt (argc, argv, "lpds:")) != -1) {
+        switch (c) {
+            case 'l':
+                LOCAL = true;
+                break;
+            case 'd':
+                DISPLAY_GRAPHICAL = true;
+                break;
+            case 'p':
+                PUBLISH_ROS = true;
+                break;    
+            case 's':
+                source = optarg;     
+                break;
+            case '?':
+                if (optopt == 's')
+                    log("Option -%c requires an argument. Image or camera.\n", optopt);
+                else if (isprint (optopt))
+                    log("Unknown option `-%c'.\n", optopt);
+                else
+                    log("Unknown option character `\\x%x'.\n", optopt);
+                return 1;
+            default:
+                abort();
+        }
+    }
 
-    if (argc >= 2 && *argv[1] == 'l') {
-        initLocalInput(argc, argv);
+    if (DISPLAY_GRAPHICAL) {
+        log("Will do graphical display\n");
+        initWindows();
+    }
+
+    if (LOCAL) {
+        initLocalInput(source);
     } else {
         initROS(argc, argv);
     }
 
-    cout << "Quitting ..." << endl;
-    cvDestroyWindow(windowResult);
+    log("Quitting ...");
+    
+    if (DISPLAY_GRAPHICAL) cvDestroyWindow(windowResult);
     return 0;
 }
 
@@ -219,3 +397,7 @@ int main(int argc, char *argv[]) {
 // When you see in the reference manual or in OpenCV source code a function that takes InputArray, it means that you can actually pass Mat, Matx, vector<T> etc. (see above the complete list).
 
 // Do Opencv (current release) use 180 or 360 for hsv colors?
+
+// parameters for ros::init(argc, argv, "TagDetection");
+
+// Camera update using ROS is really slow! Only 1 sec updates, maybe only due to CamereNode?

@@ -8,15 +8,16 @@
 #include "MoveStop.h"
 #include "MoveFollowWall.h"
 #include "MoveAlignWall.h"
+#include "amee/FollowWallStates.h"
 
 using namespace amee;
 
 
-MovementControl::MovementControl(ros::Publisher pub) {
+MovementControl::MovementControl(ros::Publisher& pub, ros::Publisher& statesPub) {
 	mRotationState = new MoveRotate(pub);
 	mStraightState = new MoveStraight(pub);
 	mStopState = new MoveStop(pub);
-	mFollowWallState = new MoveFollowWall(pub);
+	mFollowWallState = new MoveFollowWall(pub, statesPub);
 	mAlignWallState = new MoveAlignWall(pub);
 	mCurrentState = mStopState;
 }
@@ -65,35 +66,35 @@ void MovementControl::receive_command(const amee::MovementCommand::ConstPtr &msg
 	float distance = msg->distance;
 	switch(type) {
 		case TYPE_MOVE_STRAIGHT:
-			std::cout << "MOVE STRAIGHT COMMAND RECEIVED" << std::endl;
+			// std::cout << "MOVE STRAIGHT COMMAND RECEIVED" << std::endl;
 			mCurrentState = mStraightState;
 			mStraightState->init(mSensorData, distance);
 		break;
 		case TYPE_MOVE_ROTATE:		
-			std::cout << "ROTATE COMMAND RECEIVED" << std::endl;
+			// std::cout << "ROTATE COMMAND RECEIVED" << std::endl;
 			mCurrentState = mRotationState;
 			mRotationState->init(mSensorData, angle);
 		break;
 		case TYPE_MOVE_COORDINATE:
-		 	std::cout << "MOVE TO COORDINATE" << std::endl;
+		 	// std::cout << "MOVE TO COORDINATE" << std::endl;
 		 	//TODO initialize MoveCoonrdinate here
 		 	// and change state
 		break;
 		case TYPE_FOLLOW_WALL:
-		 	std::cout << "FOLLOW WALL" << std::endl;
+		 	// std::cout << "FOLLOW WALL" << std::endl;
 		 	mFollowWallState->init(mSensorData);
 		 	mCurrentState = mFollowWallState;
 		break;
 		case TYPE_STOP:
-		 	std::cout << "STOP COMMAND RECEIVED" << std::endl;
+		 	// std::cout << "STOP COMMAND RECEIVED" << std::endl;
 		 	mCurrentState = mStopState;
 		break;
 		case TYPE_ALIGN_TO_WALL:
-			std::cout << "ALIGN TO WALL COMMAND RECEIVED" << std::endl;
+			// std::cout << "ALIGN TO WALL COMMAND RECEIVED" << std::endl;
 			mAlignWallState->init(mSensorData);
 			mCurrentState = mAlignWallState;
 		break;
-		default: std::cout << "GAY COMMAND RECEIVED" << std::endl;
+		// default: std::cout << "GAY COMMAND RECEIVED" << std::endl;
 	}
 }
 
@@ -107,11 +108,11 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "MovementControlNode");//Creates a node named "MotorControl"
 	ros::NodeHandle n;
 
-	ros::Publisher	vel_pub;
-	vel_pub = n.advertise<Velocity>("/amee/motor_control/set_wheel_velocities", 100);
+	ros::Publisher vel_pub = n.advertise<Velocity>("/amee/motor_control/set_wheel_velocities", 100);
+	ros::Publisher wall_pub = n.advertise<FollowWallStates>("/amee/follow_wall_states", 100);
 
 	// create the controller and initialize it
-	MovementControl control(vel_pub);
+	MovementControl control(vel_pub, wall_pub);
 	
 
 	ros::Subscriber dist_sub;
