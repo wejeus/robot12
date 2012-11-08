@@ -1,7 +1,8 @@
 #include "Mapper.h"
 #include <iostream>
 #include <cmath>
-#include <amee/MapVisualization.h>
+#include "amee/MapVisualization.h"
+#include "../MovementControl/MoveFollowWall.h"
 
 using namespace amee;
 
@@ -36,26 +37,25 @@ void Mapper::receive_pose(const Pose::ConstPtr &msg) {
 	// mPose.distance = msg->distance;
 	mPose.x = msg->x;
 	mPose.y = msg->y;
-
-	if (!mInitialized) {
-		init();
-	}
 	
 }
 
-void Mapper::init() {
-	mStartAngle = mPose.theta;
-	mStartPos.x = mPose.x;
-	mStartPos.y = mPose.y;
-	mInitialized = true;
-	Measurement base;
-	base.valid = false;
-	base.pos.x = 0.0f;
-	base.pos.y = 0.0f;
-	mMeasurements.resize(7,base);
+void Mapper::init(const FollowWallStates::ConstPtr &msg) {
+	if (msg->state == amee::MoveFollowWall::ALIGNED_TO_WALL) {
+		mStartAngle = mPose.theta;
+		mStartPos.x = mPose.x;
+		mStartPos.y = mPose.y;
+		mInitialized = true;
+		Measurement base;
+		base.valid = false;
+		base.pos.x = 0.0f;
+		base.pos.y = 0.0f;
+		mMeasurements.resize(7,base);
 
-	mVisualizeTimer = 0;
-	mCleanTimer = 0;
+		mVisualizeTimer = 0;
+		mCleanTimer = 0;
+	}
+	
 }
 
 void Mapper::calculateMeasurements() {
@@ -262,6 +262,7 @@ int main(int argc, char **argv)
 	ros::Subscriber dist_sub;
 	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &Mapper::receive_distances, &mapper);
 	ros::Subscriber odo_sub = n.subscribe("/amee/pose", 100, &Mapper::receive_pose, &mapper);
+	ros::Subscriber state_sub = n.subscribe("/amee/follow_wall_states",10, &Mapper::init, &mapper);
 
   	ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);
 
