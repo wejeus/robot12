@@ -59,7 +59,8 @@ bool FILTER_RED_TAG = true;
 bool EQUALIZE_HISTOGRAM = true;
 bool DISPLAY_GRAPHICAL = false;
 bool LOCAL = false;
-int camera_interval = 10;
+bool PUBLISH_ROS = false;
+int camera_interval = 200;
 
 Mat hsvImg;
 Mat binImg;
@@ -117,7 +118,7 @@ void streamCamera(VideoCapture &capture) {
         if (DISPLAY_GRAPHICAL) {
             if(waitKey(camera_interval) >= 0) break;
         } else {
-            usleep(camera_interval*100);
+            usleep(camera_interval*1000);
         }
     }
 }
@@ -168,11 +169,13 @@ void filterRedTag(Mat &srcImg, Mat &destImg) {
     if (numberOfRedPixels > 600) {
         cout << "FOUND TAG" << endl;
         #ifdef ROS
+        if (PUBLISH_ROS) {
         // mark tag on map!
-        Tag tag;
-        tag.distance = 0;
-        tag.side = 1;
-        mapPublisher.publish(tag);
+            Tag tag;
+            tag.distance = 0;
+            tag.side = 1;
+            mapPublisher.publish(tag);
+        }
         #endif
     }
     cout << numberOfRedPixels << endl;
@@ -303,7 +306,8 @@ void initLocalInput(string source) {
 
     VideoCapture capture;
     // capture.set(CV_CAP_PROP_FPS, 1.0);
-
+capture.set(CV_CAP_PROP_FRAME_WIDTH, 352);
+capture.set(CV_CAP_PROP_FRAME_HEIGHT, 288);
     if (isdigit(*source.c_str())) {
         log("Initializing camera: %s\n", source.c_str());
         capture.open(atoi(source.c_str()));
@@ -333,7 +337,7 @@ int main(int argc, char *argv[]) {
 
     int c;
     string source;
-    while ((c = getopt (argc, argv, "lds:")) != -1) {
+    while ((c = getopt (argc, argv, "lpds:")) != -1) {
         switch (c) {
             case 'l':
                 LOCAL = true;
@@ -341,6 +345,9 @@ int main(int argc, char *argv[]) {
             case 'd':
                 DISPLAY_GRAPHICAL = true;
                 break;
+            case 'p':
+                PUBLISH_ROS = true;
+                break;    
             case 's':
                 source = optarg;     
                 break;
