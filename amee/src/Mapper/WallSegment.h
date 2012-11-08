@@ -34,8 +34,8 @@ class WallSegment {
 		static const int VERTICAL = 1;
 		static const float SMALL_THRESHOLD = 0.02f;
 		static const float SMALL_LENGTH = 0.04f;
-		static const float ORTHOGONAL_MERGE_THRESHOLD = 0.03;
-		static const float PARALLEL_MERGE_THRESHOLD = 0.09;
+		static const float ORTHOGONAL_MERGE_THRESHOLD = 0.03f;
+		static const float PARALLEL_MERGE_THRESHOLD = 0.10f;
 
 	};
 }

@@ -28,9 +28,47 @@ WallVisualization HorizontalWallSegment::getVisualization(){
 	return vis;
 }
 
+
 bool HorizontalWallSegment::mergeWall(WallSegment* wall) {
-	//TODO
-	return false;
+	if (wall->getType() != HORIZONTAL) {
+		return false;
+	}
+	HorizontalWallSegment* vWall = (HorizontalWallSegment*)wall;
+	
+	// first order both wall segements
+	Map::Point lowerFrom = mFrom; // lower means lower values
+	Map::Point lowerTo = mTo;	
+	Map::Point upperFrom = vWall->mFrom; // upper means bigger values
+	Map::Point upperTo = vWall->mTo;
+	if (mFrom.x > vWall->mFrom.x) {
+		lowerFrom = vWall->mFrom;
+		lowerTo = vWall->mTo;
+		upperTo = mTo;
+		upperFrom = mFrom;
+	} 
+
+	// if they have a too large distance in y dimension we can't merge them
+	if (fabs(upperTo.y - lowerTo.y) > ORTHOGONAL_MERGE_THRESHOLD) {
+		return false;
+	}
+
+	// now check the distance in x.
+	// check whether both walls are not overlapping and the parallel distance is to big
+	if ((lowerTo.x < upperFrom.x) && (upperFrom.x - lowerTo.x > PARALLEL_MERGE_THRESHOLD)) {
+		return false;
+	}
+	// if we reached this point, we want to merge the walls.
+
+	// this is done by setting this wall to the new merged wall, the other wall can be deleted (not here).
+	mFrom = lowerFrom;
+	mTo = upperTo;
+
+	mYAcc += vWall->mYAcc;
+	mNumberOfPoints += vWall->mNumberOfPoints;
+	mFrom.y = mYAcc / mNumberOfPoints;
+	mTo.y = mFrom.y;
+
+	return true;
 }
 
 bool HorizontalWallSegment::addMeasurement(const Map::Point& p) {
