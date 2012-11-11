@@ -26,7 +26,7 @@ def refresh(msg):
   for wall in msg.walls:
     color = (255,20,147)
     if (wall.type == 1):
-      color = (255,255,0)
+    	color = (255,20,147)
     start = transform(wall.startX,wall.startY)
     end = transform(wall.endX,wall.endY)
     #print end
@@ -79,6 +79,7 @@ def drawTag(x,y):
 
 def transform(x,y):
   return (int(scale[0] * x + offset[0]),resolution[1] - int(scale[1] * y + offset[1]))
+
 
 if __name__ == '__main__':
     # Register this node

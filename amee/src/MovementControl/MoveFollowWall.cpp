@@ -248,8 +248,9 @@ using namespace amee;
 
     bool MoveFollowWall::wallInFront() {
         // TODO use constants
-        return (mSensorData.irdistances.frontShortRange <= 0.09f && mSensorData.irdistances.frontShortRange >= 0.0f)
-            || (mSensorData.irdistances.wheelRight <= 0.09f && mSensorData.irdistances.wheelRight >= 0.0f);
+        return (mSensorData.irdistances.frontShortRange <= 0.11f && mSensorData.irdistances.frontShortRange >= 0.0f)
+            || (mSensorData.irdistances.wheelRight <= 0.08f && mSensorData.irdistances.wheelRight >= 0.0f)
+            || (mSensorData.irdistances.wheelLeft <= 0.08f && mSensorData.irdistances.wheelLeft >= 0.0f);
     }
 
     void MoveFollowWall::followWall() {
