@@ -8,9 +8,11 @@ import pygame
 pygame.init() 
 
 #create the screen
-xMax = 800
-yMax = 600
-window = pygame.display.set_mode((xMax, yMax)) 
+resolution = (800,600)
+offset = (0,0)
+scale = (1,1)
+border = (30,30)
+window = pygame.display.set_mode((resolution[0] + 2 * border[0], resolution[1] + 2 * border[1])) 
 pygame.display.flip()
 #draw a line - see http://www.pygame.org/docs/ref/draw.html for more 
 #pygame.draw.line(window, (255, 255, 255), (0, 0), (30, 50))
@@ -19,6 +21,7 @@ pygame.display.flip()
 
 def refresh(msg):
   window.fill((0, 0, 0))
+  findScaleAndOffset(msg)
   #print "Refresh"
   for wall in msg.walls:
     color = (255,20,147)
@@ -26,21 +29,47 @@ def refresh(msg):
       color = (255,255,0)
     start = transform(wall.startX,wall.startY)
     end = transform(wall.endX,wall.endY)
+    #print end
+    #print start
     pygame.draw.line(window, color,start,end)
     #pygame.draw.line(window, (255,255,255),(0,0),(xMax, yMax))
-    #print startY
-    #print startX
-    #print endX
-    #print endY
+    #print start[0]
+    #print start[1]
+    #print end[0]
+    #print end[1]
   for tag in msg.tags:
     drawTag(tag.x,tag.y)  
   drawAmee(msg.robotPose.x,msg.robotPose.y,msg.robotPose.theta)
   pygame.display.flip() 
 
+def findScaleAndOffset(msg):
+  global scale
+  global offset
+  minX = 0
+  minY = 0
+  maxY = 0
+  maxX = 0
+  for wall in msg.walls:
+    minX = min(minX,wall.startX)
+    minY = min(minY,wall.startY)
+    maxX = max(maxX,wall.endX)
+    maxY = max(maxY,wall.endY)
+  maxX = max(maxX,msg.robotPose.x)
+  maxY = max(maxY,msg.robotPose.y)
+  minX = min(minX,msg.robotPose.x)
+  minY = min(minY,msg.robotPose.y)
+  scale = (resolution[0] / abs(maxX - minX), resolution[1] / abs(maxY - minY))
+  if (scale[0] * 0.12 > 1/4 * resolution[0]): #the robot is half of the screen!
+    scale = (resolution[0] / 4, resolution[1] / 4)
+  offset = (abs(minX * scale[0]) + border[0], abs(minY * scale[1]) + border[1])
+  #print ("Scale: " + str(scale))
+  #print ("Offset: "  + str(offset))
+
 def drawAmee(x,y,theta):
-  pygame.draw.circle(window,(255,255,255),transform(x,y),5)  
+  r = int(scale[0] * 0.12)
+  pygame.draw.circle(window,(255,255,255),transform(x,y),r)  
   start = transform(x,y)
-  end = (int(start[0] + 5 * math.cos(theta)),int(start[1] - 5 * math.sin(theta)))
+  end = (int(start[0] + r * math.cos(theta)),int(start[1] - r * math.sin(theta)))
   pygame.draw.line(window,(255,0,0),start,end)  
 
 def drawTag(x,y):
@@ -49,7 +78,7 @@ def drawTag(x,y):
   pygame.draw.rect(window,(255,0,0),rect,2)
 
 def transform(x,y):
-  return (int(2.0/3.0 * xMax) + int(x / 6 * xMax),yMax-500 - int(y / 6 * yMax))
+  return (int(scale[0] * x + offset[0]),resolution[1] - int(scale[1] * y + offset[1]))
 
 if __name__ == '__main__':
     # Register this node
@@ -59,7 +88,7 @@ if __name__ == '__main__':
         # The TOPIC we want to listen to
         rospy.Subscriber("/amee/map/visualization", MapVisualization, refresh)
 
-        rospy.loginfo("... done! Entering spin() loop")
+        rospy.loginfo("Displaying map...")
 
         rospy.spin()
        # while not rospy.is_shutdown():
