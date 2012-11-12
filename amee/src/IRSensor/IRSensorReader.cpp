@@ -145,14 +145,14 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 		distanceMsg.wheelLeft = distances[WHEEL_LEFT];
 		//TODO publish all the other correct distances
 		
-		std::cout << "timestamp: " << distanceMsg.timestamp << std::endl;
-		std::cout << "leftBack: " << mLastReadings[LEFT_BACK] << std::endl;
-		std::cout << "leftFront: " << mLastReadings[LEFT_FRONT] << std::endl;
-		std::cout << "wheelLeft: " << mLastReadings[WHEEL_LEFT] << std::endl;
-		std::cout << "rightBack: " << mLastReadings[RIGHT_BACK] << std::endl;
-		std::cout << "rightFront: " << mLastReadings[RIGHT_FRONT] << std::endl;
-		std::cout << "wheelRight: " << mLastReadings[WHEEL_RIGHT] << std::endl;
-		std::cout << "frontShort: " << mLastReadings[FRONT_SHORTRANGE] << std::endl;
+		// std::cout << "timestamp: " << distanceMsg.timestamp << std::endl;
+		// std::cout << "leftBack: " << mLastReadings[LEFT_BACK] << std::endl;
+		// std::cout << "leftFront: " << mLastReadings[LEFT_FRONT] << std::endl;
+		// std::cout << "wheelLeft: " << mLastReadings[WHEEL_LEFT] << std::endl;
+		// std::cout << "rightBack: " << mLastReadings[RIGHT_BACK] << std::endl;
+		// std::cout << "rightFront: " << mLastReadings[RIGHT_FRONT] << std::endl;
+		// std::cout << "wheelRight: " << mLastReadings[WHEEL_RIGHT] << std::endl;
+		// std::cout << "frontShort: " << mLastReadings[FRONT_SHORTRANGE] << std::endl;
 
 		
 		
