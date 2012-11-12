@@ -9,7 +9,7 @@
 #ifndef AMEE_H
 #define AMEE_H
 
-#define WHEEL_BASE 0.237f
+#define WHEEL_BASE 0.234f
 #define WHEEL_RADIUS 0.0365f
 #define TICS_PER_REVOLUTION 225.0f // encoder tics/rev
 
