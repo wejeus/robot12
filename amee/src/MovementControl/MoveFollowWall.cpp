@@ -113,14 +113,7 @@ using namespace amee;
             mWallAligner->doControl(mSensorData);
         } else {
             
-            amee::FollowWallStates followWallState;
-            followWallState.state = ALIGNED_TO_WALL;
-            struct timeval time;
-            gettimeofday(&time, NULL);
-            followWallState.timestamp = time.tv_sec+double(time.tv_usec)/1000000.0;          
-
-            mFollowWallStatesPub.publish(followWallState);
-
+            MoveFollowWall::PublishState(ALIGNED_TO_WALL);
             mState.set(FollowWall);
         }
 
@@ -235,6 +228,18 @@ using namespace amee;
          } else {
            // std::cout << "HELP ME!!!! I'M LOST!!!!!" << std::endl;
         }
+    }
+
+    void MoveFollowWall::PublishState(int state) { // publishes the state
+
+        amee::FollowWallStates followWallState;
+        followWallState.state = state;
+        struct timeval time;
+        gettimeofday(&time, NULL);
+        followWallState.timestamp = time.tv_sec+double(time.tv_usec)/1000000.0;          
+
+        mFollowWallStatesPub.publish(followWallState);
+
     }
 
     bool MoveFollowWall::isRunning() const {
