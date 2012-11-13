@@ -29,7 +29,7 @@ rosbuild_genmsg()
 #uncomment if you have defined services
 #rosbuild_gensrv()
 
-include_directories(/home/robot/ros_workspace/hg/eigen/include)
+include_directories(${eigen}/include)
 
 #common commands for building c++ executables and libraries
 #rosbuild_add_library(${PROJECT_NAME} src/example.cpp)

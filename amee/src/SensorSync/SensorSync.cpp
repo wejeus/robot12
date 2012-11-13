@@ -89,7 +89,7 @@ int main(int argc, char **argv){
 	odo_sub = n.subscribe("/amee/motor_control/odometry", 10000, receive_odo);
 
 	ros::Rate loop_rate(10);
-	struct timeval start, end;
+/*	struct timeval start, end;*/
 
 	while(ros::ok()){
 		loop_rate.sleep();
