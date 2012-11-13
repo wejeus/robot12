@@ -136,6 +136,7 @@ using namespace amee;
         mFoundWallRightBack = mFoundWallRightBack || seesWall(mSensorData.irdistances.rightBack);
 
         if (mFoundWallRightBack && mFoundWallRightFront) {
+            MoveFollowWall::PublishState(FOUND_BEGINNING_OF_WALL);
             // both sensors have seen the wall, check if the wall is still there
             if (seesWall(mSensorData.irdistances.rightBack) 
                 && seesWall(mSensorData.irdistances.rightFront)) {
@@ -157,6 +158,7 @@ using namespace amee;
           if (mRotater->isRunning()) { 
             mRotater->doControl(mSensorData);
           } else {
+            MoveFollowWall::PublishState(ROTATED_LEFT);
             if (seesWall(mSensorData.irdistances.rightBack) 
                 && seesWall(mSensorData.irdistances.rightFront)) { // in most cases there will be a wall, but maybe there is a small hole
                 mState.set(AlignToWall);
@@ -175,6 +177,7 @@ using namespace amee;
           if (mRotater->isRunning()) { 
             mRotater->doControl(mSensorData);
           } else {
+            MoveFollowWall::PublishState(ROTATED_RIGHT);
             mState.set(LookForBeginningOfWall);
           }
     }
@@ -191,6 +194,7 @@ using namespace amee;
             if (mStraightMove->isRunning()) {
                 mStraightMove->doControl(mSensorData);
             } else {
+                MoveFollowWall::PublishState(MOVED_TAIL);
                 mState.set(RotateRight);   
             }
         }
@@ -204,6 +208,7 @@ using namespace amee;
             mState.set(RotateLeft);
         } else if (!seesWall(mSensorData.irdistances.rightFront) 
             && !seesWall(mSensorData.irdistances.rightBack)) {
+            MoveFollowWall::PublishState(FOUND_END_OF_WALL);
             mState.set(MoveTail);
         } else {
             if (!mState.initialized) {
@@ -222,8 +227,10 @@ using namespace amee;
             && !wallInFront()) {
                 followWall();    
          } else if (!seesWall(mSensorData.irdistances.rightFront)) {
+            MoveFollowWall::PublishState(FOLLOWED_WALL);
             mState.set(LookForEndOfWall);
          } else if (wallInFront()) {
+            MoveFollowWall::PublishState(FOLLOWED_WALL);
             mState.set(RotateLeft);
          } else {
            // std::cout << "HELP ME!!!! I'M LOST!!!!!" << std::endl;
