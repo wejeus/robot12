@@ -1,7 +1,6 @@
 #include "Mapper.h"
 #include <iostream>
 #include <cmath>
-#include "amee/MapVisualization.h"
 #include "../MovementControl/MoveFollowWall.h"
 
 using namespace amee;
@@ -139,31 +138,35 @@ void Mapper::setVisualizationPublisher(ros::Publisher pub) {
 }
 
 void Mapper::visualize() {
-	if (mVisualizeTimer == 15) {
+	if (mVisualizeTimer == 8) {
 		mVisualizeTimer = 0;
-		MapVisualization vis;
-		mMap.getVisualization(vis);
-		vis.robotPose.x = mCurrentPos.x;
-		vis.robotPose.y = mCurrentPos.y;
-		vis.robotPose.theta = mCurrentAngle;
+	
+		mMap.getVisualization(mVis);
+		mVis.robotPose.x = mCurrentPos.x;
+		mVis.robotPose.y = mCurrentPos.y;
+		mVis.robotPose.theta = mCurrentAngle;
 
-		for (unsigned int i = 0; i < mMeasurements.size(); ++i) {
-			if (mMeasurements[i].valid) {
-				Point p;
-				p.x = mMeasurements[i].pos.x;
-				p.y = mMeasurements[i].pos.y;
-				vis.currentMeasurements.push_back(p);
-			}
-		}
+		// for (unsigned int i = 0; i < mMeasurements.size(); ++i) {
+		// 	if (mMeasurements[i].valid) {
+		// 		Point p;
+		// 		p.x = mMeasurements[i].pos.x;
+		// 		p.y = mMeasurements[i].pos.y;
+		// 		mVis.currentMeasurements.push_back(p);
+		// 	}
+		// }
+
+		mVis.tags.resize(mTagPositions.size());
 
 		for (unsigned int i = 0; i < mTagPositions.size(); ++i) {
-			Point p;
-			p.x = mTagPositions[i].x;
-			p.y = mTagPositions[i].y;
-			vis.tags.push_back(p);
+			// Point p;
+			// p.x = mTagPositions[i].x;
+			// p.y = mTagPositions[i].y;
+			mVis.tags[i].x = mTagPositions[i].x;
+			mVis.tags[i].y = mTagPositions[i].y;
+			//mVis.tags.push_back(p);
 		}
 
-		vis_pub.publish(vis);
+		vis_pub.publish(mVis);
 	}
 	++mVisualizeTimer;
 }
