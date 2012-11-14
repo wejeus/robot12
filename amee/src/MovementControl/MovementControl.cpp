@@ -61,9 +61,9 @@ void MovementControl::doControl() {
 	}
 }
 
-void MovementControl::receive_sonar(const roboard_drivers::sonar::ConstPtr &msg) {
+void MovementControl::receive_sonar(const amee::Sonar::ConstPtr &msg) {
 	mSensorData.sonarDistance = msg->distance;
-	std::cout << "Sonar received: " << mSensorData.sonarDistance << std::endl;
+	// std::cout << "Sonar received: " << mSensorData.sonarDistance << std::endl;
 }
 
 void MovementControl::receive_command(const amee::MovementCommand::ConstPtr &msg) {
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 	// create subscriber for distances
 	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &MovementControl::receive_distances, &control);
 	ros::Subscriber odo_sub = n.subscribe("/amee/motor_control/odometry", 100, &MovementControl::receive_odometry, &control);
-	ros::Subscriber sonar_sub = n.subscribe("roboard/sonar",1, &MovementControl::receive_sonar, &control);
+	ros::Subscriber sonar_sub = n.subscribe("/amee/sensors/sonar",1, &MovementControl::receive_sonar, &control);
 
 	ros::Subscriber command_sub = n.subscribe("/MovementControl/MovementCommand",10,&MovementControl::receive_command, &control);
 

@@ -103,7 +103,7 @@ using namespace amee;
     // robot will be lost, so make sure there is a wall before going into this state!
     // After aligning it changes to FollowWall.
     void MoveFollowWall::alignToWall() {
-        //std::cout << "AlignToWall" << std::endl;
+        std::cout << "AlignToWall" << std::endl;
         if (!mState.initialized) {
             mState.initialized = true;
             mWallAligner->init(mSensorData);
@@ -127,7 +127,7 @@ using namespace amee;
     }
 
     void MoveFollowWall::lookForBeginningOfWallState() {
-        //std::cout << "LookForBeginningOfWall" << std::endl;
+        std::cout << "LookForBeginningOfWall" << std::endl;
         if (!mState.initialized) {
             mState.initialized = true;
             mFoundWallRightBack = false;
@@ -156,7 +156,7 @@ using namespace amee;
     }
 
     void MoveFollowWall::rotateLeftState() {
-        // std::cout << "RotateLeft" << std::endl;
+        std::cout << "RotateLeft" << std::endl;
           if (!mState.initialized) {
             mState.initialized = true;
             mRotater->init(mSensorData, 90.0f);
@@ -174,7 +174,7 @@ using namespace amee;
     }
 
     void MoveFollowWall::rotateRightState() {
-        // std::cout << "RotateRight" << std::endl;
+        std::cout << "RotateRight" << std::endl;
           if (!mState.initialized) {
             mState.initialized = true;
             mRotater->init(mSensorData, -90.0f);
@@ -187,13 +187,13 @@ using namespace amee;
     }
 
     void MoveFollowWall::moveTailState() {
-        // std::cout << "MoveTail" << std::endl;
+        std::cout << "MoveTail" << std::endl;
         if (wallInFront()) {
             mState.set(RotateLeft);
         } else { 
             if (!mState.initialized) {
                 mState.initialized = true;
-                mStraightMove->init(mSensorData, 0.11f);//TODO set as constant
+                mStraightMove->init(mSensorData, 0.8f);//TODO set as constant
             }
             if (mStraightMove->isRunning()) {
                 mStraightMove->doControl(mSensorData);
@@ -204,7 +204,7 @@ using namespace amee;
     }
 
     void MoveFollowWall::lookForEndOfWallState() {
-        // std::cout << "LookForEndOfWall" << std::endl;
+        std::cout << "LookForEndOfWall" << std::endl;
         if (seesWall(mSensorData.irdistances.rightFront)) {
             mState.set(LookForBeginningOfWall); 
         } else if (wallInFront()) {
@@ -222,7 +222,7 @@ using namespace amee;
     }
 
     void MoveFollowWall::followWallState() {
-        // std::cout << "FollowWall" << std::endl;
+        std::cout << "FollowWall" << std::endl;
         // std::cout << mSensorData.irdistances << std::endl;
         if (seesWall(mSensorData.irdistances.rightBack)
             && seesWall(mSensorData.irdistances.rightFront)
@@ -250,8 +250,10 @@ using namespace amee;
         // TODO use constants
         return (mSensorData.irdistances.frontShortRange <= 0.11f && mSensorData.irdistances.frontShortRange >= 0.0f)
             || (mSensorData.irdistances.wheelRight <= 0.08f && mSensorData.irdistances.wheelRight >= 0.0f)
-            || (mSensorData.irdistances.wheelLeft <= 0.08f && mSensorData.irdistances.wheelLeft >= 0.0f);
+            || (mSensorData.irdistances.wheelLeft <= 0.08f && mSensorData.irdistances.wheelLeft >= 0.0f)
+            || (mSensorData.sonarDistance <= 12.0f);
     }
+
 
     void MoveFollowWall::followWall() {
         // std::cout << "Following wall" << std::endl;
