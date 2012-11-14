@@ -11,6 +11,7 @@ namespace amee{
 	struct SensorData {
 		Odometry odometry;
 		IRDistances irdistances;
+		float sonarDistance;
 	};
 
 	class MovementState{

@@ -9,6 +9,7 @@
 #include "MoveFollowWall.h"
 #include "MoveAlignWall.h"
 #include "amee/FollowWallStates.h"
+#include <std_msgs/Int32.h>
 
 using namespace amee;
 
@@ -58,6 +59,11 @@ void MovementControl::doControl() {
 	if (mCurrentState->isRunning()) {
 		mCurrentState->doControl(mSensorData);
 	}
+}
+
+void MovementControl::receive_sonar(const roboard_drivers::sonar::ConstPtr &msg) {
+	mSensorData.sonarDistance = msg->distance;
+	std::cout << "Sonar received: " << mSensorData.sonarDistance << std::endl;
 }
 
 void MovementControl::receive_command(const amee::MovementCommand::ConstPtr &msg) {
@@ -110,6 +116,7 @@ int main(int argc, char **argv)
 
 	ros::Publisher vel_pub = n.advertise<Velocity>("/amee/motor_control/set_wheel_velocities", 100);
 	ros::Publisher wall_pub = n.advertise<FollowWallStates>("/amee/follow_wall_states", 100);
+	ros::Publisher sonar_interval_pub = n.advertise<std_msgs::Int32>("roboard/sonar_interval", 100);
 
 	// create the controller and initialize it
 	MovementControl control(vel_pub, wall_pub);
@@ -120,13 +127,18 @@ int main(int argc, char **argv)
 	// create subscriber for distances
 	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &MovementControl::receive_distances, &control);
 	ros::Subscriber odo_sub = n.subscribe("/amee/motor_control/odometry", 100, &MovementControl::receive_odometry, &control);
+	ros::Subscriber sonar_sub = n.subscribe("roboard/sonar",1, &MovementControl::receive_sonar, &control);
 
 	ros::Subscriber command_sub = n.subscribe("/MovementControl/MovementCommand",10,&MovementControl::receive_command, &control);
 
 	ros::Rate loop_rate(20);
-	while(vel_pub.getNumSubscribers() == 0 && ros::ok()) {
+	while((vel_pub.getNumSubscribers() == 0 || sonar_interval_pub.getNumSubscribers() == 0) && ros::ok()) {
 		loop_rate.sleep();
 	} 
+
+	std_msgs::Int32 interval;
+	interval.data = 400;
+	sonar_interval_pub.publish(interval);
 
 	control.init();
 	
