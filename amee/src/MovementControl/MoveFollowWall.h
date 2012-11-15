@@ -18,13 +18,14 @@ namespace amee{
 		virtual bool isRunning() const;
 		virtual void doControl(const SensorData& data);
 
-		static const float FOLLOWED_WALL = 1;
+		static const float ALIGNED_TO_WALL = 1;
 		static const float FOUND_END_OF_WALL =  2;
 		static const float MOVED_TAIL = 3;
 		static const float ROTATED_RIGHT = 4;
 		static const float ROTATED_LEFT = 5;
 		static const float FOUND_BEGINNING_OF_WALL = 6;
-		static const float ALIGNED_TO_WALL = 7;
+		static const float FOLLOWED_WALL = 7;
+
 
 	private:
 		enum WallFollowState {FollowWall, LookForEndOfWall, MoveTail,
