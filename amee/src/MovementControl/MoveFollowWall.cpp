@@ -258,13 +258,13 @@ using namespace amee;
         }
 
         // continue wall following if we see a wall (more or less)
-        if (seesWall(mSensorData.irdistances.rightFront) && seesWall(mSensorData.irdistances)) {
+        if (seesWall(mSensorData.irdistances.rightFront) && seesWall(mSensorData.irdistances.rightBack)) {
             mState.set(AlignToWall);
             return;
         }
 
-        // if frontRight sees a wall, we have to travel further!
-        if (seesWall(mSensorData.irdistances.frontRight)) {
+        // if rightFront sees a wall, we have to travel further!
+        if (seesWall(mSensorData.irdistances.rightFront)) {
             mStraightMove->init(mSensorData, RF_TO_CENTER_DIST);
         }
 
