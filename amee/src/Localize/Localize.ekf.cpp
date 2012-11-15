@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 
 	// Initiate Kalman filter
 	EKF ekf;
-	ekf.init();
+	ekf.init(3,2);
 
 
 	// -- Estimate pose

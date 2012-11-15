@@ -8,6 +8,12 @@
 #include "EKF.h"
 #include "Eigen/Eigen"
 
+#define PROCESS_NOISE 0.1f
+#define MEASUREMENT_NOISE 0.1f
+
+
+using namespace Eigen;
+
 void EKF::setStartPose(amee::Pose mPose){
 	mPose = mPose;
 }
@@ -26,9 +32,9 @@ amee::Pose EKF::getPose() {
 	return mPose;
 }
 
-Eigen::Vector3f EKF::g(Eigen::Vector2f u, Eigen::Vector3f mu_t_1) { // velocity motion model
+Matrix<float,nos,1> EKF::g(Matrix<float,noc,1> u, Matrix<float,nos,1> mu_t_1) { // velocity motion model
 	// move to .h?
-	Eigen::Vector3f movement;
+	Matrix<float,nos,1> movement;
 
 	float dt    = 0.025; // TODO: take from timestamps 
 	float v     = (u(0) + u(1)) /2;
@@ -49,11 +55,11 @@ Eigen::Vector3f EKF::g(Eigen::Vector2f u, Eigen::Vector3f mu_t_1) { // velocity 
 	return mu_bar;
 }
 
-Eigen::Vector3f EKF::h(Eigen::Vector3f mu_bar, Eigen::Vector3f mu_bar_t_1) { // odometry motion model
+Matrix<float,nom,1> EKF::h(Matrix<float,nos,1> mu_bar, Matrix<float,nos,1> mu_bar_t_1) { // odometry motion model
 	
 	// Define relative movement
-	Eigen::Vector3f delta_mu_bar = mu_bar - mu_bar_t_1;
-	Eigen::Vector3f z_hat;
+	Matrix<float,nos,1> delta_mu_bar = mu_bar - mu_bar_t_1;
+	Matrix<float,nom,1> z_hat;
 
 	// Calc predicted measurement
 	z_hat(0) = sqrt(pow(delta_mu_bar(0), 2) + pow(delta_mu_bar(1), 2)) + delta_mu_bar(2) * WHEEL_BASE/2;
@@ -63,7 +69,60 @@ Eigen::Vector3f EKF::h(Eigen::Vector3f mu_bar, Eigen::Vector3f mu_bar_t_1) { // 
 	return z_hat;
 }
 
-void EKF::init(){
+#define nos 3
+#define nom 2
+#define noc 2
+
+void EKF::init(int numberOfStates, int numberOfMeasurements){
+	//int nos = numberOfStates;
+	//int nom = numberOfMeasurements;
+	//int noc = 2; // number of control (right & left wheel speed)
+	
+	// // EKF variablesx
+	// Matrix<float,nos,1> mu;
+	// Matrix<float,nos,1> mu_t_1;
+	// Matrix<float,nos,1> mu_bar;
+	// Matrix<float,nos,1> mu_bar_t_1;
+
+	// Matrix<float,nos,nos> sigma;
+	// Matrix<float,nos,nos> sigma_bar;
+	// Matrix<float,nos,nos> sigma_t_1;
+
+	// Matrix<float,noc,1> u;
+	// Matrix<float,noc,1> u_t_1;
+
+	// Matrix<float,nom,1> z;
+	// Matrix<float,nom,1> z_hat;
+	
+	// Matrix<float,nos,nos> G; // jacobian of g (motion model)
+	// Matrix<float,nom,nos> H; // Jacobian of h ()
+
+
+	// Matrix<float,nos,nom> K; // Kalman gain
+
+	// Matrix<float,nos,nos> R; // Process noice
+	// Matrix<float,nom,nom> Q; // Measurement noice
+
+	// Matrix<float,nos,nos> I;
+	// I = I.Identity();
+
+	// mPose.x = 0;
+	// mPose.y = 0;
+	// mPose.theta = 0;
+	// mPose.xVar = 0;
+	// mPose.yVar = 0;
+	// mPose.thetaVar = 0;
+	// setStartPose(mPose);
+
+	// R = R.diagonal();
+	// //R * PROCESS_NOISE;
+
+	// Q = Q.diagonal() * MEASUREMENT_NOISE;
+
+//	G.Identity();
+//	H.Identity();
+
+
 	mPose.x = 0;
 	mPose.y = 0;
 	mPose.theta = 0;
@@ -72,20 +131,15 @@ void EKF::init(){
 	mPose.thetaVar = 0;
 	setStartPose(mPose);
 
-	float measurementNoise = 0.1f;
-	R(0,0) = measurementNoise;
-	R(1,1) = measurementNoise;
+	R = R.setIdentity() * PROCESS_NOISE;
 
-	float processNoise = 0.1f;
-	Q(0,0) = processNoise;
-	Q(1,1) = processNoise;
+	Q = Q.setIdentity() * MEASUREMENT_NOISE;
 
-	G.Identity();
-	H.Identity();
-
+	I.setIdentity();
 
 }
 
+// rewrite to work with general matrix sizes!!!
 void EKF::estimate(amee::Velocity controlSignal, roboard_drivers::Encoder measurement)
 {
 	// TEST printout
