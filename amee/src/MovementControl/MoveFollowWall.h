@@ -28,7 +28,7 @@ namespace amee{
 
 	private:
 		enum WallFollowState {FollowWall, LookForEndOfWall, MoveTail,
-			RotateRight, RotateLeft, LookForBeginningOfWall, AlignToWall};
+			RotateRight, RotateLeft, LookForBeginningOfWall, AlignToWall, HandleEvilWalls};
 
 		struct State
 		{
@@ -47,6 +47,9 @@ namespace amee{
 
 		static const float TOO_CLOSE_TO_WALL = 0.03f;
 		static const float TOO_FAR_FROM_WALL = 0.08f;
+
+		static const float TAIL_LENGTH = 0.07f
+		static const float RF_TO_CENTER_DIST = 0.06f;
 
 		float linearSpeed;
 		float K_p_keepRef;
