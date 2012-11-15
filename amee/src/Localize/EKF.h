@@ -19,35 +19,13 @@ class EKF {
 #define nom 2
 #define noc 2
 
+// default noises
+#define PROCESS_NOISE 0.01f
+#define MEASUREMENT_NOISE 0.001f
+
 private:
 
 public:
-
-	// // EKF variables
-	// Eigen::Vector3f mu;
-	// Eigen::Vector3f mu_t_1;
-	// Eigen::Vector3f mu_bar;
-	// Eigen::Vector3f mu_bar_t_1;
-	
-	// Eigen::Matrix3f sigma;
-	// Eigen::Matrix3f sigma_bar;
-	// Eigen::Matrix3f sigma_t_1;
-	
-	// Eigen::Vector2f u;
-	// Eigen::Vector2f u_t_1;	
-	
-	// Eigen::Vector3f z;
-	// Eigen::Vector3f z_hat;
-
-	// Eigen::Matrix3f G; // jacobian of g (motion model)
-	// Eigen::Matrix3f H; // Jacobian of h ()
-
-	// Eigen::Matrix3f K; // Kalman gain
-
-	// Eigen::Matrix3f R; // Measurement noice
-	// Eigen::Matrix3f Q; // Process noice
-
-	// Eigen::Matrix3f I;
 
 	// EKF variablesx
 	Matrix<float,nos,1> mu;
@@ -76,8 +54,9 @@ public:
 	Matrix<float,nos,nos> I;
 
 
-	void init(int numberOfStates, int numberOfMeasurements);
+	void init();
 
+	void setStartPose(Matrix<float,nos,1> mu, Matrix<float,nos,nos> sigma);
 	void setR(float processNoise);
 	void setQ(float measurementNoise);
 
@@ -88,8 +67,6 @@ public:
 	amee::Pose getMu();
 	amee::Pose getSigma();
 	amee::Pose getPose();
-
-	void setStartPose(amee::Pose pose);
 
 	amee::Pose mPose;	
 		
