@@ -7,6 +7,7 @@
 #include "amee/Tag.h"
 #include "Map.h"
 #include <vector>
+#include "amee/MapVisualization.h"
 
 namespace amee {
 
@@ -46,6 +47,8 @@ class Mapper {
 
 		std::vector<Measurement> mMeasurements;
 		std::vector<Map::Point> mTagPositions;
+
+		MapVisualization mVis;
 
 		void calculateMeasurements();
 		bool isValidDistance(float dist);

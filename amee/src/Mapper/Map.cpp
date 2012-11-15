@@ -71,7 +71,9 @@ void Map::print() {
 }
 
 void Map::getVisualization(MapVisualization& vis) {
-	for (std::list<WallSegment*>::const_iterator iter = mWalls.begin(), end = mWalls.end(); iter != end; ++iter) {
-		vis.walls.push_back((*iter)->getVisualization());
+	vis.walls.resize(mWalls.size());
+	int i = 0;
+	for (std::list<WallSegment*>::const_iterator iter = mWalls.begin(), end = mWalls.end(); iter != end; ++iter,++i) {
+		vis.walls[i] = ((*iter)->getVisualization());
 	}
 }

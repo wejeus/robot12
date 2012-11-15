@@ -95,6 +95,8 @@ using namespace amee;
             case AlignToWall:
                 alignToWall();
                 break;
+            case HandleEvilWalls:
+                handleEvilWallsState();
             default: std::cout << "UNKNOWN STATE" << std::endl;
         }
     }
@@ -142,7 +144,7 @@ using namespace amee;
                 && seesWall(mSensorData.irdistances.rightFront)) {
                 mState.set(AlignToWall);
             } else {
-                mState.set(MoveTail);
+                mState.set(HandleEvilWalls);
             }
         } else {
             mStraightMove->doControl(mSensorData);
@@ -158,12 +160,12 @@ using namespace amee;
           if (mRotater->isRunning()) { 
             mRotater->doControl(mSensorData);
           } else {
-            MoveFollowWall::PublishState(ROTATED_LEFT);
+            PublishState(ROTATED_LEFT);
             if (seesWall(mSensorData.irdistances.rightBack) 
                 && seesWall(mSensorData.irdistances.rightFront)) { // in most cases there will be a wall, but maybe there is a small hole
                 mState.set(AlignToWall);
-            } else { // if there is no wall go to FollowWall. It will imediately detect that there is something wrong and deal with it.
-                mState.set(FollowWall);    
+            } else { // if there is no wall, there might be sth evil we have to deal with
+                mState.set(HandleEvilWalls);    
             }  
           }
     }
@@ -189,7 +191,7 @@ using namespace amee;
         } else { 
             if (!mState.initialized) {
                 mState.initialized = true;
-                mStraightMove->init(mSensorData, 0.11f);//TODO set as constant
+                mStraightMove->init(mSensorData, TAIL_LENGTH);//TODO set as constant
             }
             if (mStraightMove->isRunning()) {
                 mStraightMove->doControl(mSensorData);
@@ -202,10 +204,13 @@ using namespace amee;
 
     void MoveFollowWall::lookForEndOfWallState() {
         // std::cout << "LookForEndOfWall" << std::endl;
+        if (wallInFront()) {
+            mState.set(RotateLeft);
+            return;
+        }
+
         if (seesWall(mSensorData.irdistances.rightFront)) {
             mState.set(LookForBeginningOfWall); 
-        } else if (wallInFront()) {
-            mState.set(RotateLeft);
         } else if (!seesWall(mSensorData.irdistances.rightFront) 
             && !seesWall(mSensorData.irdistances.rightBack)) {
             MoveFollowWall::PublishState(FOUND_END_OF_WALL);
@@ -222,18 +227,51 @@ using namespace amee;
     void MoveFollowWall::followWallState() {
         // std::cout << "FollowWall" << std::endl;
         // std::cout << mSensorData.irdistances << std::endl;
-        if (seesWall(mSensorData.irdistances.rightBack)
-            && seesWall(mSensorData.irdistances.rightFront)
-            && !wallInFront()) {
-                followWall();    
-         } else if (!seesWall(mSensorData.irdistances.rightFront)) {
-            MoveFollowWall::PublishState(FOLLOWED_WALL);
-            mState.set(LookForEndOfWall);
-         } else if (wallInFront()) {
-            MoveFollowWall::PublishState(FOLLOWED_WALL);
+        if (wallInFront()) {
             mState.set(RotateLeft);
+            PublishState(FOLLOWED_WALL);
+            return;
+        }
+
+        if (seesWall(mSensorData.irdistances.rightBack)
+            && seesWall(mSensorData.irdistances.rightFront)) {
+                followWall();    
+         } else if (!seesWall(mSensorData.irdistances.rightFront) && seesWall(mSensorData.irdistances.rightBack)) {
+            PublishState(FOLLOWED_WALL);
+            mState.set(LookForEndOfWall);
+         } else if (seesWall(mSensorData.irdistances.rightFront) && !seesWall(mSensorData.irdistances.rightBack)) {
+            mState.set(LookForBeginningOfWall);
          } else {
-           // std::cout << "HELP ME!!!! I'M LOST!!!!!" << std::endl;
+           mState.set(HandleEvilWalls);
+        }
+    }
+
+    void MoveFollowWall::handleEvilWallsState() {
+        if (!mState.initialized) {
+            mState.initialized = true;
+            mStraightMove->init(mSensorData, TAIL_LENGTH);
+        }
+        // stop if wall in front
+        if (wallInFront()) {
+            mState.set(RotateLeft);
+            return;
+        }
+
+        // continue wall following if we see a wall (more or less)
+        if (seesWall(mSensorData.irdistances.rightFront) && seesWall(mSensorData.irdistances.rightBack)) {
+            mState.set(AlignToWall);
+            return;
+        }
+
+        // if rightFront sees a wall, we have to travel further!
+        if (seesWall(mSensorData.irdistances.rightFront)) {
+            mStraightMove->init(mSensorData, RF_TO_CENTER_DIST);
+        }
+
+        if (mStraightMove->isRunning()) {
+            mStraightMove->doControl(mSensorData);
+        } else {
+            mState.set(RotateRight);
         }
     }
 

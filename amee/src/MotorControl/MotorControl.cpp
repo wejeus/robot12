@@ -6,9 +6,6 @@
 #include <sys/time.h>
 #include "../Amee.h"
 
-#define WHEEL_RADIUS 0.0365f
-#define WHEEL_BASE 0.237f
-#define TICS_PER_REVOLUTION 225.0f // encoder tics/rev
 #define REVOLUTION_PER_SEC_LEFT 1.0f 
 #define REVOLUTION_PER_SEC_RIGHT 1.0f
 #define NUM_AVERAGED_MEASUREMENTS 1
@@ -116,7 +113,7 @@ void MotorControl::calcWheelPWMVelocities(Velocity& velocity)
 	velocity.left = leftTicksVelocity / (REVOLUTION_PER_SEC_LEFT * TICS_PER_REVOLUTION);
 	velocity.right = rightTicksVelocity / (REVOLUTION_PER_SEC_RIGHT * TICS_PER_REVOLUTION); 
 
-	std::cout << "Measured(pwm): " << velocity.left << " " << velocity.right << std::endl;
+	//std::cout << "Measured(pwm): " << velocity.left << " " << velocity.right << std::endl;
 }
 
 void MotorControl::receive_speed(const amee::Velocity::ConstPtr &v) {
