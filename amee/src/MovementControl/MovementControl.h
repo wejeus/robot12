@@ -4,7 +4,7 @@
 #include "amee/IRDistances.h"
 #include "amee/Odometry.h"
 #include "amee/MovementCommand.h"
-#include "amee/Sonar.h"
+#include "roboard_drivers/sonar.h"
 #include "MovementState.h"
 
 namespace amee {
@@ -22,7 +22,7 @@ class MovementControl {
 		void receive_distances(const amee::IRDistances::ConstPtr &msg);
 		void receive_odometry(const amee::Odometry::ConstPtr &msg);
 		void receive_command(const amee::MovementCommand::ConstPtr &msg);
-		void receive_sonar(const amee::Sonar::ConstPtr &msg);
+		void receive_sonar(const roboard_drivers::sonar::ConstPtr &msg);
 		void setSpeedPublisher(ros::Publisher& pub);
 		void doControl();
 		void init();

@@ -193,7 +193,7 @@ using namespace amee;
         } else { 
             if (!mState.initialized) {
                 mState.initialized = true;
-                mStraightMove->init(mSensorData, 0.8f);//TODO set as constant
+                mStraightMove->init(mSensorData, 0.08f);//TODO set as constant
             }
             if (mStraightMove->isRunning()) {
                 mStraightMove->doControl(mSensorData);
@@ -248,10 +248,11 @@ using namespace amee;
 
     bool MoveFollowWall::wallInFront() {
         // TODO use constants
-        return (mSensorData.irdistances.frontShortRange <= 0.11f && mSensorData.irdistances.frontShortRange >= 0.0f)
+        // return (mSensorData.irdistances.frontShortRange <= 0.11f && mSensorData.irdistances.frontShortRange >= 0.0f)
+        return mSensorData.irdistances.obstacleInFront 
             || (mSensorData.irdistances.wheelRight <= 0.08f && mSensorData.irdistances.wheelRight >= 0.0f)
             || (mSensorData.irdistances.wheelLeft <= 0.08f && mSensorData.irdistances.wheelLeft >= 0.0f)
-            || (mSensorData.sonarDistance <= 12.0f);
+            || (mSensorData.sonarDistance <= 10.0f);
     }
 
 
