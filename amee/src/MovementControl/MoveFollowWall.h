@@ -18,11 +18,17 @@ namespace amee{
 		virtual bool isRunning() const;
 		virtual void doControl(const SensorData& data);
 
-		static const float ALIGNED_TO_WALL = 1;
+		static const float FOLLOWED_WALL = 1;
+		static const float FOUND_END_OF_WALL =  2;
+		static const float MOVED_TAIL = 3;
+		static const float ROTATED_RIGHT = 4;
+		static const float ROTATED_LEFT = 5;
+		static const float FOUND_BEGINNING_OF_WALL = 6;
+		static const float ALIGNED_TO_WALL = 7;
 
 	private:
 		enum WallFollowState {FollowWall, LookForEndOfWall, MoveTail,
-			RotateRight, RotateLeft, LookForBeginningOfWall, AlignToWall};
+			RotateRight, RotateLeft, LookForBeginningOfWall, AlignToWall, HandleEvilWalls};
 
 		struct State
 		{
@@ -41,6 +47,9 @@ namespace amee{
 
 		static const float TOO_CLOSE_TO_WALL = 0.03f;
 		static const float TOO_FAR_FROM_WALL = 0.08f;
+
+		static const float TAIL_LENGTH = 0.07f
+		static const float RF_TO_CENTER_DIST = 0.06f;
 
 		float linearSpeed;
 		float K_p_keepRef;
@@ -84,6 +93,9 @@ namespace amee{
 		void rotateLeftState();
 		void lookForBeginningOfWallState();
 		void alignToWall();
+
+		// Publish states
+    	void PublishState(int state);
 
 		// control function for wall following
 		void followWall();

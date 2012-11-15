@@ -95,6 +95,8 @@ using namespace amee;
             case AlignToWall:
                 alignToWall();
                 break;
+            case HandleEvilWalls:
+                handleEvilWallsState();
             default: std::cout << "UNKNOWN STATE" << std::endl;
         }
     }
@@ -113,14 +115,7 @@ using namespace amee;
             mWallAligner->doControl(mSensorData);
         } else {
             
-            amee::FollowWallStates followWallState;
-            followWallState.state = ALIGNED_TO_WALL;
-            struct timeval time;
-            gettimeofday(&time, NULL);
-            followWallState.timestamp = time.tv_sec+double(time.tv_usec)/1000000.0;          
-
-            mFollowWallStatesPub.publish(followWallState);
-
+            MoveFollowWall::PublishState(ALIGNED_TO_WALL);
             mState.set(FollowWall);
         }
 
@@ -143,12 +138,13 @@ using namespace amee;
         mFoundWallRightBack = mFoundWallRightBack || seesWall(mSensorData.irdistances.rightBack);
 
         if (mFoundWallRightBack && mFoundWallRightFront) {
+            MoveFollowWall::PublishState(FOUND_BEGINNING_OF_WALL);
             // both sensors have seen the wall, check if the wall is still there
             if (seesWall(mSensorData.irdistances.rightBack) 
                 && seesWall(mSensorData.irdistances.rightFront)) {
                 mState.set(AlignToWall);
             } else {
-                mState.set(MoveTail);
+                mState.set(HandleEvilWalls);
             }
         } else {
             mStraightMove->doControl(mSensorData);
@@ -164,11 +160,12 @@ using namespace amee;
           if (mRotater->isRunning()) { 
             mRotater->doControl(mSensorData);
           } else {
+            PublishState(ROTATED_LEFT);
             if (seesWall(mSensorData.irdistances.rightBack) 
                 && seesWall(mSensorData.irdistances.rightFront)) { // in most cases there will be a wall, but maybe there is a small hole
                 mState.set(AlignToWall);
-            } else { // if there is no wall go to FollowWall. It will imediately detect that there is something wrong and deal with it.
-                mState.set(FollowWall);    
+            } else { // if there is no wall, there might be sth evil we have to deal with
+                mState.set(HandleEvilWalls);    
             }  
           }
     }
@@ -182,6 +179,7 @@ using namespace amee;
           if (mRotater->isRunning()) { 
             mRotater->doControl(mSensorData);
           } else {
+            MoveFollowWall::PublishState(ROTATED_RIGHT);
             mState.set(LookForBeginningOfWall);
           }
     }
@@ -193,11 +191,12 @@ using namespace amee;
         } else { 
             if (!mState.initialized) {
                 mState.initialized = true;
-                mStraightMove->init(mSensorData, 0.11f);//TODO set as constant
+                mStraightMove->init(mSensorData, TAIL_LENGTH);//TODO set as constant
             }
             if (mStraightMove->isRunning()) {
                 mStraightMove->doControl(mSensorData);
             } else {
+                MoveFollowWall::PublishState(MOVED_TAIL);
                 mState.set(RotateRight);   
             }
         }
@@ -205,12 +204,16 @@ using namespace amee;
 
     void MoveFollowWall::lookForEndOfWallState() {
         // std::cout << "LookForEndOfWall" << std::endl;
+        if (wallInFront()) {
+            mState.set(RotateLeft);
+            return;
+        }
+
         if (seesWall(mSensorData.irdistances.rightFront)) {
             mState.set(LookForBeginningOfWall); 
-        } else if (wallInFront()) {
-            mState.set(RotateLeft);
         } else if (!seesWall(mSensorData.irdistances.rightFront) 
             && !seesWall(mSensorData.irdistances.rightBack)) {
+            MoveFollowWall::PublishState(FOUND_END_OF_WALL);
             mState.set(MoveTail);
         } else {
             if (!mState.initialized) {
@@ -224,17 +227,64 @@ using namespace amee;
     void MoveFollowWall::followWallState() {
         // std::cout << "FollowWall" << std::endl;
         // std::cout << mSensorData.irdistances << std::endl;
-        if (seesWall(mSensorData.irdistances.rightBack)
-            && seesWall(mSensorData.irdistances.rightFront)
-            && !wallInFront()) {
-                followWall();    
-         } else if (!seesWall(mSensorData.irdistances.rightFront)) {
-            mState.set(LookForEndOfWall);
-         } else if (wallInFront()) {
+        if (wallInFront()) {
             mState.set(RotateLeft);
-         } else {
-           // std::cout << "HELP ME!!!! I'M LOST!!!!!" << std::endl;
+            PublishState(FOLLOWED_WALL);
+            return;
         }
+
+        if (seesWall(mSensorData.irdistances.rightBack)
+            && seesWall(mSensorData.irdistances.rightFront)) {
+                followWall();    
+         } else if (!seesWall(mSensorData.irdistances.rightFront) && seesWall(mSensorData.irdistances.rightBack)) {
+            PublishState(FOLLOWED_WALL);
+            mState.set(LookForEndOfWall);
+         } else if (seesWall(mSensorData.irdistances.rightFront) && !seesWall(mSensorData.irdistances.rightBack)) {
+            mState.set(LookForBeginningOfWall);
+         } else {
+           mState.set(HandleEvilWalls);
+        }
+    }
+
+    void MoveFollowWall::handleEvilWallsState() {
+        if (!mState.initialized) {
+            mState.initialized = true;
+            mStraightMove->init(mSensorData, TAIL_LENGTH);
+        }
+        // stop if wall in front
+        if (wallInFront()) {
+            mState.set(RotateLeft);
+            return;
+        }
+
+        // continue wall following if we see a wall (more or less)
+        if (seesWall(mSensorData.irdistances.rightFront) && seesWall(mSensorData.irdistances)) {
+            mState.set(AlignToWall);
+            return;
+        }
+
+        // if frontRight sees a wall, we have to travel further!
+        if (seesWall(mSensorData.irdistances.frontRight)) {
+            mStraightMove->init(mSensorData, RF_TO_CENTER_DIST);
+        }
+
+        if (mStraightMove->isRunning()) {
+            mStraightMove->doControl(mSensorData);
+        } else {
+            mState.set(RotateRight);
+        }
+    }
+
+    void MoveFollowWall::PublishState(int state) { // publishes the state
+
+        amee::FollowWallStates followWallState;
+        followWallState.state = state;
+        struct timeval time;
+        gettimeofday(&time, NULL);
+        followWallState.timestamp = time.tv_sec+double(time.tv_usec)/1000000.0;          
+
+        mFollowWallStatesPub.publish(followWallState);
+
     }
 
     bool MoveFollowWall::isRunning() const {
