@@ -83,6 +83,9 @@ bool EQUALIZE_HISTOGRAM = true;
 bool DISPLAY_GRAPHICAL = false;
 bool LOCAL = false;
 int CAMERA_INTERVAL = 10;
+bool LOAD_OBJECTS = true;
+bool USE_ROS_CAMERA = false;
+bool INIT_ROS = false;
 bool CLASSIFICATION_IN_PROGRESS = false;
 
 Mat frame;
@@ -105,6 +108,7 @@ void log(string fmt, ...) {
 void show(const string& winname, InputArray mat) {
     if (DISPLAY_GRAPHICAL) {
         imshow(winname.c_str(), mat);
+        waitKey(30);
     }
 }
 
@@ -132,7 +136,9 @@ void streamCamera(VideoCapture &capture) {
             if (!capture.retrieve(frame)) {
                 cout << "Could not decode and return new frame!" << endl;
             } else {
+                log("Got new frame\n");
                 render(frame);
+                log("Render complete\n");
             }
         }
         
@@ -150,16 +156,17 @@ void render(Mat &frame) {
     // if (FILTER_RED_TAG) filterRedTag(frame, frame);
     
     Mat ROI;
+    CLASSIFICATION_IN_PROGRESS = true;
     if (findTagROI(frame, ROI)) {
         
-        CLASSIFICATION_IN_PROGRESS = true;
+        
         
         // if ROI is "good enough" to make a classification (is in center, sharp?)
 
         // TODO: move robot so that tag is in center (1. determine distance from tag center to image normal 2. move(distance))
         
         // Stop motors
-        publishMovement(5);
+        // publishMovement(5);
 
         TAG_CLASS res = classifyTag(ROI);
         if (res != FAILURE) {
@@ -167,11 +174,11 @@ void render(Mat &frame) {
         }
         
         // continue wall following
-        publishMovement(4);
+        // publishMovement(4);
 
-        CLASSIFICATION_IN_PROGRESS = false;
+        
     }
-
+    CLASSIFICATION_IN_PROGRESS = false;
     show(windowResult, frame);
 }
 
@@ -332,7 +339,7 @@ TAG_CLASS classifyTag(Mat &ROI) {
         //-- Draw only "good" matches (i.e. whose distance is less than 3*min_dist )
         vector< DMatch > goodMatches;
         double error = 0;
-        for( int i = 0; i < tagDescriptors.rows; i++ ) {
+        for( int i = 0; i < ROIDescriptors.rows; i++ ) {
             if( matches[i].distance < 3*min_dist ) {
                 goodMatches.push_back(matches[i]);
                 error += matches[i].distance;
@@ -347,11 +354,14 @@ TAG_CLASS classifyTag(Mat &ROI) {
         }
     }
 
-    if (bestMatch < 0.5f) {
-        return determinedClass;
-    } else {
-        return UNKNOWN;
-    }
+    return determinedClass;
+    // log("Match: %f\n", bestMatch);
+    // if (bestMatch < 0.5f) {
+    //     return determinedClass;
+    // } else {
+    //     log("...but would have guessed: %s\n", class2name(determinedClass).c_str());
+    //     return UNKNOWN;
+    // }
 
 }
 
@@ -412,7 +422,7 @@ bool findTagROI(Mat &srcImage, Mat &ROI) {
     for(int i = 0; i < contours.size(); ++i) {
         if (contourArea(contours[i]) > TAG_MIN_PIXEL_AREA) {
             Rect rect = boundingRect(contours[i]);
-            // rectangle(srcImage, rect, Scalar(255,0,0), 3);
+            rectangle(srcImage, rect, Scalar(255,0,0), 3);
             ROI = Mat(srcImage, rect);
 
             return true;
@@ -459,7 +469,8 @@ void onGaussianSigmaChange(int value) {
 
 #ifdef ROS
 void cam0_cb(const std_msgs::Int8MultiArray::ConstPtr& array) {
-    
+    log("Got frame from ROS\n");
+
     if ( ! CLASSIFICATION_IN_PROGRESS) {
         IplImage *img               = cvCreateImage(cvSize(320, 240), IPL_DEPTH_8U, 3);
         char * data                 = img->imageData;
@@ -474,25 +485,31 @@ void cam0_cb(const std_msgs::Int8MultiArray::ConstPtr& array) {
         // cvConvert(img, mat);
         Mat mat(img);
         render(mat);
-        waitKey(10); // For some reason we have to wait to get the graphical stuff to show..?
+        // waitKey(10); // For some reason we have to wait to get the graphical stuff to show..?
     }
 }
 #endif
 
 void initROS(int argc, char *argv[]) {
     #ifdef ROS
-    log("Starting TagDetection using ROS\n");
+    log("Initializing ROS...\n");
     ros::init(argc, argv, "TagDetection");
     ros::NodeHandle rosNodeHandle;
 
     mapPublisher = rosNodeHandle.advertise<Tag>("/amee/tag", 100);
-    wait(mapPublisher);
+    // wait(mapPublisher);
     movementPublisher = rosNodeHandle.advertise<MovementCommand>("/MovementControl/MovementCommand", 1);
-    wait(movementPublisher);
+    // wait(movementPublisher);
 
-    ros::Subscriber img0_sub = rosNodeHandle.subscribe("/camera0_img", 1, cam0_cb);
+    if (USE_ROS_CAMERA) {
+        ros::Subscriber img0_sub = rosNodeHandle.subscribe("/camera0_img", 1, cam0_cb);
+        log("done. Spinning...\n");
+        ros::spin();
+    } 
     // ros::Subscriber img1_sub = n.subscribe("/camera1_img", 1, cam1_cb);
-    ros::spin();
+
+    
+    
     #else
     log("ROS IS NOT DEFINED");
     #endif
@@ -539,13 +556,34 @@ int main(int argc, char *argv[]) {
 
     int c;
     string source;
-    while ((c = getopt (argc, argv, "lds:")) != -1) {
+
+    if (argc == 1) {
+        cout << "Options (default):" << endl
+             << "l (false) - use local camera on system" << endl
+             << "n (true) - load training dataset" << endl
+             << "c (false) - use camera data using callback listening to rostopic" << endl
+             << "d (false) - display results graphically" << endl
+             << "r (false) - init ROS" << endl
+             << "s (nothing) - which camera source to listen to when using local camera (/dev/videoX)" << endl;
+             return 0;
+    }
+
+    while ((c = getopt (argc, argv, "lnrcds:")) != -1) {
         switch (c) {
             case 'l':
                 LOCAL = true;
                 break;
             case 'd':
                 DISPLAY_GRAPHICAL = true;
+                break;
+            case 'n':
+                LOAD_OBJECTS = false;     
+                break;
+            case 'c':
+                USE_ROS_CAMERA = true;     
+                break;
+            case 'r':
+                INIT_ROS = true;     
                 break;
             case 's':
                 source = optarg;     
@@ -568,16 +606,18 @@ int main(int argc, char *argv[]) {
         initWindows();
     }
 
-    if ( ! initSurf()) {
+    if (LOAD_OBJECTS && !initSurf()) {
         log("Failed to initialize tag objects!\n");
         return -1;
     }
 
-    if (LOCAL) {
-        initLocalInput(source);
-    } else {
+    if (INIT_ROS) {
         initROS(argc, argv);
     }
+
+    if (LOCAL) {
+        initLocalInput(source);
+    } 
 
     log("Quitting ...");
     
