@@ -11,7 +11,7 @@
 #include <string>
 #include <unistd.h>
 
-// #define ROS
+#define ROS
 
 #ifdef ROS
 #include "ros/ros.h"
@@ -412,7 +412,7 @@ bool findTagROI(Mat &srcImage, Mat &ROI) {
     for(int i = 0; i < contours.size(); ++i) {
         if (contourArea(contours[i]) > TAG_MIN_PIXEL_AREA) {
             Rect rect = boundingRect(contours[i]);
-            rectangle(srcImage, rect, Scalar(255,0,0), 3);
+            // rectangle(srcImage, rect, Scalar(255,0,0), 3);
             ROI = Mat(srcImage, rect);
 
             return true;
@@ -490,7 +490,7 @@ void initROS(int argc, char *argv[]) {
     movementPublisher = rosNodeHandle.advertise<MovementCommand>("/MovementControl/MovementCommand", 1);
     wait(movementPublisher);
 
-    ros::Subscriber img0_sub = n.subscribe("/camera0_img", 1, cam0_cb);
+    ros::Subscriber img0_sub = rosNodeHandle.subscribe("/camera0_img", 1, cam0_cb);
     // ros::Subscriber img1_sub = n.subscribe("/camera1_img", 1, cam1_cb);
     ros::spin();
     #else
