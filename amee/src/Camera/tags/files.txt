@@ -1,0 +1,12 @@
+tags/tag_apple.png
+tags/tag_banana.png
+tags/tag_book.png
+tags/tag_camera.png
+tags/tag_dryer.png
+tags/tag_glass.png
+tags/tag_glasses.png
+tags/tag_hammer.png
+tags/tag_laptop.png
+tags/tag_mug.png
+tags/tag_scissors.png
+tags/tag_teddy.png
