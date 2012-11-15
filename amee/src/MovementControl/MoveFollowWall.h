@@ -40,16 +40,15 @@ namespace amee{
 			}
 		};
 
-		static const float MOVEMENT_SPEED = 0.3;
+		static const float MOVEMENT_SPEED = 0.25;
 		static const float MAX_ROTATION_SPEED = 0.1;
 		static const float MIN_ROTATION_SPEED = 0.06;
 		static const float IR_BASE_RIGHT = 0.104;
 
 		static const float TOO_CLOSE_TO_WALL = 0.03f;
-		static const float TOO_FAR_FROM_WALL = 0.08f;
+		static const float TOO_FAR_FROM_WALL = 0.05f;
 
 		static const float TAIL_LENGTH = 0.07f;
-		static const float RF_TO_CENTER_DIST = 0.06f;
 
 		float linearSpeed;
 		float K_p_keepRef;
