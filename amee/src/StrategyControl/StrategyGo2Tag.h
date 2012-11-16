@@ -1,14 +1,14 @@
-#ifndef MOVE_COORDINATE_H
-#define MOVE_COORDINATE_H
+#ifndef STRATEGY_GO_2_TAG_H
+#define STRATEGY_GO_2_TAG_H
 
-#include "MovementState.h"
+#include "StrategyState.h"
 #include "ros/ros.h"
 
 namespace amee{
-	class MoveCoordinate : public MovementState{
+	class StrategyGo2Tag : public StrategyState{
 	public:
-		MoveCoordinate(ros::Publisher &pub);
-		~MoveCoordinate();
+		StrategyGo2Tag(ros::Publisher &pub);
+		~StrategyGo2Tag();
 
 		virtual void init(const SensorData &data);
 		virtual bool isRunning() const;
@@ -16,8 +16,8 @@ namespace amee{
 	private:
 		bool mRunning;
 		ros::Publisher mPub;
-	}; //MoveCoordinate
+	}; //StrategyGo2Tag class
 
 }; //namespace amee
 
-#endif //MOVE_COORDINATE_H
+#endif //STRATEGY_GO_2_TAG_H
