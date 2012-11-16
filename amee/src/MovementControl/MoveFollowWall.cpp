@@ -3,6 +3,7 @@
 #include "MoveRotate.h"
 #include "MoveStraight.h"
 #include "MoveAlignWall.h"
+#include "MoveAlignToFrontWall.h"
 #include "amee/FollowWallStates.h"
 
 #ifndef M_PI
@@ -18,16 +19,18 @@ using namespace amee;
         mRotater = new MoveRotate(pub);
         mStraightMove = new MoveStraight(pub);
         mWallAligner = new MoveAlignWall(pub);
+        mFrontWallAligner = new MoveAlignToFrontWall(pub);
     }
 
     MoveFollowWall::~MoveFollowWall() {
         delete mRotater;
         delete mStraightMove;
         delete mWallAligner;
+        delete mFrontWallAligner;
     }
 
     void MoveFollowWall::init(const SensorData& data) {
-        linearSpeed = 0.2f;
+        linearSpeed = 0.15f;
         K_p_keepRef = 0.8f;
         K_p_reachRef = 0.3f;
         K_i_keepRef = 0.0f;
@@ -93,20 +96,52 @@ using namespace amee;
                 lookForBeginningOfWallState();
                 break;
             case AlignToWall:
-                alignToWall();
+                alignToWallState();
                 break;
             case HandleEvilWalls:
                 handleEvilWallsState();
+                break;
+            case AlignToFrontWall:
+                alignToFrontWallState();
+                break;
+            case TIntersectionHandling:
+                tIntersectionHandlingState();
+                break;
             default: std::cout << "UNKNOWN STATE" << std::endl;
+        }
+    }
+
+    void MoveFollowWall::tIntersectionHandlingState() {
+        std::cout << "T Intersection" << std::endl;       
+        if (!mState.initialized) {
+            std::cout << "T Intersection: INIT" << std::endl;  
+            publishSpeeds(0.0f,0.0f);
+            mState.initialized = true;
+
+            if (frontAlignmentPossible()) { 
+                std::cout << "T Intersection: ALIGNMENT POSSIBLE" << std::endl;  
+                mFrontWallAligner->init(mSensorData, MIN_WALL_DISTANCE);    
+            } else {
+                std::cout << "T Intersection: CAN'T ALIGN -> ROTATE" << std::endl;  
+                mState.set(RotateLeft);
+                return;
+            }
+        }
+
+        if (mFrontWallAligner->isRunning()) {
+            mFrontWallAligner->doControl(mSensorData);
+        } else {
+            mState.set(RotateRight);
         }
     }
 
     // only go this state if you're sure there is a wall it can align to. If there is no wall it will dance or rotate at most 180 degrees, but the 
     // robot will be lost, so make sure there is a wall before going into this state!
     // After aligning it changes to FollowWall.
-    void MoveFollowWall::alignToWall() {
+    void MoveFollowWall::alignToWallState() {
         std::cout << "AlignToWall" << std::endl;
         if (!mState.initialized) {
+            publishSpeeds(0.0f,0.0f);
             mState.initialized = true;
             mWallAligner->init(mSensorData);
         }
@@ -121,9 +156,32 @@ using namespace amee;
 
     }
 
+    void MoveFollowWall::alignToFrontWallState() {
+        std::cout << "AlignToFrontWall" << std::endl;
+        if (!mState.initialized) {
+            publishSpeeds(0.0f,0.0f);
+            mState.initialized = true;
+            // TODO WE HAVE TO DISTINGUISH WHETHER WE ARE IN FRONT OF A EVIL WALL OR NOT
+            // DO THIS BY CHECKING THE DISTANCES MEASURED BY THE IRS UNDERNEATH AMEE
+            if (frontAlignmentPossible()) { 
+                mFrontWallAligner->init(mSensorData, MIN_WALL_DISTANCE);    
+            } else {
+                mState.set(RotateLeft);
+                return;
+            }
+        }
+
+        if (mFrontWallAligner->isRunning()) {
+            mFrontWallAligner->doControl(mSensorData);
+        } else {
+            mState.set(RotateLeft);
+        }
+    }
+
     void MoveFollowWall::lookForBeginningOfWallState() {
         std::cout << "LookForBeginningOfWall" << std::endl;
         if (!mState.initialized) {
+            publishSpeeds(0.0f,0.0f);
             mState.initialized = true;
             mFoundWallRightBack = false;
             mFoundWallRightFront = false;
@@ -131,21 +189,24 @@ using namespace amee;
         }
 
         if (wallInFront()) { // in case there is for whatever evil reason a wall in front
-            mState.set(RotateLeft);
+            mState.set(AlignToFrontWall);
             return;
         }
-        mFoundWallRightFront = mFoundWallRightFront || seesWall(mSensorData.irdistances.rightFront);
-        mFoundWallRightBack = mFoundWallRightBack || seesWall(mSensorData.irdistances.rightBack);
+        bool rF = seesWall(mSensorData.irdistances.rightFront);
+        bool rB = seesWall(mSensorData.irdistances.rightBack);
+        mFoundWallRightFront = mFoundWallRightFront || rF;
+        mFoundWallRightBack = mFoundWallRightBack || rB;
+
+        if (nextToWall()) {
+            mState.set(AlignToWall);
+            MoveFollowWall::PublishState(FOUND_BEGINNING_OF_WALL);
+            return;
+        }
 
         if (mFoundWallRightBack && mFoundWallRightFront) {
             MoveFollowWall::PublishState(FOUND_BEGINNING_OF_WALL);
-            // both sensors have seen the wall, check if the wall is still there
-            if (seesWall(mSensorData.irdistances.rightBack) 
-                && seesWall(mSensorData.irdistances.rightFront)) {
-                mState.set(AlignToWall);
-            } else {
-                mState.set(HandleEvilWalls);
-            }
+            // both sensors have seen the wall, but it's not continues, so go to evil wall handling
+            mState.set(HandleEvilWalls);
         } else {
             mStraightMove->doControl(mSensorData);
         }
@@ -154,6 +215,7 @@ using namespace amee;
     void MoveFollowWall::rotateLeftState() {
         std::cout << "RotateLeft" << std::endl;
           if (!mState.initialized) {
+            publishSpeeds(0.0f,0.0f);
             mState.initialized = true;
             mRotater->init(mSensorData, 90.0f);
           }
@@ -161,18 +223,14 @@ using namespace amee;
             mRotater->doControl(mSensorData);
           } else {
             PublishState(ROTATED_LEFT);
-            if (seesWall(mSensorData.irdistances.rightBack) 
-                && seesWall(mSensorData.irdistances.rightFront)) { // in most cases there will be a wall, but maybe there is a small hole
-                mState.set(AlignToWall);
-            } else { // if there is no wall, there might be sth evil we have to deal with
-                mState.set(HandleEvilWalls);    
-            }  
+            mState.set(HandleEvilWalls);    
           }
     }
 
     void MoveFollowWall::rotateRightState() {
         std::cout << "RotateRight" << std::endl;
           if (!mState.initialized) {
+            publishSpeeds(0.0f,0.0f);
             mState.initialized = true;
             mRotater->init(mSensorData, -90.0f);
           }
@@ -187,9 +245,10 @@ using namespace amee;
     void MoveFollowWall::moveTailState() {
         std::cout << "MoveTail" << std::endl;
         if (wallInFront()) {
-            mState.set(RotateLeft);
+            mState.set(TIntersectionHandling);
         } else { 
             if (!mState.initialized) {
+                publishSpeeds(0.0f,0.0f);
                 mState.initialized = true;
                 mStraightMove->init(mSensorData, TAIL_LENGTH);
             }
@@ -203,9 +262,10 @@ using namespace amee;
     }
 
     void MoveFollowWall::lookForEndOfWallState() {
-        // std::cout << "LookForEndOfWall" << std::endl;
+        std::cout << "LookForEndOfWall" << std::endl;
         if (wallInFront()) {
-            mState.set(RotateLeft);
+            publishSpeeds(0.0f,0.0f);
+            mState.set(TIntersectionHandling);
             return;
         }
 
@@ -217,6 +277,7 @@ using namespace amee;
             mState.set(MoveTail);
         } else {
             if (!mState.initialized) {
+                publishSpeeds(0.0f,0.0f);
                 mState.initialized = true;
                 mStraightMove->init();
             }
@@ -228,7 +289,7 @@ using namespace amee;
         std::cout << "FollowWall" << std::endl;
         // std::cout << mSensorData.irdistances << std::endl;
         if (wallInFront()) {
-            mState.set(RotateLeft);
+            mState.set(AlignToFrontWall);
             PublishState(FOLLOWED_WALL);
             return;
         }
@@ -247,32 +308,38 @@ using namespace amee;
     }
 
     void MoveFollowWall::handleEvilWallsState() {
+        std::cout << "handleEvilWallsState" << std::endl;
         if (!mState.initialized) {
+            publishSpeeds(0.0f,0.0f);
             mState.initialized = true;
             mStraightMove->init(mSensorData, TAIL_LENGTH);
         }
         // stop if wall in front
         if (wallInFront()) {
-            mState.set(RotateLeft);
+            mState.set(AlignToFrontWall);
             return;
         }
 
-        // continue wall following if we see a wall (more or less)
-        if (seesWall(mSensorData.irdistances.rightFront) && seesWall(mSensorData.irdistances.rightBack)) {
+        // continue wall following if we see a wall
+        if (nextToWall()) {
             mState.set(AlignToWall);
+            publishSpeeds(0.0f,0.0f);
             return;
         }
 
         // if rightFront sees a wall, we have to travel further!
         if (seesWall(mSensorData.irdistances.rightFront)) {
-            mStraightMove->init(mSensorData, IR_BASE_RIGHT);
+            mStraightMove->init(mSensorData, IR_BASE_RIGHT + TAIL_LENGTH);
         }
 
         if (mStraightMove->isRunning()) {
             mStraightMove->doControl(mSensorData);
         } else {
-            // TODO travel straight if rightBack sees sth.
-            mState.set(RotateRight);
+            if (seesWall(mSensorData.irdistances.rightBack)) {
+                mStraightMove->init(mSensorData, TAIL_LENGTH);
+            } else {
+                mState.set(RotateRight);    
+            }
         }
     }
 
@@ -297,13 +364,29 @@ using namespace amee;
         return distance >= 0.0f && distance <= 0.14f;
     }
 
+    bool MoveFollowWall::nextToWall() {
+        bool rF = seesWall(mSensorData.irdistances.rightFront);
+        bool rB = seesWall(mSensorData.irdistances.rightBack);
+        if (!rF) {
+            mSeenWallStartDist = mSensorData.odometry.distance;
+        }
+        float wallLength = mSensorData.odometry.distance - mSeenWallStartDist;
+        return rB && (wallLength >= IR_BASE_RIGHT);
+    }
+
+    bool MoveFollowWall::frontAlignmentPossible() {
+        bool rightOk = mSensorData.irdistances.wheelRight >= -0.03f && mSensorData.irdistances.wheelLeft <= 0.08f;
+        bool leftOk = mSensorData.irdistances.wheelLeft >= -0.03f && mSensorData.irdistances.wheelRight <= 0.08f;
+        return leftOk && rightOk;
+    }
+
     bool MoveFollowWall::wallInFront() {
         // TODO use constants
         // return (mSensorData.irdistances.frontShortRange <= 0.11f && mSensorData.irdistances.frontShortRange >= 0.0f)
         return mSensorData.irdistances.obstacleInFront 
-            || (mSensorData.irdistances.wheelRight <= 0.06f && mSensorData.irdistances.wheelRight >= 0.0f)
-            || (mSensorData.irdistances.wheelLeft <= 0.06f && mSensorData.irdistances.wheelLeft >= 0.0f)
-            || (mSensorData.sonarDistance <= 8.0f);
+            || (mSensorData.irdistances.wheelRight <= 0.05f && mSensorData.irdistances.wheelRight >= -0.03f)
+            || (mSensorData.irdistances.wheelLeft <= 0.05f && mSensorData.irdistances.wheelLeft >= -0.03f)
+            || (mSensorData.sonarDistance <= 0.13f);
     }
 
 
@@ -371,10 +454,10 @@ using namespace amee;
         error_sum = fabs(error_sum) > maxErrorSum ? sign * maxErrorSum : error_sum;
         last_error = error;
         
-        if(ir_right_mean < TOO_CLOSE_TO_WALL) {
-            rotationSpeed += K_p_reachRef * (TOO_CLOSE_TO_WALL - ir_right_mean);
-        } else if (ir_right_mean > TOO_FAR_FROM_WALL) {
-            rotationSpeed += K_p_reachRef * (TOO_FAR_FROM_WALL - ir_right_mean);
+        if(ir_right_mean < MIN_WALL_DISTANCE) {
+            rotationSpeed += K_p_reachRef * (MIN_WALL_DISTANCE - ir_right_mean);
+        } else if (ir_right_mean > MAX_WALL_DISTANCE) {
+            rotationSpeed += K_p_reachRef * (MAX_WALL_DISTANCE - ir_right_mean);
         }
 
        publishSpeeds(linearSpeed - rotationSpeed, linearSpeed + rotationSpeed);

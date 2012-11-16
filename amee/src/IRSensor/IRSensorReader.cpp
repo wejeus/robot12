@@ -144,7 +144,7 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 		distanceMsg.leftFront = distances[LEFT_FRONT];
 		distanceMsg.wheelLeft = distances[WHEEL_LEFT];
 
-		distanceMsg.obstacleInFront = (mLastReadings[LEFT_FRONT_WALL_DETECTOR] >= 280) || (mLastReadings[RIGHT_FRONT_WALL_DETECTOR] >= 270);
+		distanceMsg.obstacleInFront = (mLastReadings[LEFT_FRONT_WALL_DETECTOR] >= 310) || (mLastReadings[RIGHT_FRONT_WALL_DETECTOR] >= 260);
 		//TODO publish all the other correct distances
 		
 		// std::cout << "timestamp: " << distanceMsg.timestamp << std::endl;

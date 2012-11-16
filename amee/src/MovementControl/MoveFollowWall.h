@@ -8,6 +8,7 @@ namespace amee{
 	class MoveRotate;
 	class MoveStraight;
 	class MoveAlignWall;
+	class MoveAlignToFrontWall;
 
 	class MoveFollowWall : public MovementState {
 	public:
@@ -28,7 +29,7 @@ namespace amee{
 
 	private:
 		enum WallFollowState {FollowWall, LookForEndOfWall, MoveTail,
-			RotateRight, RotateLeft, LookForBeginningOfWall, AlignToWall, HandleEvilWalls};
+			RotateRight, RotateLeft, LookForBeginningOfWall, AlignToWall, HandleEvilWalls, AlignToFrontWall, TIntersectionHandling};
 
 		struct State
 		{
@@ -45,10 +46,10 @@ namespace amee{
 		static const float MIN_ROTATION_SPEED = 0.06;
 		static const float IR_BASE_RIGHT = 0.104;
 
-		static const float TOO_CLOSE_TO_WALL = 0.03f;
-		static const float TOO_FAR_FROM_WALL = 0.05f;
+		static const float MIN_WALL_DISTANCE = 0.03f;
+		static const float MAX_WALL_DISTANCE = 0.05f;
 
-		static const float TAIL_LENGTH = 0.07f;
+		static const float TAIL_LENGTH = 0.09f;
 
 		float linearSpeed;
 		float K_p_keepRef;
@@ -74,6 +75,8 @@ namespace amee{
 		amee::MoveStraight *mStraightMove;
 		// allows us to align the robot parallel to the wall
 		amee::MoveAlignWall *mWallAligner;
+		// allows us to align the robot to a front wall
+		amee::MoveAlignToFrontWall *mFrontWallAligner;
 
 		ros::Publisher mVelPub;
 		ros::Publisher mFollowWallStatesPub;
@@ -84,6 +87,9 @@ namespace amee{
 		bool mFoundWallRightBack;
 		bool mFoundWallRightFront;
 
+		// variable for WallDetection
+		float mSeenWallStartDist;
+
 		// states
 		void followWallState();
 		void lookForEndOfWallState();
@@ -91,7 +97,9 @@ namespace amee{
 		void rotateRightState();
 		void rotateLeftState();
 		void lookForBeginningOfWallState();
-		void alignToWall();
+		void alignToWallState();
+		void alignToFrontWallState();
+		void tIntersectionHandlingState();
 		void handleEvilWallsState();
 
 		// Publish states
@@ -103,6 +111,9 @@ namespace amee{
 		// helper functions
 		bool seesWall(float distance);
 		bool wallInFront();
+		bool frontAlignmentPossible();
+
+		bool nextToWall();
 
 		// function to publish speeds
 		void publishSpeeds(float left, float right);

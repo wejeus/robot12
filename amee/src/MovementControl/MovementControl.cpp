@@ -8,6 +8,7 @@
 #include "MoveStop.h"
 #include "MoveFollowWall.h"
 #include "MoveAlignWall.h"
+#include "MoveAlignToFrontWall.h"
 #include "amee/FollowWallStates.h"
 #include <std_msgs/Int32.h>
 
@@ -20,6 +21,7 @@ MovementControl::MovementControl(ros::Publisher& pub, ros::Publisher& statesPub)
 	mStopState = new MoveStop(pub);
 	mFollowWallState = new MoveFollowWall(pub, statesPub);
 	mAlignWallState = new MoveAlignWall(pub);
+	mAlignToFrontWallState = new MoveAlignToFrontWall(pub);
 	mCurrentState = mStopState;
 }
 
@@ -29,6 +31,7 @@ MovementControl::~MovementControl() {
 	delete mStopState;
 	delete mFollowWallState;
 	delete mAlignWallState;
+	delete mAlignToFrontWallState;
 }
 
 void MovementControl::setSpeedPublisher(ros::Publisher& pub) {
@@ -63,7 +66,7 @@ void MovementControl::doControl() {
 }
 
 void MovementControl::receive_sonar(const roboard_drivers::sonar::ConstPtr &msg) {
-	mSensorData.sonarDistance = msg->distance;
+	mSensorData.sonarDistance = msg->distance / 100.0f;
 	// std::cout << "Sonar received: " << mSensorData.sonarDistance << std::endl;
 }
 
@@ -100,6 +103,10 @@ void MovementControl::receive_command(const amee::MovementCommand::ConstPtr &msg
 			// std::cout << "ALIGN TO WALL COMMAND RECEIVED" << std::endl;
 			mAlignWallState->init(mSensorData);
 			mCurrentState = mAlignWallState;
+		break;
+		case TYPE_ALIGN_TO_FRONT_WALL:
+			mAlignToFrontWallState->init(mSensorData);
+			mCurrentState = mAlignToFrontWallState;
 		break;
 		// default: std::cout << "GAY COMMAND RECEIVED" << std::endl;
 	}
@@ -138,7 +145,7 @@ int main(int argc, char **argv)
 	} 
 
 	std_msgs::Int32 interval;
-	interval.data = 400;
+	interval.data = 50;
 	sonar_interval_pub.publish(interval);
 
 	control.init();
