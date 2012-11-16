@@ -44,10 +44,10 @@ IRSensorReader::IRSensorReader() {
 	mSensorCalibrations[LEFT_BACK] = baseCalib;
 
 	// FRONT SHORT RANGE
-	baseCalib.m = 0.0346;
-	baseCalib.b = -0.0489;
-	baseCalib.k = 0.0751;
-	mSensorCalibrations[FRONT_SHORTRANGE] = baseCalib;
+	// baseCalib.m = 0.0346;
+	// baseCalib.b = -0.0489;
+	// baseCalib.k = 0.0751;
+	// mSensorCalibrations[FRONT_SHORTRANGE] = baseCalib;
 
 	// RIGHT LONG RANGE ABOVE OF THE WHEEL
 	baseCalib.m = 0.0181f;
@@ -138,11 +138,13 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 		distanceMsg.timestamp = time.tv_sec+double(time.tv_usec)/1000000.0;  ;//msg->timestamp;
 		distanceMsg.rightFront = distances[RIGHT_FRONT];
 		distanceMsg.rightBack = distances[RIGHT_BACK];
-		distanceMsg.frontShortRange = distances[FRONT_SHORTRANGE];
+		//distanceMsg.frontShortRange = distances[FRONT_SHORTRANGE];
 		distanceMsg.wheelRight = distances[WHEEL_RIGHT];
 		distanceMsg.leftBack = distances[LEFT_BACK];
 		distanceMsg.leftFront = distances[LEFT_FRONT];
 		distanceMsg.wheelLeft = distances[WHEEL_LEFT];
+
+		distanceMsg.obstacleInFront = (mLastReadings[LEFT_FRONT_WALL_DETECTOR] >= 280) || (mLastReadings[RIGHT_FRONT_WALL_DETECTOR] >= 270);
 		//TODO publish all the other correct distances
 		
 		// std::cout << "timestamp: " << distanceMsg.timestamp << std::endl;

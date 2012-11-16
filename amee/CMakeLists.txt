@@ -39,6 +39,7 @@ include_directories(${eigen}/include)
 
 rosbuild_add_executable(MotorControl src/MotorControl/MotorControl.cpp src/Amee.cpp)
 rosbuild_add_executable(IRSensorReader src/IRSensor/IRSensorReader.cpp src/Amee.cpp)
+rosbuild_add_executable(SonarNode src/SonarControl/SonarControl.cpp)
 rosbuild_add_executable(MovementControl src/MovementControl/MovementControl.cpp src/MovementControl/MoveRotate.cpp src/MovementControl/MoveStraight.cpp src/MovementControl/MoveStop.cpp src/MovementControl/MoveFollowWall.cpp src/MovementControl/MoveAlignWall.cpp src/Amee.cpp) 
 rosbuild_add_executable(MeasureAmee src/MeasureAmee/MeasureAmee.cpp src/Amee.cpp)
 rosbuild_add_executable(KeyHandler src/KeyHandler/key_handler.cpp)
