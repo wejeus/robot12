@@ -14,14 +14,14 @@ namespace amee{
 void PathFinderAlgo::Dijkstra(const Graph& g, size_t source, float const* const* dist, long * pathD) {
 	//TODO: implement dijkstra
 	size_t size = g.size();
-	int visited[size];
+	bool visited[size];
 //	long pathD[size]; //path distance, 
 	size_t i, k, mini;
 
 	//initial values
 	for(i=0; i<size; ++i){
 		pathD[i] = LONG_MAX;
-		visited[i] = 0;
+		visited[i] = false;
 	}
 
 	pathD[source] = 0;
@@ -34,7 +34,7 @@ void PathFinderAlgo::Dijkstra(const Graph& g, size_t source, float const* const*
 			if (!visited[i] && ((mini == -1) || (pathD[i] < pathD[mini])))
 				mini = i;
 
-		visited[mini] = 1;
+		visited[mini] = true;
 
 		for (i = 0; i < size; ++i)
 			if (dist[mini][i])
