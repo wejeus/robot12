@@ -27,11 +27,11 @@ void MoveStraight::init(const SensorData &data){
 	init();
 }
 
-void MoveStraight::init(const SensorData &data, float distance) {
+void MoveStraight::init(const SensorData &data, float distance, float vel) {
 	mTargetDistance = distance;
 	mGoingDistance = true;	
 	mStartingDistance = data.odometry.distance;
-	mVelocity = 0.15f;
+	mVelocity = vel;
 	mRunning = true;
 	mFirstRun = true;
 }

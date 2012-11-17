@@ -29,7 +29,7 @@ namespace amee{
 
 	private:
 		enum WallFollowState {FollowWall, LookForEndOfWall, MoveTail,
-			RotateRight, RotateLeft, LookForBeginningOfWall, AlignToWall, HandleEvilWalls, AlignToFrontWall, TIntersectionHandling};
+			RotateRight, RotateLeft, LookForBeginningOfWall, AlignToWall, HandleEvilWalls, AlignToFrontWall, TIntersectionHandling, EdgeOfWall};
 
 		struct State
 		{
@@ -41,28 +41,32 @@ namespace amee{
 			}
 		};
 
-		static const float MOVEMENT_SPEED = 0.25;
+		static const float MOVEMENT_SPEED = 0.2f;
+		static const float SLOW_MOVEMENT_SPEED = 0.08f;
 		static const float MAX_ROTATION_SPEED = 0.1;
 		static const float MIN_ROTATION_SPEED = 0.06;
 		static const float IR_BASE_RIGHT = 0.104;
+		static const float IR_ERROR_THRESHOLD = 0.02f;
+
+		static const float K_p_keepRef = 0.8f;
+        static const float K_p_reachRef = 0.3f;
+        static const float K_i_keepRef = 0.0f;
+        static const float K_i_reachRef = 0.0f;
+
+
+        static const float MAX_ERROR_SUM = 100.0f;
+        static const float REF_DISTANCE = 0.04f;
+        static const float NO_WALL_DISTANCE = 0.15f;
+        static const float WALL_DIST_TOL = 0.01f;
 
 		static const float MIN_WALL_DISTANCE = 0.03f;
 		static const float MAX_WALL_DISTANCE = 0.05f;
 
 		static const float TAIL_LENGTH = 0.09f;
 
-		float linearSpeed;
-		float K_p_keepRef;
-		float K_p_reachRef;
-		float K_i_keepRef;
-		float K_i_reachRef;
-
-		float K_d;
 
 		float maxErrorSum;
-		float refDistance;
-		float noWallDistance;
-		float wallDistTol;
+		
 		float error_sum;
 		float last_error;
 		
@@ -101,6 +105,7 @@ namespace amee{
 		void alignToFrontWallState();
 		void tIntersectionHandlingState();
 		void handleEvilWallsState();
+		void edgeOfWallState();
 
 		// Publish states
     	void PublishState(int state);
