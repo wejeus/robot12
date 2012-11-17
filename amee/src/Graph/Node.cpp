@@ -3,14 +3,17 @@
 #include <cmath>
 
 using namespace amee;
+using namespace std;
 
 namespace amee{
+
 
 Node::Node(){}
 
 Node::Node(float _x, float _y, NodeID _id):mX(_x),mY(_y),mId(_id){}
 
 Node::Node(const Node& ref){
+//	cout << "in Node copy constructor" << endl;
 	mId = ref.getID();
 	mX = ref.x();
 	mY = ref.y();
@@ -20,10 +23,12 @@ Node::Node(const Node& ref){
 
 	for(std::vector<NodeID>::iterator it = v.begin(); it != v.end(); ++it){
 		mNeighbours.push_back(*it);
+		mNeighb_dists[*it] = ref.getDist(*it);
 	}
 }
 
 Node& Node::operator=(const Node& ref){
+//	cout << "in Node operator=" << endl;
 	if(&ref.getNeighbours() != &mNeighbours){
 		this->~Node();
 		new (this) Node(ref); //code reuse
@@ -40,7 +45,20 @@ const std::vector<NodeID>& Node::getNeighbours() const { return mNeighbours; }
 
 const std::map<NodeID, float>& Node::getNeighb_dists() const { return mNeighb_dists; }
 
-const float Node::getDist(NodeID id) { return mNeighb_dists[id]; }
+float Node::getDist(const NodeID id) const{
+	if(id == mId){
+		return 0.0f;
+	}
+	
+	std::map<NodeID, float>::const_iterator it;
+	it = mNeighb_dists.find(id);
+
+	if(it == mNeighb_dists.end()){
+		return 2147483647;//long max
+	}
+	
+	return it->second;
+}
 
 
 

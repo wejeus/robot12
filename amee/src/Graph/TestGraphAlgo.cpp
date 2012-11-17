@@ -61,7 +61,6 @@ int main(int argc, char ** argv){
 	}
 
 
-
 	cout << "adding the nodes to the graph" << endl;
 	for(size_t i=0; i<SIZE; ++i){
 		g.addNode(nList[i]);
@@ -88,14 +87,15 @@ int main(int argc, char ** argv){
 
 
 
-	long pathD[SIZE];
-	int source = 0;
+	float pathD[SIZE];
+	NodeID path[SIZE];
+	NodeID source = 0;
 
 	cout << "creating the pathfinder" << endl;
 	PathFinderAlgo pf;
 	
 	cout << "running Dijkstra's algorithm on the graph with source set to " << source << endl;
-	pf.Dijkstra(g, source, dists, pathD);
+	pf.Dijkstra(g, source, dists, pathD, path);
 
 	cout << "here are the distances from source(" << source << ") to each node: " << endl;
 	for(size_t i=0; i<SIZE; ++i){
@@ -104,7 +104,11 @@ int main(int argc, char ** argv){
 	cout << endl;
 
 
-
+	cout << "Path to each node starting from source is: " << endl;
+	for(size_t i=0; i<SIZE; ++i){
+		cout << "from " << path[i] << " to " << i << endl;
+	}
+	cout << endl;
 
 	cout << "cleaning up" << endl;
 	for(size_t i=0; i<SIZE; ++i){

@@ -21,7 +21,7 @@ class Node{
 		//getters
 		const std::vector<NodeID>& getNeighbours() const;
 		const std::map<NodeID, float>& getNeighb_dists() const;
-		const float getDist(NodeID);
+		float getDist(const NodeID) const;
 
 		inline float x() const;
 		inline float y() const;

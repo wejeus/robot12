@@ -15,7 +15,7 @@ class Graph{
 
 		size_t size() const;
 		void addNode(const Node&);
-		Node getNode(const NodeID) const;
+		const Node& getNode(const NodeID) const;
 
 		const std::vector<Node>& getNodes() const;
 

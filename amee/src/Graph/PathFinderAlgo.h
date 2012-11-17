@@ -8,7 +8,7 @@ namespace amee{
 
 class PathFinderAlgo{
 	public:
-		void Dijkstra(const Graph&, const size_t, float const* const*, long *);
+		void Dijkstra(const Graph&, const NodeID&, float const* const*, float *, NodeID *);
 		
 	private:
 
