@@ -6,9 +6,6 @@
 using namespace std;
 using namespace amee;
 
-
-#define TWO_WAY 1
-
 static const float LL = 999999999.9f;
 static const size_t SIZE = 6;
 /*float dists[SIZE][SIZE] = {{ 0.0f, 7.0f, 9.0f,LL,LL,14.0f},
@@ -36,32 +33,6 @@ int main(int argc, char ** argv){
 
 	
 
-#if TWO_WAY == 0
-	nList[0].addNeighbour(nList[1].getID()); //7
-	nList[0].addNeighbour(nList[2].getID()); //9
-	nList[0].addNeighbour(nList[5].getID()); //14
-
-	nList[1].addNeighbour(nList[0].getID()); //7
-	nList[1].addNeighbour(nList[2].getID()); //10
-	nList[1].addNeighbour(nList[3].getID()); //15
-
-	nList[2].addNeighbour(nList[0].getID()); //9
-	nList[2].addNeighbour(nList[1].getID()); //10
-	nList[2].addNeighbour(nList[3].getID()); //11
-	nList[2].addNeighbour(nList[5].getID()); //2
-
-	nList[3].addNeighbour(nList[1].getID()); //15
-	nList[3].addNeighbour(nList[2].getID()); //11
-	nList[3].addNeighbour(nList[4].getID()); //6
-
-	nList[4].addNeighbour(nList[3].getID()); //6
-	nList[4].addNeighbour(nList[5].getID()); //9
-
-	nList[5].addNeighbour(nList[0].getID()); //14
-	nList[5].addNeighbour(nList[2].getID()); //2
-	nList[5].addNeighbour(nList[4].getID()); //9
-
-#elif TWO_WAY == 1
 	nList[0].connectNeighbours(nList[1]);
 	nList[0].connectNeighbours(nList[2]);
 	nList[0].connectNeighbours(nList[5]);
@@ -75,7 +46,21 @@ int main(int argc, char ** argv){
 	nList[3].connectNeighbours(nList[4]);
 
 	nList[4].connectNeighbours(nList[5]);
-#endif
+
+	
+	vector<NodeID>::const_iterator it;
+	for(size_t i=0; i<SIZE; ++i){
+		vector<NodeID> v = nList[i].getNeighbours();
+		for(it = v.begin(); it != v.end(); ++it){
+			cout << "Dist: " << i << " to " << (*it) << " == " << nList[i].getDist((*it)) << endl;
+			cout << "And : " << (*it) << " to " << i << " == " << nList[(*it)].getDist(i) << endl;
+			cout << endl;
+		}
+		cout << "##############################" << endl;
+		
+	}
+
+
 
 	cout << "adding the nodes to the graph" << endl;
 	for(size_t i=0; i<SIZE; ++i){

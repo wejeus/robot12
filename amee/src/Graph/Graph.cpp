@@ -32,7 +32,7 @@ size_t Graph::size() const { return mNodes.size(); }
 
 void Graph::addNode(const Node& n){ mNodes.push_back(n); }
 
-Node Graph::getNode(const size_t id) const { return mNodes[id]; }
+Node Graph::getNode(const NodeID id) const { return mNodes[id]; }
 
 const std::vector<Node>& Graph::getNodes() const { return mNodes; }
 
