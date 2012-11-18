@@ -11,7 +11,7 @@
 #include <string>
 #include <unistd.h>
 
-// #define ROS
+#define ROS
 
 #ifdef ROS
 #include "ros/ros.h"
@@ -121,13 +121,16 @@ void render(Mat &frame) {
     if (containsRedPixels(frame)) {
         
         CLASSIFICATION_IN_PROGRESS = true;
+        log("Found some object, classification in progress...\n");
+        publishMovement(5); // Stop motors
+
         Mat ROI;
         TAG_CLASS res;
 
         if (findTagROI(frame, ROI) && prepareROI(ROI, ROI)) {
             // TODO: test if ROI is "good enough" to make a classification (is in center, sharp?)
 
-            // publishMovement(5); // Stop motors
+            
             // TODO: move robot so that tag is in center (1. determine distance from tag center to image normal 2. move(distance))
             
             if (USE_TEMPLATES) res = classifyTagUsingTemplate(ROI);
@@ -140,8 +143,10 @@ void render(Mat &frame) {
                 log("Object: %s\n", class2name(res).c_str());
             }
             
-            // publishMovement(4); // continue wall following
+            publishMovement(4); // continue wall following
         }
+
+        log("CLASSIFICATION DONE!\n");
         CLASSIFICATION_IN_PROGRESS = false;        
 
 
@@ -353,6 +358,7 @@ bool initTemplates() {
     }
 
     infile.close();
+    return true;
 }
 
 void thresholdBlackWhite(Mat &srcImage, Mat &destImage) {
@@ -729,14 +735,18 @@ int main(int argc, char *argv[]) {
         initWindows();
     }
 
-    if (USE_TEMPLATES && !initTemplates()) {
-        log("Failed to initialize tag objects!\n");
-        return -1;
+    if (USE_TEMPLATES) {
+        if (!initTemplates()) {
+            log("Failed to initialize templates!\n");
+            return -1;
+        }
     }
 
-    if (USE_SURF && !initSURF()) {
-        log("Failed to initialize tag objects!\n");
-        return -1;
+    if (USE_SURF) {
+        if (!initSURF()) {
+            log("Failed to initialize SURF tags!\n");
+            return -1;
+        }
     }
 
     if (INIT_ROS) {
@@ -858,6 +868,7 @@ void streamCamera(VideoCapture &capture) {
             if (!capture.retrieve(frame)) {
                 cout << "Could not decode and return new frame!" << endl;
             } else {
+                log("Got new frame\n");
                 render(frame);
             }
         }
