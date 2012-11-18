@@ -19,9 +19,7 @@ class EKF {
 #define nom 2
 #define noc 2
 
-// default noises
-#define PROCESS_NOISE 0.01f
-#define MEASUREMENT_NOISE 0.001f
+
 
 private:
 
@@ -31,7 +29,7 @@ public:
 	Matrix<float,nos,1> mu;
 	Matrix<float,nos,1> mu_t_1;
 	Matrix<float,nos,1> mu_bar;
-	Matrix<float,nos,1> mu_bar_t_1;
+	//Matrix<float,nos,1> mu_bar_t_1;
 
 	Matrix<float,nos,nos> sigma;
 	Matrix<float,nos,nos> sigma_bar;
@@ -42,6 +40,7 @@ public:
 
 	Matrix<float,nom,1> z;
 	Matrix<float,nom,1> z_hat;
+	Matrix<float,nom,1> z_t_1;
 	
 	Matrix<float,nos,nos> G; // jacobian of g (motion model)
 	Matrix<float,nom,nos> H; // Jacobian of h ()
@@ -57,16 +56,27 @@ public:
 	void init();
 
 	void setStartPose(Matrix<float,nos,1> mu, Matrix<float,nos,nos> sigma);
-	void setR(float processNoise);
-	void setQ(float measurementNoise);
+
+	void setR(Matrix<float,nos,1> processNoise);
+	void setQ(Matrix<float,nom,1> measurementNoise);
+
+	void setG(Matrix<float,nos,nos> gJacobian);
+	void setH(Matrix<float,nom,nos> hJacobian);
 
 	Matrix<float,nos,1> g(Matrix<float,noc,1> u, Matrix<float,nos,1> mu_t_1);
-	Matrix<float,nom,1> h(Matrix<float,nos,1> mu_bar, Matrix<float,nos,1> mu_bar_t_1);
+	Matrix<float,nom,1> h(Matrix<float,nos,1> mu_bar, Matrix<float,nos,1> mu_t_1, Matrix<float,nom,1> z_t_1);
+
+	Matrix<float,nom,nos> hJac(Matrix<float,nos,1> mu_bar, Matrix<float,nos,1> mu_t_1);
+	
 	void estimate(amee::Velocity controlSignal, roboard_drivers::Encoder measurement);
 
 	amee::Pose getMu();
 	amee::Pose getSigma();
 	amee::Pose getPose();
+	int getNos();
+	int getNom();
+	int getNoc();
+
 
 	amee::Pose mPose;	
 		

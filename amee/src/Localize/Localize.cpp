@@ -79,6 +79,14 @@ int main(int argc, char **argv)
 	EKF ekf;
 	ekf.init();
 
+	Matrix<float,nos,nos> G;
+	Matrix<float,nom,nos> H;
+
+	G.setIdentity();
+	
+	ekf.setG(G);
+	//ekf.setH(H);
+
 
 	// -- Estimate pose
 	while(ros::ok())
