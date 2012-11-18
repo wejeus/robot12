@@ -56,9 +56,9 @@ IRSensorReader::IRSensorReader() {
 	mSensorCalibrations[WHEEL_RIGHT] = baseCalib;
 
 	// LEFT LONG RANGE ABOVE OF THE WHEEL
-	baseCalib.m = 0.0178f;
-	baseCalib.b = -0.2066f;
-	baseCalib.k = 0.1372f;
+	baseCalib.m = 0.0185f;
+	baseCalib.b = -0.1672f;
+	baseCalib.k = 0.1301f;
 	mSensorCalibrations[WHEEL_LEFT] = baseCalib;
 
 	mAveragedValues.resize(NUM_PORTS, 0);
@@ -66,38 +66,8 @@ IRSensorReader::IRSensorReader() {
 	mNumAveraged = 0;
 }
 
-void IRSensorReader::calibrate(int sensor) {
-	// std::cout << "Starting calibration for sensor " << sensor << ", type 0 and press enter to continue" << std::endl;
-	// float input = 0;
-	// std::cin >> input;
-	// std::cout << "	Place an obstacle where zero distance is supposed to be and type 0 followed by enter" << std::endl;
-	// std::cin >> input;
-	// ros::spinOnce();
-
-	// // alpha is the voltage for zero distance and describes the amplitude
-	// SensorCalibration calib;
-	// calib.alpha = mLastReadings[sensor];
-	
-	// std::cout << "	Remove any obstacle so that the sensor can 'see' as far as possible and type 0 followed by enter" << std::endl;
-	// std::cin >> input;
-	// ros::spinOnce();
-
-	// // c is the voltage for infinite distance and describes an offset
-	// calib.c = mLastReadings[sensor];
-
-	// std::cout << "	Place an obstacle to a distance of your choice ( > 0) and enter the distance followed by enter" << std::endl;
-	// std::cin >> input;
-	// ros::spinOnce();
-
-	// // lambda is the parameter that determines how fast the voltage drops
-	// calib.lambda = log(calib.alpha / (mLastReadings[sensor] - calib.c)) / input;
-	
-	// std::cout << "Calibration is done: " << std::endl;
-	// std::cout << "	alpha = " << calib.alpha << std::endl;
-	// std::cout << "	lambda = " << calib.lambda << std::endl;
-	// std::cout << "	c = " << calib.c << std::endl;
-
-	// mSensorCalibrations[sensor] = calib;
+float IRSensorReader::limit(float val) {
+	return std::min(std::max(-1.0f, val),1.0f);
 }
 
 void IRSensorReader::setDistancePublisher(ros::Publisher pub) {
@@ -136,13 +106,13 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 		struct timeval time;
 		gettimeofday(&time, NULL);
 		distanceMsg.timestamp = time.tv_sec+double(time.tv_usec)/1000000.0;  ;//msg->timestamp;
-		distanceMsg.rightFront = distances[RIGHT_FRONT];
-		distanceMsg.rightBack = distances[RIGHT_BACK];
+		distanceMsg.rightFront = limit(distances[RIGHT_FRONT]);
+		distanceMsg.rightBack = limit(distances[RIGHT_BACK]);
 		//distanceMsg.frontShortRange = distances[FRONT_SHORTRANGE];
-		distanceMsg.wheelRight = distances[WHEEL_RIGHT];
-		distanceMsg.leftBack = distances[LEFT_BACK];
-		distanceMsg.leftFront = distances[LEFT_FRONT];
-		distanceMsg.wheelLeft = distances[WHEEL_LEFT];
+		distanceMsg.wheelRight = limit(distances[WHEEL_RIGHT]);
+		distanceMsg.leftBack = limit(distances[LEFT_BACK]);
+		distanceMsg.leftFront = limit(distances[LEFT_FRONT]);
+		distanceMsg.wheelLeft = limit(distances[WHEEL_LEFT]);
 
 		distanceMsg.obstacleInFront = (mLastReadings[LEFT_FRONT_WALL_DETECTOR] >= 270) || (mLastReadings[RIGHT_FRONT_WALL_DETECTOR] >= 260);
 		//TODO publish all the other correct distances

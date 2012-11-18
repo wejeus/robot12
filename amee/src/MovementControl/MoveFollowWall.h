@@ -29,19 +29,23 @@ namespace amee{
 
 	private:
 		enum WallFollowState {FollowWall, LookForEndOfWall, MoveTail,
-			RotateRight, RotateLeft, LookForBeginningOfWall, AlignToWall, HandleEvilWalls, AlignToFrontWall, TIntersectionHandling, EdgeOfWall};
+			RotateRight, RotateLeft, LookForBeginningOfWall, AlignToWall, HandleEvilWalls, AlignToFrontWall, TIntersectionHandling, 
+			EdgeOfWall};
 
 		struct State
 		{
 			WallFollowState mState;
 			bool initialized;
+			float handleWallInitDistance;
+			double gapStartDist;
 			void set(WallFollowState state) {
 				mState = state;
 				initialized = false;
+				handleWallInitDistance = 0.6f * TAIL_LENGTH;
 			}
 		};
 
-		static const float MOVEMENT_SPEED = 0.2f;
+		static const float MOVEMENT_SPEED = 0.16f;
 		static const float SLOW_MOVEMENT_SPEED = 0.08f;
 		static const float MAX_ROTATION_SPEED = 0.1;
 		static const float MIN_ROTATION_SPEED = 0.06;
@@ -53,14 +57,13 @@ namespace amee{
         static const float K_i_keepRef = 0.0f;
         static const float K_i_reachRef = 0.0f;
 
-
         static const float MAX_ERROR_SUM = 100.0f;
-        static const float REF_DISTANCE = 0.04f;
+        static const float LEFT_WALL_TOO_CLOSE = 0.03f;
         static const float NO_WALL_DISTANCE = 0.15f;
         static const float WALL_DIST_TOL = 0.01f;
 
 		static const float MIN_WALL_DISTANCE = 0.03f;
-		static const float MAX_WALL_DISTANCE = 0.05f;
+		static const float MAX_WALL_DISTANCE = 0.045f;
 
 		static const float TAIL_LENGTH = 0.09f;
 
@@ -87,7 +90,7 @@ namespace amee{
 
 		bool mRunning;
 
-		// variables for lookForBeginningOfWall
+		// variables for lookForBeginningOfWall (could be moved into struct)
 		bool mFoundWallRightBack;
 		bool mFoundWallRightFront;
 
