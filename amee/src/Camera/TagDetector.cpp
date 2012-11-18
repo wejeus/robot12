@@ -11,7 +11,7 @@
 #include <string>
 #include <unistd.h>
 
-#define ROS
+// #define ROS
 
 #ifdef ROS
 #include "ros/ros.h"
@@ -27,54 +27,7 @@ using namespace std;
 using namespace cv;
 
 enum TAG_CLASS {FAILURE, UNKNOWN, APPLE, BANANA, BOOK, CAMERA, DRYER, GLASS, GLASSES, HAMMER, LAPTOP, MUG, SCISSORS, TEDDY};
-
-void streamCamera(VideoCapture &capture);
-void render(Mat &frame);
-void initWindows();
-void initROS(int argc, char *argv[]);
-void initLocalInput(int argc, char *argv[]);
-void onSaturationColorHighChange(int value);
-void onSaturationColorLowChange(int value);
-void onCannyHighChange(int value);
-void onCannyLowChange(int value);
-void show(const string& winname, InputArray mat);
-void log(string fmt, ...);
-void onGaussianKernelChange(int value);
-void onGaussianSigmaChange(int value);
-bool initSurf();
-TAG_CLASS classifyTag(Mat &ROI);
-bool findTagROI(Mat &srcImage, Mat &ROI);
-void drawText(Mat &image, string text);
-TAG_CLASS classifyTag(Mat &ROI);
-string class2name(TAG_CLASS object);
-void publishMovement(int state);
-
-char windowResult[] = "result";
-char windowThresh[] = "tresh";
-int SATURATION_COLOR_HIGH = 20;
-int SATURATION_COLOR_LOW = 0;
-int CANNY_LOW = 77;
-int CANNY_HIGH = 92;
-int GAUSSIAN_KERNEL_SIZE = 7;
-int GAUSSIAN_SIGMA = 1.5;
-double TAG_MIN_PIXEL_AREA = 1500.0;
-char TAG_FILES[] = "tags/files.txt";
-
-int minHessian = 400;
-
-struct TagData {
-    TAG_CLASS object;
-    Mat image;
-    vector<KeyPoint> keypoints;  
-    Mat descriptors;
-};
-
-vector<TagData> sourceTags;
-
-#ifdef ROS
-ros::Publisher mapPublisher;
-ros::Publisher movementPublisher;
-#endif
+enum COLOR {UNKNOWN_COLOR, BLACK, GREEN, BLUE, MAGENTA};
 
 // Flags
 bool SMOOTH_IMAGE = false;
@@ -83,151 +36,333 @@ bool EQUALIZE_HISTOGRAM = true;
 bool DISPLAY_GRAPHICAL = false;
 bool LOCAL = false;
 int CAMERA_INTERVAL = 10;
-bool LOAD_OBJECTS = true;
+bool USE_TEMPLATES = false;
+bool USE_SURF = false;
 bool USE_ROS_CAMERA = false;
 bool INIT_ROS = false;
 bool CLASSIFICATION_IN_PROGRESS = false;
 
+struct TagData {
+    TAG_CLASS object;
+    Mat image;
+    vector<KeyPoint> keypoints;  
+    Mat descriptors;
+};
+
+struct TagTemplate {
+    TAG_CLASS object;
+    Mat image;
+};
+
+void streamCamera(VideoCapture &capture);
+void render(Mat &frame);
+void initWindows();
+void show(const string& winname, InputArray mat);
+void log(string fmt, ...);
+string class2name(TAG_CLASS object);
+TAG_CLASS name2class(string name);
+string color2string(COLOR object);
+void drawText(Mat &image, string text);
+
+void initROS(int argc, char *argv[]);
+void publishMovement(int state);
+void initLocalInput(int argc, char *argv[]);
+
+void onSaturationColorHighChange(int value);
+void onSaturationColorLowChange(int value);
+void onCannyHighChange(int value);
+void onCannyLowChange(int value);
+void onGaussianKernelChange(int value);
+void onGaussianSigmaChange(int value);
+
+
+
+bool findTagROI(Mat &srcImage, Mat &ROI);
+int thresholdRedPixels(Mat &srcImage, Mat &destImage);
+bool containsRedBorderPixels(Mat &srcImage);
+bool containsRedPixels(Mat &srcImage);
+bool prepareROI(Mat &srcROI, Mat &destROI);
+COLOR determineTagColor(Mat &ROI);
+
+bool initSURF();
+TAG_CLASS classifyTagUsingSURF(Mat &ROI);
+
+bool initTemplates();
+TAG_CLASS classifyTagUsingTemplate(Mat &ROI);
+
+char windowResult[] = "result";
+char windowThresh[] = "tresh";
+char windowTag[] = "tag";
+int SATURATION_COLOR_HIGH = 20;
+int SATURATION_COLOR_LOW = 0;
+int CANNY_LOW = 77;
+int CANNY_HIGH = 92;
+int GAUSSIAN_KERNEL_SIZE = 7;
+int GAUSSIAN_SIGMA = 1.5;
+double TAG_MIN_PIXEL_AREA = 1500.0;
+char TAG_FILES[] = "tags/files.txt";
+int minHessian = 200;
 Mat frame;
 
-// Can only handle C types
-void log(string fmt, ...) {
-    va_list args;
-    va_start(args,fmt);
+vector<TagData> sourceTags;
+vector<TagTemplate> sourceTemplates;
 
-    #ifdef ROS
-    // ROS_DEBUG(fmt, args);
-    vprintf(fmt.c_str(), args);
-    #else
-    vprintf(fmt.c_str(), args);
-    #endif
-
-    va_end(args);
-}
-
-void show(const string& winname, InputArray mat) {
-    if (DISPLAY_GRAPHICAL) {
-        imshow(winname.c_str(), mat);
-        waitKey(30);
-    }
-}
-
-void streamCamera(VideoCapture &capture) {
-    // Mat frameNext;
-    // struct timeval start, end;
-    // capture >> frame;
-    // TODO: flip is not needed..?
-    while (true) {
-        // gettimeofday(&end, NULL);
-        // while(double(end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec)) < CAMERA_INTERVAL*1000.0) {
-        //     oop_rate.sleep();
-        //     gettimeofday(&end, NULL);
-        // }
-        // capture >> frameNext;
-        // capture >> frame;
-        // render(frame);
-        // // flip(frameNext, frame, 0);
-        // if(waitKey(50) >= 0) break;
-        // usleep(CAMERA_INTERVAL*1000);
-
-        if (!capture.grab()) { 
-            cout << "Could not grab new frame!" << endl;
-        } else {
-            if (!capture.retrieve(frame)) {
-                cout << "Could not decode and return new frame!" << endl;
-            } else {
-                log("Got new frame\n");
-                render(frame);
-                log("Render complete\n");
-            }
-        }
-        
-        if (DISPLAY_GRAPHICAL) {
-            if(waitKey(CAMERA_INTERVAL) >= 0) break;
-        } else {
-            usleep(CAMERA_INTERVAL*1000);
-        }
-    }
-}
+#ifdef ROS
+ros::Publisher mapPublisher;
+ros::Publisher movementPublisher;
+#endif
 
 
 void render(Mat &frame) {
     // if (SMOOTH_IMAGE) GaussianBlur(frame, frame, Size(GAUSSIAN_KERNEL_SIZE, GAUSSIAN_KERNEL_SIZE), GAUSSIAN_SIGMA, GAUSSIAN_SIGMA);
     // if (FILTER_RED_TAG) filterRedTag(frame, frame);
     
-    Mat ROI;
-    CLASSIFICATION_IN_PROGRESS = true;
-    if (findTagROI(frame, ROI)) {
+    if (containsRedPixels(frame)) {
         
-        
-        
-        // if ROI is "good enough" to make a classification (is in center, sharp?)
+        CLASSIFICATION_IN_PROGRESS = true;
+        Mat ROI;
+        TAG_CLASS res;
 
-        // TODO: move robot so that tag is in center (1. determine distance from tag center to image normal 2. move(distance))
-        
-        // Stop motors
-        // publishMovement(5);
+        if (findTagROI(frame, ROI) && prepareROI(ROI, ROI)) {
+            // TODO: test if ROI is "good enough" to make a classification (is in center, sharp?)
 
-        TAG_CLASS res = classifyTag(ROI);
-        if (res != FAILURE) {
-            log("Found object: %s\n", class2name(res).c_str());
+            // publishMovement(5); // Stop motors
+            // TODO: move robot so that tag is in center (1. determine distance from tag center to image normal 2. move(distance))
+            
+            if (USE_TEMPLATES) res = classifyTagUsingTemplate(ROI);
+            if (USE_SURF) res = classifyTagUsingSURF(ROI);
+
+
+            log("Color: %s, ", color2string(determineTagColor(ROI)).c_str());
+
+            if (res != FAILURE) {
+                log("Object: %s\n", class2name(res).c_str());
+            }
+            
+            // publishMovement(4); // continue wall following
         }
-        
-        // continue wall following
-        // publishMovement(4);
+        CLASSIFICATION_IN_PROGRESS = false;        
+
 
         
     }
-    CLASSIFICATION_IN_PROGRESS = false;
+
     show(windowResult, frame);
 }
 
-void publishMovement(int state) {
-    #ifdef ROS
-    MovementCommand mc;
-    mc.type = state;
-    movementPublisher.publish(mc);
-    #endif
+
+/* Thresholds redpixels and saves resulting binary image in destImage, returns number of red pixels in image */
+int thresholdRedPixels(Mat &srcImage, Mat &destImage) {
+    Mat hsvImage, firstRedSection, secondRedSection;
+    cvtColor(srcImage, hsvImage, CV_BGR2HSV);
+    
+    // Works very good if the red in the tag is not dark. If it's in a position to reflect a little light directly it works very good.
+    inRange(hsvImage, Scalar(0, 100, 0), Scalar(40, 255, 255), firstRedSection);
+    inRange(hsvImage, Scalar(129, 100, 0), Scalar(179, 255, 255), secondRedSection);
+    bitwise_or(firstRedSection, secondRedSection, destImage);
+
+    int numRedPixels = countNonZero(destImage);
+    // log("numRedPixels: %d\n", numRedPixels);
+
+    return numRedPixels;
 }
 
-TAG_CLASS name2class(string name) {
-    if (name.compare("tags/tag_apple.png") == 0) return APPLE;
-    if (name.compare("tags/tag_banana.png") == 0) return BANANA;
-    if (name.compare("tags/tag_book.png") == 0) return BOOK;
-    if (name.compare("tags/tag_camera.png") == 0) return CAMERA;
-    if (name.compare("tags/tag_dryer.png") == 0) return DRYER;
-    if (name.compare("tags/tag_glass.png") == 0) return GLASS;
-    if (name.compare("tags/tag_glasses.png") == 0) return GLASSES;
-    if (name.compare("tags/tag_hammer.png") == 0) return HAMMER;
-    if (name.compare("tags/tag_laptop.png") == 0) return LAPTOP;
-    if (name.compare("tags/tag_mug.png") == 0) return MUG;
-    if (name.compare("tags/tag_scissors.png") == 0) return SCISSORS;
-    if (name.compare("tags/tag_teddy.png") == 0) return TEDDY;
-
-    return FAILURE;
-}
-
-string class2name(TAG_CLASS object) {
-    switch (object) {
-        case APPLE: return "Apple";
-        case BANANA: return "Banana";
-        case BOOK: return "Book";
-        case CAMERA: return "Camera";
-        case DRYER: return "Dryer";
-        case GLASS: return "Glass";
-        case GLASSES: return "Glasses";
-        case HAMMER: return "Hammer";
-        case LAPTOP: return "Laptop";
-        case MUG: return "Mug";
-        case SCISSORS: return "Scissors";
-        case TEDDY: return "Teddy";
-        case UNKNOWN: return "Unknown";
-        case FAILURE: return "Failure!";
-        default: return "Unknown class!";
+bool containsRedPixels(Mat &srcImage) {
+    Mat dummy;
+    int numRedPixels = thresholdRedPixels(srcImage, dummy);
+    // log("Num red pixels in image: %d\n", numRedPixels);
+    if (numRedPixels > 500) {
+        return true;
+    } else {
+        return false;
     }
 }
 
-bool initSurf() {
+bool containsRedBorderPixels(Mat &srcImage) {
+    // TODO: remove center part of image and threshold. That would give a good estimate if the (potential) red pixels are located on the border.
+    return containsRedPixels(srcImage);
+}
+
+/* Looks for a red rectangle of a certain size in the image */
+bool findTagROI(Mat &srcImage, Mat &ROI) {
+
+    // GaussianBlur(srcImage, srcImage, Size(GAUSSIAN_KERNEL_SIZE, GAUSSIAN_KERNEL_SIZE), GAUSSIAN_SIGMA, GAUSSIAN_SIGMA);
+    Mat binaryImage;
+    thresholdRedPixels(srcImage, binaryImage);
+
+    int erosionSize = 2;
+    Mat element = getStructuringElement(MORPH_ELLIPSE, Size(2*erosionSize + 1, 2*erosionSize+1));
+    erode(binaryImage, binaryImage, element);
+    
+    Canny(binaryImage, binaryImage, CANNY_LOW, CANNY_HIGH);
+
+        // int erosionSize = 1;
+    // Mat element = getStructuringElement(MORPH_ELLIPSE, Size(2*erosionSize + 1, 2*erosionSize+1));
+    dilate(binaryImage, binaryImage, element);
+
+    vector< vector<Point> > contours;
+    findContours(binaryImage, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+    show(windowThresh, binaryImage);
+
+    // Filter out contours that are big enough to hold a tag rectangle
+    for(int i = 0; i < contours.size(); ++i) {
+
+        if (contourArea(contours[i]) > TAG_MIN_PIXEL_AREA) {
+            // log("Area: %d", contourArea(contours[i]));
+            Rect rect = boundingRect(contours[i]);
+            // Make sure found ROI do not exeed image boundaries
+            if (0 <= rect.x && 0 <= rect.width && rect.x + rect.width <= srcImage.cols && 0 <= rect.y && 0 <= rect.height && rect.y + rect.height <= srcImage.rows) {
+                rectangle(srcImage, rect, Scalar(255,0,0), 3);
+                ROI = Mat(srcImage, rect);
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+/* Tries to remove as much as possible of tag borders (if any) and resizes the ROI to a predefined resolution */
+// TODO: Adjust size of ROI to match template, maybe rotate/skew to (not sure if possible to make a good estimate..?)
+bool prepareROI(Mat &srcROI, Mat &destROI) {
+
+    if (containsRedBorderPixels(srcROI)) {
+        // resize to known size with borders
+        // crop border, keep center
+        // Given know size of tag (with borders) the border of a tag constitue ~13% of the image tag
+        float borderRatio = 0.12965957f;
+        int width = srcROI.cols;
+        int height = srcROI.rows;
+        int borderSizeX = width*borderRatio;
+        int borderSizeY = height*borderRatio;
+        Rect nonBorderROI(borderSizeX, borderSizeY, width-(2*borderSizeX), height-(2*borderSizeY));
+
+        // Check for correct dimensions (new ROI smaller than original)
+        if (0 <= nonBorderROI.x && 0 <= nonBorderROI.width && nonBorderROI.x + nonBorderROI.width <= srcROI.cols && 0 <= nonBorderROI.y && 0 <= nonBorderROI.height && nonBorderROI.y + nonBorderROI.height <= srcROI.rows) {
+            Mat croppedROI = srcROI(nonBorderROI);
+            resize(croppedROI, destROI, Size(200, 200), 0, 0, INTER_LINEAR);
+        } else {
+            log("Warning: invalid dimensions of ROI when classifying.\n");
+            return false;
+        }
+    } else {
+        resize(srcROI, destROI, Size(200, 200), 0, 0, INTER_LINEAR);
+    }
+
+    return true;
+}
+
+struct PixelSum {
+    COLOR color;
+    int numPixels;
+};
+
+// TODO: Adjust color params to better match colors.
+COLOR determineTagColor(Mat &ROI) {
+    Mat hsvImage, binaryImage;
+    cvtColor(ROI, hsvImage, CV_BGR2HSV);
+    int numColoredPixels;
+    vector<PixelSum> elems;
+    PixelSum ps;
+
+    // Green: 71-81
+    inRange(hsvImage, Scalar(71, 100, 0), Scalar(81, 255, 255), binaryImage);
+    ps.numPixels = countNonZero(binaryImage);
+    ps.color = GREEN;
+    elems.push_back(ps);
+
+    // Detect blue
+    inRange(hsvImage, Scalar(110, 100, 0), Scalar(152, 255, 255), binaryImage);
+    ps.numPixels = countNonZero(binaryImage);
+    ps.color = BLUE;
+    elems.push_back(ps);
+
+    // Magenta: 154-171
+    inRange(hsvImage, Scalar(154, 100, 0), Scalar(171, 255, 255), binaryImage);
+    ps.numPixels = countNonZero(binaryImage);
+    ps.color = MAGENTA;
+    elems.push_back(ps);
+
+    PixelSum bestMatch;
+    bestMatch.color = UNKNOWN_COLOR;
+    bestMatch.numPixels = 0;
+    for (vector<PixelSum>::iterator it = elems.begin(); it < elems.end(); ++it) {
+        if (it->numPixels > bestMatch.numPixels) {
+            bestMatch.color = it->color;
+            bestMatch.numPixels = it->numPixels;
+        }
+    }
+
+    if (bestMatch.numPixels < 1000) {
+        bestMatch.color = BLACK;
+    }
+
+    return bestMatch.color;
+}
+
+bool initTemplates() {
+    log("Init templates...\n");
+
+    ifstream infile;
+
+    // Ptr<FeatureDetector>& featureDetector
+    SurfFeatureDetector detector(minHessian);
+    SurfDescriptorExtractor extractor;
+
+    infile.open(TAG_FILES);
+    std::string line;
+    if (infile.is_open()) {
+        while (std::getline(infile, line)) {
+            TagTemplate tag;
+            tag.object = name2class(line);
+            tag.image = imread(line, CV_LOAD_IMAGE_GRAYSCALE);
+    
+            resize(tag.image, tag.image, Size(200, 200), 0, 0, INTER_LINEAR);
+            if( ! tag.image.data) {
+                log("Image not found!\n");
+                return false;
+            }
+
+            sourceTemplates.push_back(tag);
+
+            log("Read template: %s\n", line.c_str());
+        }
+    } else {
+        log("Could not read tag filenames!\n");
+        return false;
+    }
+
+    infile.close();
+}
+
+/* Assumes borders have been removed */
+TAG_CLASS classifyTagUsingTemplate(Mat &ROI) {
+    
+    Mat tmpROI;    
+    cvtColor(ROI, tmpROI, CV_BGR2GRAY);
+    show(windowTag, tmpROI);
+
+    double bestMatch = 100;
+    TAG_CLASS obj;
+
+    for (vector<TagTemplate>::iterator it = sourceTemplates.begin(); it < sourceTemplates.end(); ++it) {
+        Mat result;
+        matchTemplate(tmpROI, it->image, result, CV_TM_SQDIFF_NORMED);
+        double min, max;
+        minMaxLoc(result, &min, &max);
+        // log("%s Min: %f Max: %f\n", class2name(it->object).c_str(), min, max);
+        if (min < bestMatch) {
+            bestMatch = min;
+            obj = it->object;
+        }
+
+    }
+
+    log("bestMatch: %f\n", bestMatch);
+    return obj;
+}
+
+bool initSURF() {
     log("Init surf...\n");
 
     ifstream infile;
@@ -286,7 +421,8 @@ bool initSurf() {
     return true;
 }
 
-TAG_CLASS classifyTag(Mat &ROI) {
+
+TAG_CLASS classifyTagUsingSURF(Mat &ROI) {
 
     Mat binaryImage;
     cvtColor(ROI, binaryImage, CV_BGR2GRAY); 
@@ -299,7 +435,10 @@ TAG_CLASS classifyTag(Mat &ROI) {
     // If no good keypoints could be found we cant relly do anything interesting.
     // This usually happens if object has a lot of movement in the captured frame.
     if (ROIKeypoints.size() < 2) {
+        log("Not enought keypoints in frame..\n");
         return FAILURE;
+    } else {
+        log("Interesting keypoints in frame: %d\n", ROIKeypoints.size());
     }
 
     //-- Step 2: Calculate descriptors (feature vectors)
@@ -348,123 +487,79 @@ TAG_CLASS classifyTag(Mat &ROI) {
 
         // log("%s error: %f\n", it->filename.c_str(), (error/(float)goodMatches.size()));
         
-        if ((error/(float)goodMatches.size()) < bestMatch) {
-            bestMatch = (error/(float)goodMatches.size());
-            determinedClass = it->object;
+        // if ((error/(float)goodMatches.size()) < bestMatch) {
+        //     bestMatch = (error/(float)goodMatches.size());
+        //     determinedClass = it->object;
+        // }
+
+        //-- Localize the object
+        vector<Point2f> obj;
+        vector<Point2f> scene;
+
+        // Get the keypoints from the good matches
+        for( int i = 0; i < goodMatches.size(); i++ ) {
+            obj.push_back(tagKeypoints[goodMatches[i].queryIdx].pt);
+            scene.push_back(ROIKeypoints[goodMatches[i].trainIdx].pt);
         }
-    }
+
+        Mat H = findHomography(obj, scene, CV_RANSAC);
+
+        //-- Get the corners from the image_1 ( the object to be "detected" )
+        vector<Point2f> obj_corners(4);
+        obj_corners[0] = cvPoint(0,0);
+        obj_corners[1] = cvPoint( tagImage.cols, 0 );
+        obj_corners[2] = cvPoint( tagImage.cols, tagImage.rows );
+        obj_corners[3] = cvPoint( 0, tagImage.rows );
+        vector<Point2f> scene_corners(4);
+
+        Mat transformedROI;
+        perspectiveTransform(binaryImage, transformedROI, H);
+        show(windowTag, binaryImage);
+        
+        if (containsRedBorderPixels(transformedROI)) {
+            // resize to known size with borders
+            // crop border, keep center
+            // Given know size of tag (with borders) the border of a tag constitue ~13% of the image tag
+            float borderRatio = 0.12965957f;
+            int width = ROI.cols;
+            int height = ROI.rows;
+            int borderSizeX = width*borderRatio;
+            int borderSizeY = height*borderRatio;
+            Rect nonBorderROI(borderSizeX, borderSizeY, width-(2*borderSizeX), height-(2*borderSizeY));
+
+            // log("width: %d (%d) height: %d (%d) \n", ROI.cols, width, ROI.rows, height);
+            // log("x: %d y: %d width: %d height: %d \n", nonBorderROI.x, nonBorderROI.y, nonBorderROI.width, nonBorderROI.height);
+
+            // Check for correct dimensions (new ROI smaller than original)
+            if (0 <= nonBorderROI.x && 0 <= nonBorderROI.width && nonBorderROI.x + nonBorderROI.width <= transformedROI.cols && 0 <= nonBorderROI.y && 0 <= nonBorderROI.height && nonBorderROI.y + nonBorderROI.height <= transformedROI.rows) {
+                Mat croppedROI = ROI(nonBorderROI);
+                resize(croppedROI, transformedROI, Size(200, 200), 0, 0, INTER_LINEAR);
+            } else {
+                log("Warning: invalid dimensions of ROI when classifying.\n");
+                return UNKNOWN;
+            }
+            
+            } else {
+                resize(transformedROI, transformedROI, Size(200, 200), 0, 0, INTER_LINEAR);
+            }
+
+
+            // TODO (maybe): adjust histogram of ROI, extract and replace background with white color
+        
+            cvtColor(transformedROI, transformedROI, CV_BGR2GRAY);
+
+            Mat result;
+            matchTemplate(transformedROI, tagImage, result, CV_TM_SQDIFF_NORMED);
+            double min, max;
+            minMaxLoc(result, &min, &max);
+            // log("%s Min: %f Max: %f\n", class2name(it->object).c_str(), min, max);
+            if (min < bestMatch) {
+                bestMatch = min;
+                determinedClass = it->object;
+            }
+        }
 
     return determinedClass;
-    // log("Match: %f\n", bestMatch);
-    // if (bestMatch < 0.5f) {
-    //     return determinedClass;
-    // } else {
-    //     log("...but would have guessed: %s\n", class2name(determinedClass).c_str());
-    //     return UNKNOWN;
-    // }
-
-}
-
-void drawText(Mat &image, string text) {
-    int fontFace = CV_FONT_HERSHEY_SIMPLEX;
-    double fontScale = 1;
-    int thickness = 1;
-    int baseline = 0;
-    Size textSize = getTextSize(text, fontFace, fontScale, thickness, &baseline);
-    // Point textOrg((destImage.cols - textSize.width)/2,(destImage.rows + textSize.height)/2);
-    Point position(0,20);
-    Scalar color(0,255,0);
-    putText(image, text, position, fontFace, fontScale, color, thickness, 7);
-    log("%s\n", text.c_str());
-}
-
-void initWindows() {
-    namedWindow(windowResult, CV_WINDOW_AUTOSIZE);
-    namedWindow(windowThresh, CV_WINDOW_AUTOSIZE);
-
-    // int cvCreateTrackbar(const char* trackbarName, const char* windowName, int* value, int count, CvTrackbarCallback onChange)
-    cvCreateTrackbar("SaturationColorHigh", windowResult, &SATURATION_COLOR_HIGH, 255,  onSaturationColorHighChange);
-    cvCreateTrackbar("SaturationColorLow", windowResult, &SATURATION_COLOR_LOW, 255,  onSaturationColorLowChange);
-    cvCreateTrackbar("CannyHigh", windowResult, &CANNY_HIGH, 360,  onCannyHighChange);
-    cvCreateTrackbar("CannyLow", windowResult, &CANNY_LOW, 360,  onCannyLowChange);
-    cvCreateTrackbar("GaussianKernelSize", windowResult, &GAUSSIAN_KERNEL_SIZE, 10,  onGaussianKernelChange);
-    cvCreateTrackbar("GaussianSigma", windowResult, &GAUSSIAN_SIGMA, 10,  onGaussianSigmaChange);
-}
-
-/* Looks for a red rectangle of a certain size in the image */
-bool findTagROI(Mat &srcImage, Mat &ROI) {
-
-    // GaussianBlur(srcImage, srcImage, Size(GAUSSIAN_KERNEL_SIZE, GAUSSIAN_KERNEL_SIZE), GAUSSIAN_SIGMA, GAUSSIAN_SIGMA);
-
-    Mat hsvImage, firstRedSection, secondRedSection, binaryImage;
-    cvtColor(srcImage, hsvImage, CV_BGR2HSV);
-    
-    // if (EQUALIZE_HISTOGRAM) equalizeHist(hsvImage, hsvImage);
-
-    // Works very good if the red in the tag is not dark. If it's in a position to reflect a little light directly it works very good.
-    inRange(hsvImage, Scalar(0, 100, 0), Scalar(40, 255, 255), firstRedSection);
-    inRange(hsvImage, Scalar(129, 100, 0), Scalar(179, 255, 255), secondRedSection);
-    bitwise_or(firstRedSection, secondRedSection, binaryImage);
-
-    int erosionSize = 1;
-    Mat element = getStructuringElement(MORPH_ELLIPSE, Size(2*erosionSize + 1, 2*erosionSize+1));
-    erode(binaryImage, binaryImage, element);
-    
-    Canny(binaryImage, binaryImage, CANNY_LOW, CANNY_HIGH);
-    
-    //Debug output
-    show(windowThresh, binaryImage);
-    
-    vector< vector<Point> > contours;
-    findContours(binaryImage, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-
-    // Filter out contours that are big enough to hold a tag rectangle
-    for(int i = 0; i < contours.size(); ++i) {
-        if (contourArea(contours[i]) > TAG_MIN_PIXEL_AREA) {
-            Rect rect = boundingRect(contours[i]);
-            rectangle(srcImage, rect, Scalar(255,0,0), 3);
-            ROI = Mat(srcImage, rect);
-
-            return true;
-        }
-    }
-
-    return false;
-}
-
-void onSaturationColorHighChange(int value) {
-    log("SATURATION_COLOR_HIGH: %d\n", value);
-    SATURATION_COLOR_HIGH = value;
-}
-
-void onSaturationColorLowChange(int value) {
-    log("SATURATION_COLOR_LOW: %d\n", value);
-    SATURATION_COLOR_LOW = value;
-}
-
-void onCannyHighChange(int value) {
-    log("CANNY_HIGH: %d\n", value);
-    CANNY_HIGH = value;
-}
-
-void onCannyLowChange(int value) {
-    log("CANNY_LOW: %d\n", value);
-    CANNY_LOW = value;
-}
-
-void onGaussianKernelChange(int value) {
-    if ((value % 2) == 2) {
-        GAUSSIAN_KERNEL_SIZE = value+1;
-    }    
-    else {
-        GAUSSIAN_KERNEL_SIZE = value;
-    }
-    log("GAUSSIAN_KERNEL_SIZE: %d\n", GAUSSIAN_KERNEL_SIZE);
-}
-
-void onGaussianSigmaChange(int value) {
-    log("GAUSSIAN_SIGMA: %d\n", value);
-    GAUSSIAN_SIGMA = (value/10) + 1;
 }
 
 #ifdef ROS
@@ -560,7 +655,8 @@ int main(int argc, char *argv[]) {
     if (argc == 1) {
         cout << "Options (default):" << endl
              << "l (false) - use local camera on system" << endl
-             << "n (true) - load training dataset" << endl
+             << "t (false) - loads and classifies using TEMPLATES" << endl
+             << "k (false) - loads and classifies using SURF" << endl
              << "c (false) - use camera data using callback listening to rostopic" << endl
              << "d (false) - display results graphically" << endl
              << "r (false) - init ROS" << endl
@@ -568,7 +664,7 @@ int main(int argc, char *argv[]) {
              return 0;
     }
 
-    while ((c = getopt (argc, argv, "lnrcds:")) != -1) {
+    while ((c = getopt (argc, argv, "ltrckds:")) != -1) {
         switch (c) {
             case 'l':
                 LOCAL = true;
@@ -576,8 +672,11 @@ int main(int argc, char *argv[]) {
             case 'd':
                 DISPLAY_GRAPHICAL = true;
                 break;
-            case 'n':
-                LOAD_OBJECTS = false;     
+            case 't':
+                USE_TEMPLATES = true;     
+                break;
+            case 'k':
+                USE_SURF = true;     
                 break;
             case 'c':
                 USE_ROS_CAMERA = true;     
@@ -606,7 +705,12 @@ int main(int argc, char *argv[]) {
         initWindows();
     }
 
-    if (LOAD_OBJECTS && !initSurf()) {
+    if (USE_TEMPLATES && !initTemplates()) {
+        log("Failed to initialize tag objects!\n");
+        return -1;
+    }
+
+    if (USE_SURF && !initSURF()) {
         log("Failed to initialize tag objects!\n");
         return -1;
     }
@@ -625,7 +729,187 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+void drawText(Mat &image, string text) {
+    int fontFace = CV_FONT_HERSHEY_SIMPLEX;
+    double fontScale = 1;
+    int thickness = 1;
+    int baseline = 0;
+    Size textSize = getTextSize(text, fontFace, fontScale, thickness, &baseline);
+    // Point textOrg((destImage.cols - textSize.width)/2,(destImage.rows + textSize.height)/2);
+    Point position(0,20);
+    Scalar color(0,255,0);
+    putText(image, text, position, fontFace, fontScale, color, thickness, 7);
+    log("%s\n", text.c_str());
+}
 
+void initWindows() {
+    namedWindow(windowResult, CV_WINDOW_AUTOSIZE);
+    namedWindow(windowThresh, CV_WINDOW_AUTOSIZE);
+    namedWindow(windowTag, CV_WINDOW_AUTOSIZE);
+
+    // int cvCreateTrackbar(const char* trackbarName, const char* windowName, int* value, int count, CvTrackbarCallback onChange)
+    cvCreateTrackbar("SaturationColorHigh", windowResult, &SATURATION_COLOR_HIGH, 255,  onSaturationColorHighChange);
+    cvCreateTrackbar("SaturationColorLow", windowResult, &SATURATION_COLOR_LOW, 255,  onSaturationColorLowChange);
+    cvCreateTrackbar("CannyHigh", windowResult, &CANNY_HIGH, 360,  onCannyHighChange);
+    cvCreateTrackbar("CannyLow", windowResult, &CANNY_LOW, 360,  onCannyLowChange);
+    cvCreateTrackbar("GaussianKernelSize", windowResult, &GAUSSIAN_KERNEL_SIZE, 10,  onGaussianKernelChange);
+    cvCreateTrackbar("GaussianSigma", windowResult, &GAUSSIAN_SIGMA, 10,  onGaussianSigmaChange);
+}
+
+// Can only handle C types
+void log(string fmt, ...) {
+    va_list args;
+    va_start(args,fmt);
+
+    #ifdef ROS
+    // ROS_DEBUG(fmt, args);
+    vprintf(fmt.c_str(), args);
+    #else
+    vprintf(fmt.c_str(), args);
+    #endif
+
+    va_end(args);
+}
+
+void show(const string& winname, InputArray mat) {
+    if (DISPLAY_GRAPHICAL) {
+        imshow(winname.c_str(), mat);
+        waitKey(30);
+    }
+}
+
+void onSaturationColorHighChange(int value) {
+    log("SATURATION_COLOR_HIGH: %d\n", value);
+    SATURATION_COLOR_HIGH = value;
+}
+
+void onSaturationColorLowChange(int value) {
+    log("SATURATION_COLOR_LOW: %d\n", value);
+    SATURATION_COLOR_LOW = value;
+}
+
+void onCannyHighChange(int value) {
+    log("CANNY_HIGH: %d\n", value);
+    CANNY_HIGH = value;
+}
+
+void onCannyLowChange(int value) {
+    log("CANNY_LOW: %d\n", value);
+    CANNY_LOW = value;
+}
+
+void onGaussianKernelChange(int value) {
+    if ((value % 2) == 2) {
+        GAUSSIAN_KERNEL_SIZE = value+1;
+    }    
+    else {
+        GAUSSIAN_KERNEL_SIZE = value;
+    }
+    log("GAUSSIAN_KERNEL_SIZE: %d\n", GAUSSIAN_KERNEL_SIZE);
+}
+
+void onGaussianSigmaChange(int value) {
+    log("GAUSSIAN_SIGMA: %d\n", value);
+    GAUSSIAN_SIGMA = (value/10) + 1;
+}
+
+void streamCamera(VideoCapture &capture) {
+
+    while (true) {
+        // gettimeofday(&end, NULL);
+        // while(double(end.tv_sec*1000000+end.tv_usec-(start.tv_sec*1000000+start.tv_usec)) < CAMERA_INTERVAL*1000.0) {
+        //     oop_rate.sleep();
+        //     gettimeofday(&end, NULL);
+        // }
+        // capture >> frameNext;
+        // capture >> frame;
+        // render(frame);
+        // // flip(frameNext, frame, 0);
+        // if(waitKey(50) >= 0) break;
+        // usleep(CAMERA_INTERVAL*1000);
+
+        if ( ! CLASSIFICATION_IN_PROGRESS && !capture.grab()) { 
+            cout << "Could not grab new frame!" << endl;
+        } else {
+            if (!capture.retrieve(frame)) {
+                cout << "Could not decode and return new frame!" << endl;
+            } else {
+                render(frame);
+            }
+        }
+        
+        if (DISPLAY_GRAPHICAL) {
+            if(waitKey(CAMERA_INTERVAL) >= 0) break;
+        } else {
+            usleep(CAMERA_INTERVAL*1000);
+        }
+    }
+}
+
+void publishMovement(int state) {
+    #ifdef ROS
+    MovementCommand mc;
+    mc.type = state;
+    movementPublisher.publish(mc);
+    #endif
+}
+
+TAG_CLASS name2class(string name) {
+    if (name.compare("tags/tag_apple.png") == 0) return APPLE;
+    if (name.compare("tags/tag_banana.png") == 0) return BANANA;
+    if (name.compare("tags/tag_book.png") == 0) return BOOK;
+    if (name.compare("tags/tag_camera.png") == 0) return CAMERA;
+    if (name.compare("tags/tag_dryer.png") == 0) return DRYER;
+    if (name.compare("tags/tag_glass.png") == 0) return GLASS;
+    if (name.compare("tags/tag_glasses.png") == 0) return GLASSES;
+    if (name.compare("tags/tag_hammer.png") == 0) return HAMMER;
+    if (name.compare("tags/tag_laptop.png") == 0) return LAPTOP;
+    if (name.compare("tags/tag_mug.png") == 0) return MUG;
+    if (name.compare("tags/tag_scissors.png") == 0) return SCISSORS;
+    if (name.compare("tags/tag_teddy.png") == 0) return TEDDY;
+
+    return FAILURE;
+}
+
+string class2name(TAG_CLASS object) {
+    switch (object) {
+        case APPLE: return "Apple";
+        case BANANA: return "Banana";
+        case BOOK: return "Book";
+        case CAMERA: return "Camera";
+        case DRYER: return "Dryer";
+        case GLASS: return "Glass";
+        case GLASSES: return "Glasses";
+        case HAMMER: return "Hammer";
+        case LAPTOP: return "Laptop";
+        case MUG: return "Mug";
+        case SCISSORS: return "Scissors";
+        case TEDDY: return "Teddy";
+        case UNKNOWN: return "Unknown";
+        case FAILURE: return "Failure!";
+        default: return "Unknown class!";
+    }
+}
+
+string color2string(COLOR object) {
+    switch (object) {
+        case BLACK: return "Black";
+        case GREEN: return "Green";
+        case BLUE: return "Blue";
+        case MAGENTA: return "Magenta";
+        default: return "Unknown color!";
+    }
+}
+ // draw the ROIKeypoints on the captured frame
+    // for (vector<KeyPoint>::iterator it = ROIKeypoints.begin(); it < ROIKeypoints.end(); it++) {
+    //     KeyPoint keyPoint = *it;
+    //     CvPoint center;
+    //     int radius;
+    //     center.x = cvRound(keyPoint.pt.x);
+    //     center.y = cvRound(keyPoint.pt.y);
+    //     radius = cvRound(keyPoint.size*1.2/9.*2);
+    //     circle(srcImage, center, radius, Scalar(255, 0, 0), 2);
+    // }
 // TODO: mug contains very few keypoints -> special treatment?
 
 // OpenCV Error: Unsupported format or combination of formats (type=0
