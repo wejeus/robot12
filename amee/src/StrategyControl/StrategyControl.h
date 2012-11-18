@@ -11,6 +11,7 @@ namespace amee {
 class StrategyClassify;
 class StrategyExplore;
 class StrategyGo2Tag;
+class StrategyGetOut;
 
 class StrategyControl {
 
@@ -28,9 +29,10 @@ class StrategyControl {
 		static const int TYPE_STRATEGY_CLASSIFY = 1;
 		static const int TYPE_STRATEGY_EXPLORE = 2;
 		static const int TYPE_STRATEGY_GO2TAG = 3;
+		static const int TYPE_STRATEGY_GET_OUT = 4;
 
 	private:
-//		amee::SensorData mSensorData;
+		amee::SensorData mSensorData;
 
 		ros::Publisher speed_pub;
 
@@ -39,6 +41,7 @@ class StrategyControl {
 		amee::StrategyClassify* mClassifyState;
 		amee::StrategyExplore* mExploreState;
 		amee::StrategyGo2Tag* mGo2TagState;
+		amee::StrategyGetOut* mGetOutState;
 };
 }
 #endif

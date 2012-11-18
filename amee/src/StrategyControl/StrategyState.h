@@ -5,13 +5,13 @@
 namespace amee{
 
 //	enum STATE{ MOVE_STOP, MOVE_STRAIGHT, MOVE_ROTATE, MOVE_COORDINATE, MOVE_FOLLOW_WALL, MOVE_LOST};
-/*
+
 	struct SensorData {
 		Odometry odometry;
 		IRDistances irdistances;
 		float sonarDistance;
 	};
-*/
+
 	class StrategyState{
 	public:
 		//Constructors & destructor

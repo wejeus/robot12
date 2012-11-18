@@ -72,44 +72,40 @@ void StrategyControl::receive_sonar(const roboard_drivers::sonar::ConstPtr &msg)
 
 void StrategyControl::receive_command(const amee::StrategyCommand::ConstPtr &msg) {
 	int type = msg->type;
-	float angle = msg->angle;
-	float distance = msg->distance;
+	//float angle = msg->angle;
+	//float distance = msg->distance;
 	switch(type) {
-		case TYPE_MOVE_STRAIGHT:
-			// std::cout << "MOVE STRAIGHT COMMAND RECEIVED" << std::endl;
-			mCurrentState = mStraightState;
-			mStraightState->init(mSensorData, distance);
+		case TYPE_STRATEGY_EXPLORE:
+			std::cout << "STRATEGY_EXPLORE" << std::endl;
+			//TODO: implement me
+			//mCurrentState = mExploreState;
+			//mExploreState->init(mSensorData);
 		break;
-		case TYPE_MOVE_ROTATE:		
-			// std::cout << "ROTATE COMMAND RECEIVED" << std::endl;
-			mCurrentState = mRotationState;
-			mRotationState->init(mSensorData, angle);
+		case TYPE_STRATEGY_GO2TAG:		
+			std::cout << "STRATEGY GO2TAG" << std::endl;
+			//TODO: implement me
+			//mCurrentState = mGo2TagState;
+			//mGo2TagState->init(mSensorData);
 		break;
-		case TYPE_MOVE_COORDINATE:
-		 	// std::cout << "MOVE TO COORDINATE" << std::endl;
-		 	//TODO initialize MoveCoonrdinate here
-		 	// and change state
+		case TYPE_STRATEGY_CLASSIFY:
+		 	std::cout << "STRATEGY CLASSIFY" << std::endl;
+		 	//TODO implement me
+			//mCurrentState = mClassifyState;
+			//mClassifyState->init(mSensorData);
 		break;
-		case TYPE_FOLLOW_WALL:
-		 	// std::cout << "FOLLOW WALL" << std::endl;
-		 	mFollowWallState->init(mSensorData);
-		 	mCurrentState = mFollowWallState;
-		break;
-		case TYPE_STOP:
-		 	// std::cout << "STOP COMMAND RECEIVED" << std::endl;
-		 	mCurrentState = mStopState;
-		break;
-		case TYPE_ALIGN_TO_WALL:
-			// std::cout << "ALIGN TO WALL COMMAND RECEIVED" << std::endl;
-			mAlignWallState->init(mSensorData);
-			mCurrentState = mAlignWallState;
+		case TYPE_STRATEGY_GET_OUT:
+		 	std::cout << "STRATEGY GET_OUT" << std::endl;
+			//TODO: implement me
+		 	//mCurrentState = mGetOutState;
+		 	//mGetOutState->init(mSensorData);
+
 		break;
 		// default: std::cout << "GAY COMMAND RECEIVED" << std::endl;
 	}
 }
 
 void StrategyControl::init() {
-	mRotationState->init(mSensorData);
+	//mRotationState->init(mSensorData);
 }
 
 int main(int argc, char **argv)
@@ -119,21 +115,24 @@ int main(int argc, char **argv)
 	ros::NodeHandle n;
 
 	// create the controller and initialize it
-	StrategyControl control(vel_pub, wall_pub);
+	//StrategyControl control(vel_pub, wall_pub);
+	StrategyControl control();
 	
 
 	ros::Subscriber dist_sub;
 
 	// create subscriber for distances
+	/*
 	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &StrategyControl::receive_distances, &control);
 	ros::Subscriber odo_sub = n.subscribe("/amee/motor_control/odometry", 100, &StrategyControl::receive_odometry, &control);
 	ros::Subscriber sonar_sub = n.subscribe("/roboard/sonar",1, &StrategyControl::receive_sonar, &control);
 
 	ros::Subscriber command_sub = n.subscribe("/StrategyControl/StrategyCommand",10,&StrategyControl::receive_command, &control);
+	*/
 
 	ros::Rate loop_rate(20);
 
-	control.init();
+	//control.init();
 	
 	while(ros::ok()){
 		
@@ -144,7 +143,7 @@ int main(int argc, char **argv)
 		ros::spinOnce();
 		
 		// drive!
-		control.doControl();
+		//control.doControl();
 	}
 
 	return 0;
