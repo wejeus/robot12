@@ -19,9 +19,12 @@ class Mapper {
 		void receive_distances(const amee::IRDistances::ConstPtr &msg);
 		void receive_pose(const amee::Pose::ConstPtr &msg);
 		void receive_tag(const amee::Tag::ConstPtr &msg);
+		void receive_wallFollowState(const amee::FollowWallStates::ConstPtr &msg);
 		void doMapping();
 		void init(const amee::FollowWallStates::ConstPtr &msg);
 		void setVisualizationPublisher(ros::Publisher pub);
+
+		enum MappingState {Pause, NextToWall, Rotating};
 	
 	private:
 		ros::Publisher map_pub;
@@ -36,6 +39,8 @@ class Mapper {
 
 		int mVisualizeTimer;
 		int mCleanTimer;
+
+		MappingState mMappingState;
 
 		amee::Map::Point mCurrentPos; // current position in map coordinates
 		float mCurrentAngle; // current angle in map coordinates

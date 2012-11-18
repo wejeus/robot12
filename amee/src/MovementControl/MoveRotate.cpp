@@ -50,7 +50,7 @@ void MoveRotate::doControl(const SensorData& data) {
         if (fabs(rotationSpeed) > MAX_ROTATION_SPEED) {
             // saturate speed to ROTATION_SPEED if too high
             rotationSpeed = speedSign * MAX_ROTATION_SPEED;
-        } else {
+        } else if (fabs(rotationSpeed) < MIN_ROTATION_SPEED) {
             // saturate speed to ROTATION_SPEED if too low
             rotationSpeed = speedSign * MIN_ROTATION_SPEED;
         }

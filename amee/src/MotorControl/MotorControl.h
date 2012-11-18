@@ -6,6 +6,7 @@
 #include "roboard_drivers/Motor.h"
 #include "amee/Velocity.h"
 #include "amee/Odometry.h"
+#include "amee/IRDistances.h"
 
 class MotorControl {
 
@@ -27,10 +28,12 @@ private:
 	int mMeasurementCounter; 
 	ros::Publisher mot_pub;
 	ros::Publisher odo_pub;
+	double mLastIRReceivedTime;
 
 	public:
 		void receive_encoder(const roboard_drivers::Encoder::ConstPtr &msg);
 		void receive_speed(const amee::Velocity::ConstPtr &v);
+		void receive_ir(const amee::IRDistances::ConstPtr &ir);
 		// Sets the given speed ( in m/s ) to both motors.
 		void setSpeed(float vLeft, float vRight);
 		void drive(); // call this frequently to make the robot drive
@@ -43,5 +46,6 @@ private:
 	private:
 		inline void checkSpeedLimit(roboard_drivers::Motor& m);
 		void publishOdometry();
+		bool irOk();
 };
 #endif

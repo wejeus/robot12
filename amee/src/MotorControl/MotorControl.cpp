@@ -75,6 +75,11 @@ void MotorControl::receive_encoder(const Encoder::ConstPtr &msg)
 	}
 }
 
+void MotorControl::receive_ir(const amee::IRDistances::ConstPtr &ir)
+{
+	mLastIRReceivedTime = ir->timestamp;
+}
+
 void MotorControl::publishOdometry() {
 	struct timeval time;
 	gettimeofday(&time, NULL);
@@ -122,14 +127,27 @@ void MotorControl::receive_speed(const amee::Velocity::ConstPtr &v) {
 
 // Sets the given speed ( in m/s ) to both motors.
 void MotorControl::setSpeed(float vLeft, float vRight) {
+	// if ((fabs(vLeft - mVelocity.left) >= 0.02f) || (fabs(vRight - mVelocity.right) >= 0.02f)) {
+
 	mVelocity.left = vLeft;
 	mVelocity.right = vRight;
 	mMeasurementValidCounter = 2 * NUM_AVERAGED_MEASUREMENTS;
+	// }
+	
 	// std::cout << "SET NEW SPEED!!! vLeft = " << vLeft << " vRight = " << vRight << std::endl;
 	/*mOdometry.leftWheelDistance = 0.0f;
 	mOdometry.rightWheelDistance = 0.0f;
 	mOdometry.distance = 0.0f;
 	mOdometry.angle = 0.0f;*/
+}
+
+bool MotorControl::irOk(){
+	struct timeval time;
+	gettimeofday(&time, NULL);
+	double currentTime = time.tv_sec+double(time.tv_usec)/1000000.0;
+
+	return (currentTime - mLastIRReceivedTime < 0.2); // false if no ir message is reveived in 200 ms
+
 }
 
 void MotorControl::drive()
@@ -140,31 +158,34 @@ void MotorControl::drive()
 	float leftVPWM = -mVelocity.left / (2.0f * M_PI * WHEEL_RADIUS * REVOLUTION_PER_SEC_LEFT);
 	float rightVPWM = -mVelocity.right / (2.0f * M_PI * WHEEL_RADIUS * REVOLUTION_PER_SEC_RIGHT);
 	// std::cout << "Target(pwm): " << leftVPWM << " " << rightVPWM << std::endl;
-	
-	if (measurementsValid()) {//measurementsValid()) {
-		// calculate current velocity (in pwm) based on the last two encoder values 
-		Velocity pwmVelocity;
-		calcWheelPWMVelocities(pwmVelocity);
+	if (irOk() && !(mVelocity.left == 0.0f && mVelocity.right == 0.0f)){
+		if (measurementsValid()) {//measurementsValid()) {
+			// calculate current velocity (in pwm) based on the last two encoder values 
+			Velocity pwmVelocity;
+			calcWheelPWMVelocities(pwmVelocity);
 
-		// calculate errors: error < 0 <-> too fast, error > 0 <-> too slow 
-		float leftError = leftVPWM - pwmVelocity.left; // error on the left side
-		float rightError = rightVPWM - pwmVelocity.right; // error on the left side	
-	
-		// double temp;	
-		// ros::param::getCached("/MotorControl_Kp",temp);
-		// float K_p = (float)temp;
-		mMotor.right	= mMotor.right + K_p * rightError;//set right motorspeed[-1,1]
-		mMotor.left	= mMotor.left + K_p * leftError;//set left motorspeed[-1,1]
+			// calculate errors: error < 0 <-> too fast, error > 0 <-> too slow 
+			float leftError = leftVPWM - pwmVelocity.left; // error on the left side
+			float rightError = rightVPWM - pwmVelocity.right; // error on the left side	
+		
+			// double temp;	
+			// ros::param::getCached("/MotorControl_Kp",temp);
+			// float K_p = (float)temp;
+			mMotor.right	= mMotor.right + K_p * rightError;//set right motorspeed[-1,1]
+			mMotor.left	= mMotor.left + K_p * leftError;//set left motorspeed[-1,1]
 
-	} else { // we have no valid measurements of the current speed, so just set it to the non controlled values
+		} else { // we have no valid measurements of the current speed, so just set it to the non controlled values
 
-		// Velocity pwmVelocity;
-		// calcWheelPWMVelocities(pwmVelocity);
+			// Velocity pwmVelocity;
+			// calcWheelPWMVelocities(pwmVelocity);
 
-		mMotor.left = leftVPWM;
-		mMotor.right = rightVPWM;
+			mMotor.left = leftVPWM;
+			mMotor.right = rightVPWM;
+		}
+	} else {
+			mMotor.left = 0.0f;
+			mMotor.right = 0.0f;
 	}
-	
 	//printf("set motor pwm velocities: %f %f \n", mMotor.left, mMotor.right);
 	checkSpeedLimit(mMotor); //check the limit before publishing it
 	// log("PublishedSpeed(pwm): %d %d\n", mMotor.left, mMotor.right);
@@ -218,6 +239,7 @@ int main(int argc, char **argv)
 	control.init();
 
 	ros::Subscriber	enc_sub;
+	ros::Subscriber	ir_sub;
 	ros::Publisher	int_pub;
 
 	// create subscriber for velocity commands
@@ -226,6 +248,9 @@ int main(int argc, char **argv)
 
 	// create subscriber for encoder values
 	enc_sub = n.subscribe("/serial/encoder", 100, &MotorControl::receive_encoder, &control);
+
+	// create subscriber for ir timestamp
+	ir_sub = n.subscribe("/amee/sensors/irdistances", 1, &MotorControl::receive_ir, &control);
 
 	// create publisher for low level motor speeds (pwm)
 	ros::Publisher mot_pub = n.advertise<Motor>("/serial/motor_speed", 100);

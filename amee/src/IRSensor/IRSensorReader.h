@@ -25,7 +25,8 @@ private:
 	// sensor ports (these are not the same as the numbers on the roboard!)
 	static const int RIGHT_FRONT = 1;
 	static const int RIGHT_BACK = 2;
-	static const int FRONT_SHORTRANGE = 3;
+	static const int RIGHT_FRONT_WALL_DETECTOR = 3;
+	static const int LEFT_FRONT_WALL_DETECTOR = 4;
 	static const int WHEEL_RIGHT = 6;
 	static const int WHEEL_LEFT = 7;
 	static const int LEFT_FRONT = 0;
@@ -35,9 +36,9 @@ private:
 public:
 		IRSensorReader();
 		void setDistancePublisher(ros::Publisher pub);
-		void calibrate(int sensor);
 		void receiveRawData(const roboard_drivers::adc_val::ConstPtr &msg);
 	// protected:
-	// private:
+	 private:
+	 	float limit(float val);
 };
 #endif
