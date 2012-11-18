@@ -26,6 +26,13 @@ void Mapper::receive_distances(const IRDistances::ConstPtr &msg)
 	mDistances.wheelLeft = msg->wheelLeft;
 }
 
+void Mapper::receive_tag(const amee::Tag::ConstPtr& msg) {
+	Map::Point p;
+	p.x = mCurrentPos.x;
+	p.y = mCurrentPos.y;
+	mTagPositions.push_back(p);
+}
+
 void Mapper::receive_pose(const Pose::ConstPtr &msg) {
 	// TODO others and synchronize with distances
 	mPose.timestamp = msg->timestamp;
@@ -35,8 +42,10 @@ void Mapper::receive_pose(const Pose::ConstPtr &msg) {
 	mPose.theta = mPose.theta * M_PI / 180.0f; 
 	// mPose.distance = msg->distance;
 	mPose.x = msg->x;
-	mPose.y = msg->y;
-	
+	mPose.y = msg->y;	
+}
+
+void Mapper::receive_wallFollowState(const amee::FollowWallStates::ConstPtr &msg) {
 }
 
 void Mapper::init(const FollowWallStates::ConstPtr &msg) {
@@ -50,7 +59,7 @@ void Mapper::init(const FollowWallStates::ConstPtr &msg) {
 		base.pos.x = 0.0f;
 		base.pos.y = 0.0f;
 		mMeasurements.resize(7,base);
-
+		mMappingState = Pause;
 		mVisualizeTimer = 0;
 		mCleanTimer = 0;
 	}
@@ -225,12 +234,7 @@ void Mapper::doMapping() {
 	// std::cout << "Diff in timestamp: " << (mPose.timestamp - mDistances.timestamp) << std::endl;
 }
 
-void Mapper::receive_tag(const amee::Tag::ConstPtr& msg) {
-	Map::Point p;
-	p.x = mCurrentPos.x;
-	p.y = mCurrentPos.y;
-	mTagPositions.push_back(p);
-}
+
 
 void mapTest(ros::Publisher& vispub) {
 	Map map;
