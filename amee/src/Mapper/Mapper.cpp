@@ -45,10 +45,25 @@ void Mapper::receive_pose(const Pose::ConstPtr &msg) {
 	mPose.y = msg->y;	
 }
 
-void Mapper::receive_wallFollowState(const amee::FollowWallStates::ConstPtr &msg) {
+void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg) {
+	switch(msg->state) {
+		case amee::MoveFollowWall::ALIGNED_TO_WALL:
+			if (!mInitialized) {
+				init();
+				mMappingState = NextToWall;
+			}
+			break;
+		case amee::MoveFollowWall::ROTATE_LEFT:
+			mMappingState = Rotating;
+			break;
+		case amee::MoveFollowWall::ROTATE_RIGHT:
+			mMappingState = Rotating;
+		default:
+			mMappingState = Pause;
+	}
 }
 
-void Mapper::init(const FollowWallStates::ConstPtr &msg) {
+void Mapper::init() {
 	if (msg->state == amee::MoveFollowWall::ALIGNED_TO_WALL && !mInitialized) {
 		mStartAngle = mPose.theta - (mPose.theta - floor(mPose.theta / 90.0f + 0.5f) * 90.0f);
 		mStartPos.x = mPose.x;
@@ -180,18 +195,6 @@ void Mapper::visualize() {
 	++mVisualizeTimer;
 }
 
-void Mapper::setAngleToN90Deg() {
-	// float diffToPi = M_PI - mCurrentAngle;
-	// diffToPi = diffToPi >= 0.0f ? diffToPi : -diffToPi;
-	// float diffToHalfPi = M_PI/2.0f - mCurrentAngle;
-	// diffToHalfPi = diffToHalfPi >= 0.0f ? diffToHalfPi : -diffToHalfPi;
-	// float diffToThreeHalfPi = 3.0f / 2.0f * M_PI - mCurrentAngle;
-	// diffToThreeHalfPi = diffToThreeHalfPi >= 0.0f ? diffToThreeHalfPi : -diffToThreeHalfPi;
-
-	float timesPi = mCurrentAngle / (M_PI / 2);
-	mCurrentAngle = floor(timesPi + 0.5f) * (M_PI/2.0f);
-	std::cout << "setting angle to " << mCurrentAngle << std::endl;
-}
 void Mapper::cleanMap() {
 	if (mCleanTimer == 8) {
 		mCleanTimer = 0;
@@ -201,35 +204,37 @@ void Mapper::cleanMap() {
 }
 
 void Mapper::doMapping() {
-	if (mInitialized) {
-		// set origin
-		mCurrentPos.x = mPose.x - mStartPos.x;
-		mCurrentPos.y = mPose.y - mStartPos.y;
+
+	switch(mMappingState) {
+		case Rotating:
+		case Pause:
+			break;
+		case NextToWall:
+			// set origin
+			mCurrentPos.x = mPose.x - mStartPos.x;
+			mCurrentPos.y = mPose.y - mStartPos.y;
+			
+			// rotate odometry coordinate system so that it is parallel to the map's system
+			//mCurrentPos.rotate(-mStartAngle); 
+			mCurrentAngle = mPose.theta;// - mStartAngle;
+			std::cout << "Current position in maze: " << mCurrentPos.x << ", " << mCurrentPos.y << std::endl;
+			std::cout << "Current angle in maze: " << mCurrentAngle * (180.0f / M_PI) << std::endl;
 		
-		// rotate odometry coordinate system so that it is parallel to the map's system
-		//mCurrentPos.rotate(-mStartAngle); 
-		mCurrentAngle = mPose.theta;// - mStartAngle;
-		std::cout << "Current position in maze: " << mCurrentPos.x << ", " << mCurrentPos.y << std::endl;
-		std::cout << "Current angle in maze: " << mCurrentAngle * (180.0f / M_PI) << std::endl;
-	
-		// setAngleToN90Deg();	
-	
-		calculateMeasurements();
+			calculateMeasurements();
 
-		for (unsigned int i = 0; i < mMeasurements.size(); ++i) {
-			Measurement m = mMeasurements[i];
-			// std::cout << i <<": is valid? " << m.valid << " x " << m.pos.x << " y " << m.pos.y << std::endl;
-			if (m.valid) {
-				mMap.addMeasurement(m.pos);
+			for (unsigned int i = 0; i < mMeasurements.size(); ++i) {
+				Measurement m = mMeasurements[i];
+				// std::cout << i <<": is valid? " << m.valid << " x " << m.pos.x << " y " << m.pos.y << std::endl;
+				if (m.valid) {
+					mMap.addMeasurement(m.pos);
+				}
 			}
-		}
-		cleanMap();
-		visualize();
-		mMap.print();
-
+			cleanMap();
+			visualize();
+			mMap.print();
+		break;
 	}
-
-
+	
 	//TODO
 	// std::cout << "Diff in timestamp: " << (mPose.timestamp - mDistances.timestamp) << std::endl;
 }
@@ -284,7 +289,7 @@ int main(int argc, char **argv)
 	ros::Subscriber dist_sub;
 	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &Mapper::receive_distances, &mapper);
 	ros::Subscriber odo_sub = n.subscribe("/amee/pose", 100, &Mapper::receive_pose, &mapper);
-	ros::Subscriber state_sub = n.subscribe("/amee/follow_wall_states",10, &Mapper::init, &mapper);
+	ros::Subscriber state_sub = n.subscribe("/amee/follow_wall_states",10, &Mapper::receive_FollowWallState, &mapper);
 	ros::Subscriber tag_sub = n.subscribe("/amee/tag",10, &Mapper::receive_tag, &mapper);
 
   	ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);

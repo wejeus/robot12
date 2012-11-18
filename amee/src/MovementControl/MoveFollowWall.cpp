@@ -208,6 +208,7 @@ using namespace amee;
             publishSpeeds(0.0f,0.0f);
             mState.initialized = true;
             mRotater->init(mSensorData, 90.0f);
+            publishState(ROTATE_LEFT);
           }
           if (mRotater->isRunning()) { 
             mRotater->doControl(mSensorData);
@@ -217,7 +218,6 @@ using namespace amee;
             } else {
                 mState.set(HandleEvilWalls);
             }
-            publishState(ROTATED_LEFT);
           }
     }
 
@@ -228,12 +228,12 @@ using namespace amee;
             publishSpeeds(0.0f,0.0f);
             mState.initialized = true;
             mRotater->init(mSensorData, -90.0f);
+            MoveFollowWall::publishState(ROTATE_RIGHT);
           }
           if (mRotater->isRunning()) { 
             mRotater->doControl(mSensorData);
           } else {
             mState.set(LookForBeginningOfWall);   
-            MoveFollowWall::publishState(ROTATED_RIGHT);
           }
     }
 

@@ -22,8 +22,8 @@ namespace amee{
 		static const int FOLLOWED_WALL = 1;
 		static const int FOUND_END_OF_WALL =  2;
 		static const int MOVED_TAIL = 3;
-		static const int ROTATED_RIGHT = 4;
-		static const int ROTATED_LEFT = 5;
+		static const int ROTATE_RIGHT = 4;
+		static const int ROTATE_LEFT = 5;
 		static const int FOUND_BEGINNING_OF_WALL = 6;
 		static const int ALIGNED_TO_WALL = 7;
 		static const int ALIGNED_TO_FRONT_WALL = 8;

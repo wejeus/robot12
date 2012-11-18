@@ -19,7 +19,7 @@ class Mapper {
 		void receive_distances(const amee::IRDistances::ConstPtr &msg);
 		void receive_pose(const amee::Pose::ConstPtr &msg);
 		void receive_tag(const amee::Tag::ConstPtr &msg);
-		void receive_wallFollowState(const amee::FollowWallStates::ConstPtr &msg);
+		void receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg);
 		void doMapping();
 		void init(const amee::FollowWallStates::ConstPtr &msg);
 		void setVisualizationPublisher(ros::Publisher pub);
@@ -50,6 +50,8 @@ class Mapper {
 			amee::Map::Point pos;
 		};
 
+		static const int 
+
 		std::vector<Measurement> mMeasurements;
 		std::vector<Map::Point> mTagPositions;
 
@@ -58,7 +60,6 @@ class Mapper {
 		void calculateMeasurements();
 		bool isValidDistance(float dist);
 		void visualize();
-		void setAngleToN90Deg();
 		void cleanMap();
 	};
 }
