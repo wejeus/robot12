@@ -644,7 +644,7 @@ void initLocalInput(string source) {
 
     log("Starting TagDetection using local input.\n");
 
-    mapPublisher = n.advertise<Tag>("/amee/tag", 100);
+    // mapPublisher = n.advertise<Tag>("/amee/tag", 100);
     
     if (!strcmp(source.c_str(), "")) {
         log("No input source!\n");
