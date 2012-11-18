@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 //	int_pub = n.advertise<std_msgs::Int32>("/imu_interval", 100000);
 
 	ros::Rate loop_rate(1);
-	struct timeval start, end;
+/*	struct timeval start, end;*/
 
 	while(ros::ok()){
 		loop_rate.sleep();
