@@ -64,11 +64,7 @@ void MovementControl::doControl() {
 		mCurrentState->doControl(mSensorData);
 	}
 
-	// bool wall =  mSensorData.irdistances.obstacleInFront 
- //            || (mSensorData.irdistances.wheelRight <= 0.06f && mSensorData.irdistances.wheelRight >= -0.03f)
- //            || (mSensorData.irdistances.wheelLeft <= 0.06f && mSensorData.irdistances.wheelLeft >= -0.03f)
- //            || (mSensorData.sonarDistance <= 0.13f);
- //    std::cout << "Front wall detected: " << wall << std::endl;
+    std::cout << "Front wall detected: " << wallInFront(mSensorData) << std::endl;
 }
 
 void MovementControl::receive_sonar(const roboard_drivers::sonar::ConstPtr &msg) {
@@ -145,7 +141,7 @@ int main(int argc, char **argv)
 
 	ros::Subscriber command_sub = n.subscribe("/MovementControl/MovementCommand",10,&MovementControl::receive_command, &control);
 
-	ros::Rate loop_rate(20);
+	ros::Rate loop_rate(100);
 	while((vel_pub.getNumSubscribers() == 0 || sonar_interval_pub.getNumSubscribers() == 0) && ros::ok()) {
 		loop_rate.sleep();
 	} 

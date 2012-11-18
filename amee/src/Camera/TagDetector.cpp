@@ -18,6 +18,7 @@
 #include <std_msgs/Int32.h>
 #include <std_msgs/Int8MultiArray.h>
 #include "amee/Tag.h"
+#include "amee/Velocity.h"
 #include "amee/MovementCommand.h"
 #include <ros/console.h>
 using namespace amee;
@@ -54,7 +55,7 @@ struct TagTemplate {
     Mat image;
 };
 
-void streamCamera(VideoCapture &capture);
+void streamCamera();
 void render(Mat &frame);
 void initWindows();
 void show(const string& winname, InputArray mat);
@@ -76,7 +77,7 @@ void onGaussianKernelChange(int value);
 void onGaussianSigmaChange(int value);
 
 
-
+void captureSingleFrame(Mat &frame);
 bool findTagROI(Mat &srcImage, Mat &ROI);
 int thresholdRedPixels(Mat &srcImage, Mat &destImage);
 bool containsRedBorderPixels(Mat &srcImage);
@@ -84,7 +85,8 @@ bool containsRedPixels(Mat &srcImage);
 bool prepareROI(Mat &srcROI, Mat &destROI);
 COLOR determineTagColor(Mat &ROI);
 void thresholdBlackWhite(Mat &srcImage, Mat &destImage);
-
+bool isReadyForNextTag();
+void setNextTagTimout();
 bool initSURF();
 TAG_CLASS classifyTagUsingSURF(Mat &ROI);
 
@@ -103,7 +105,8 @@ int GAUSSIAN_SIGMA = 1.5;
 double TAG_MIN_PIXEL_AREA = 1500.0;
 char TAG_FILES[] = "tags/files.txt";
 int minHessian = 200;
-Mat frame;
+// Mat aaaframe;
+VideoCapture capture;
 
 vector<TagData> sourceTags;
 vector<TagTemplate> sourceTemplates;
@@ -111,6 +114,7 @@ vector<TagTemplate> sourceTemplates;
 #ifdef ROS
 ros::Publisher mapPublisher;
 ros::Publisher movementPublisher;
+ros::Publisher motorPublisher;
 #endif
 
 
@@ -118,11 +122,18 @@ void render(Mat &frame) {
     // if (SMOOTH_IMAGE) GaussianBlur(frame, frame, Size(GAUSSIAN_KERNEL_SIZE, GAUSSIAN_KERNEL_SIZE), GAUSSIAN_SIGMA, GAUSSIAN_SIGMA);
     // if (FILTER_RED_TAG) filterRedTag(frame, frame);
     
-    if (containsRedPixels(frame)) {
+    if (containsRedPixels(frame) && isReadyForNextTag()) {
         
         CLASSIFICATION_IN_PROGRESS = true;
         log("Found some object, classification in progress...\n");
+        Velocity v;
+        v.right = 0.0f;
+        v.left = 0.0f;
+        motorPublisher.publish(v);
         publishMovement(5); // Stop motors
+        // sleep(1);
+
+        captureSingleFrame(frame);
 
         Mat ROI;
         TAG_CLASS res;
@@ -139,23 +150,45 @@ void render(Mat &frame) {
 
             log("Color: %s, ", color2string(determineTagColor(ROI)).c_str());
 
-            if (res != FAILURE) {
+            // if (res != FAILURE) {
                 log("Object: %s\n", class2name(res).c_str());
-            }
-            
-            publishMovement(4); // continue wall following
+            // }    
+        } else {
+            log("Could not findTagROI or prepareROI\n");
         }
-
-        log("CLASSIFICATION DONE!\n");
-        CLASSIFICATION_IN_PROGRESS = false;        
-
-
         
+        log("CLASSIFICATION DONE!\n");
+        publishMovement(4); // continue wall following
+        setNextTagTimout();
+        CLASSIFICATION_IN_PROGRESS = false;           
     }
 
     show(windowResult, frame);
 }
 
+
+double lastTagTimeout;
+
+bool isReadyForNextTag() {
+    struct timeval currentTimestamp;
+    gettimeofday(&currentTimestamp, NULL);
+    double t = currentTimestamp.tv_sec+double(currentTimestamp.tv_usec)/1000000.0;
+    
+    if ((t - lastTagTimeout) > 3.0f) {
+        log("timeout TRUE: %f\n", (t - lastTagTimeout));
+        return true;
+    } else {
+        log("timeout FALSE: %f\n", (t - lastTagTimeout));
+        return false;
+    }
+}
+
+
+void setNextTagTimout() {
+    struct timeval tagTimeout;
+    gettimeofday(&tagTimeout, NULL);
+    lastTagTimeout = tagTimeout.tv_sec+double(tagTimeout.tv_usec)/1000000.0;
+}
 
 /* Thresholds redpixels and saves resulting binary image in destImage, returns number of red pixels in image */
 int thresholdRedPixels(Mat &srcImage, Mat &destImage) {
@@ -163,10 +196,14 @@ int thresholdRedPixels(Mat &srcImage, Mat &destImage) {
     cvtColor(srcImage, hsvImage, CV_BGR2HSV);
     
     // Works very good if the red in the tag is not dark. If it's in a position to reflect a little light directly it works very good.
-    inRange(hsvImage, Scalar(0, 100, 0), Scalar(40, 255, 255), firstRedSection);
-    inRange(hsvImage, Scalar(129, 100, 0), Scalar(179, 255, 255), secondRedSection);
-    bitwise_or(firstRedSection, secondRedSection, destImage);
+    // inRange(hsvImage, Scalar(0, 100, 0), Scalar(40, 255, 255), firstRedSection);
+    // inRange(hsvImage, Scalar(129, 100, 0), Scalar(179, 255, 255), secondRedSection);
+    // bitwise_or(firstRedSection, secondRedSection, destImage);
 
+    // inRange(hsvImage, Scalar(SATURATION_COLOR_LOW, 100, 0), Scalar(SATURATION_COLOR_HIGH, 255, 255), destImage);
+    inRange(hsvImage, Scalar(140, 100, 0), Scalar(179, 255, 255), destImage);
+    
+    // show(windowThresh, destImage);
     int numRedPixels = countNonZero(destImage);
     // log("numRedPixels: %d\n", numRedPixels);
 
@@ -176,8 +213,8 @@ int thresholdRedPixels(Mat &srcImage, Mat &destImage) {
 bool containsRedPixels(Mat &srcImage) {
     Mat dummy;
     int numRedPixels = thresholdRedPixels(srcImage, dummy);
-    // log("Num red pixels in image: %d\n", numRedPixels);
-    if (numRedPixels > 500) {
+    log("Num red pixels in image: %d\n", numRedPixels);
+    if (numRedPixels > 1000) {
         return true;
     } else {
         return false;
@@ -206,7 +243,6 @@ bool findTagROI(Mat &srcImage, Mat &ROI) {
 
     vector< vector<Point> > contours;
     findContours(binaryImage, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
-    show(windowThresh, binaryImage);
 
     // Filter out contours that are big enough to hold a tag rectangle
     for(int i = 0; i < contours.size(); ++i) {
@@ -624,6 +660,7 @@ void initROS(int argc, char *argv[]) {
     mapPublisher = rosNodeHandle.advertise<Tag>("/amee/tag", 100);
     // wait(mapPublisher);
     movementPublisher = rosNodeHandle.advertise<MovementCommand>("/MovementControl/MovementCommand", 1);
+    motorPublisher = rosNodeHandle.advertise<Velocity>("/amee/motor_control/set_wheel_velocities", 100);
     // wait(movementPublisher);
 
     if (USE_ROS_CAMERA) {
@@ -651,9 +688,6 @@ void initLocalInput(string source) {
         return;
     }
 
-    VideoCapture capture;
-    // capture.set(CV_CAP_PROP_FPS, 1.0);
-
     if (isdigit(*source.c_str())) {
         log("Initializing camera: %s\n", source.c_str());
         capture.open(atoi(source.c_str()));
@@ -669,7 +703,7 @@ void initLocalInput(string source) {
     }
 
     if (capture.isOpened()) {
-        streamCamera(capture);
+        streamCamera();
         // cvReleaseCapture(&capture);
     } else {
         log("Reading image: %s\n", source.c_str());
@@ -849,7 +883,17 @@ void onGaussianSigmaChange(int value) {
     GAUSSIAN_SIGMA = (value/10) + 1;
 }
 
-void streamCamera(VideoCapture &capture) {
+void captureSingleFrame(Mat &frame) {
+    if (!capture.grab()) { 
+        cout << "Could not grab new frame!" << endl;
+    } else {
+        if (!capture.retrieve(frame)) {
+           cout << "Could not decode and return new frame!" << endl;
+        }
+    }
+}
+
+void streamCamera() {
 
     while (true) {
         // gettimeofday(&end, NULL);
@@ -863,7 +907,7 @@ void streamCamera(VideoCapture &capture) {
         // // flip(frameNext, frame, 0);
         // if(waitKey(50) >= 0) break;
         // usleep(CAMERA_INTERVAL*1000);
-
+        Mat frame;
         if ( ! CLASSIFICATION_IN_PROGRESS && !capture.grab()) { 
             cout << "Could not grab new frame!" << endl;
         } else {
@@ -876,15 +920,17 @@ void streamCamera(VideoCapture &capture) {
         }
         
         if (DISPLAY_GRAPHICAL) {
-            if(waitKey(CAMERA_INTERVAL) >= 0) break;
+            // if(waitKey(CAMERA_INTERVAL) >= 0) break;
         } else {
-            usleep(CAMERA_INTERVAL*1000);
+            // usleep(CAMERA_INTERVAL*1000);
         }
     }
 }
 
 void publishMovement(int state) {
     #ifdef ROS
+    if (state == 4) log("Publish WALL\n");
+    if (state == 5) log("Publish STOPWALL\n");
     MovementCommand mc;
     mc.type = state;
     movementPublisher.publish(mc);
