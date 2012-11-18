@@ -83,6 +83,7 @@ bool containsRedBorderPixels(Mat &srcImage);
 bool containsRedPixels(Mat &srcImage);
 bool prepareROI(Mat &srcROI, Mat &destROI);
 COLOR determineTagColor(Mat &ROI);
+void thresholdBlackWhite(Mat &srcImage, Mat &destImage);
 
 bool initSURF();
 TAG_CLASS classifyTagUsingSURF(Mat &ROI);
@@ -196,9 +197,7 @@ bool findTagROI(Mat &srcImage, Mat &ROI) {
     
     Canny(binaryImage, binaryImage, CANNY_LOW, CANNY_HIGH);
 
-        // int erosionSize = 1;
-    // Mat element = getStructuringElement(MORPH_ELLIPSE, Size(2*erosionSize + 1, 2*erosionSize+1));
-    dilate(binaryImage, binaryImage, element);
+    // dilate(binaryImage, binaryImage, element);
 
     vector< vector<Point> > contours;
     findContours(binaryImage, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
@@ -259,26 +258,32 @@ struct PixelSum {
 
 // TODO: Adjust color params to better match colors.
 COLOR determineTagColor(Mat &ROI) {
+    // Mat r,g,b;
+    // vector<Mat> bgr;
+    // split(ROI, bgr);
+    // log("B %d G %d R %d\n", countNonZero(bgr[0]), countNonZero(bgr[1]), countNonZero(bgr[2]));
+    // return UNKNOWN_COLOR;
+
     Mat hsvImage, binaryImage;
     cvtColor(ROI, hsvImage, CV_BGR2HSV);
     int numColoredPixels;
     vector<PixelSum> elems;
     PixelSum ps;
 
-    // Green: 71-81
-    inRange(hsvImage, Scalar(71, 100, 0), Scalar(81, 255, 255), binaryImage);
+    // Green
+    inRange(hsvImage, Scalar(60, 50, 20), Scalar(90, 255, 255), binaryImage);
     ps.numPixels = countNonZero(binaryImage);
     ps.color = GREEN;
     elems.push_back(ps);
 
-    // Detect blue
-    inRange(hsvImage, Scalar(110, 100, 0), Scalar(152, 255, 255), binaryImage);
+    // Blue
+    inRange(hsvImage, Scalar(110, 100, 20), Scalar(130, 255, 255), binaryImage);
     ps.numPixels = countNonZero(binaryImage);
     ps.color = BLUE;
     elems.push_back(ps);
 
-    // Magenta: 154-171
-    inRange(hsvImage, Scalar(154, 100, 0), Scalar(171, 255, 255), binaryImage);
+    // Magenta
+    inRange(hsvImage, Scalar(150, 0, 0), Scalar(165, 255, 255), binaryImage);
     ps.numPixels = countNonZero(binaryImage);
     ps.color = MAGENTA;
     elems.push_back(ps);
@@ -287,15 +292,24 @@ COLOR determineTagColor(Mat &ROI) {
     bestMatch.color = UNKNOWN_COLOR;
     bestMatch.numPixels = 0;
     for (vector<PixelSum>::iterator it = elems.begin(); it < elems.end(); ++it) {
+        log("COLOR: %s VALUE: %d\n", color2string(it->color).c_str(), it->numPixels);
         if (it->numPixels > bestMatch.numPixels) {
             bestMatch.color = it->color;
             bestMatch.numPixels = it->numPixels;
         }
     }
 
-    if (bestMatch.numPixels < 1000) {
-        bestMatch.color = BLACK;
-    }
+    // if (bestMatch.numPixels < 1000) {
+    //     bestMatch.color = BLACK;
+    // } else if (elems[0].numPixels > 1000 && elems[1].numPixels > 1000) {
+    //     log("asdfasdf\n");
+    //     bestMatch.color = BLACK;
+    // }
+
+    // Debug: adjustment of saturation params.
+    inRange(hsvImage, Scalar(SATURATION_COLOR_LOW, 100, 0), Scalar(SATURATION_COLOR_HIGH, 255, 255), binaryImage);
+    log("Match: %d\n", countNonZero(binaryImage));
+    show(windowTag, binaryImage);
 
     return bestMatch.color;
 }
@@ -318,6 +332,12 @@ bool initTemplates() {
             tag.image = imread(line, CV_LOAD_IMAGE_GRAYSCALE);
     
             resize(tag.image, tag.image, Size(200, 200), 0, 0, INTER_LINEAR);
+            thresholdBlackWhite(tag.image, tag.image);
+            
+            // Debug
+            // show(windowTag, tag.image);
+            // waitKey();
+
             if( ! tag.image.data) {
                 log("Image not found!\n");
                 return false;
@@ -335,12 +355,16 @@ bool initTemplates() {
     infile.close();
 }
 
+void thresholdBlackWhite(Mat &srcImage, Mat &destImage) {
+    threshold(srcImage, destImage, 128, 255,THRESH_BINARY);
+}
+
 /* Assumes borders have been removed */
 TAG_CLASS classifyTagUsingTemplate(Mat &ROI) {
     
     Mat tmpROI;    
     cvtColor(ROI, tmpROI, CV_BGR2GRAY);
-    show(windowTag, tmpROI);
+    thresholdBlackWhite(tmpROI, tmpROI);
 
     double bestMatch = 100;
     TAG_CLASS obj;
@@ -748,8 +772,8 @@ void initWindows() {
     namedWindow(windowTag, CV_WINDOW_AUTOSIZE);
 
     // int cvCreateTrackbar(const char* trackbarName, const char* windowName, int* value, int count, CvTrackbarCallback onChange)
-    cvCreateTrackbar("SaturationColorHigh", windowResult, &SATURATION_COLOR_HIGH, 255,  onSaturationColorHighChange);
-    cvCreateTrackbar("SaturationColorLow", windowResult, &SATURATION_COLOR_LOW, 255,  onSaturationColorLowChange);
+    cvCreateTrackbar("SaturationColorHigh", windowResult, &SATURATION_COLOR_HIGH, 180,  onSaturationColorHighChange);
+    cvCreateTrackbar("SaturationColorLow", windowResult, &SATURATION_COLOR_LOW, 180,  onSaturationColorLowChange);
     cvCreateTrackbar("CannyHigh", windowResult, &CANNY_HIGH, 360,  onCannyHighChange);
     cvCreateTrackbar("CannyLow", windowResult, &CANNY_LOW, 360,  onCannyLowChange);
     cvCreateTrackbar("GaussianKernelSize", windowResult, &GAUSSIAN_KERNEL_SIZE, 10,  onGaussianKernelChange);
