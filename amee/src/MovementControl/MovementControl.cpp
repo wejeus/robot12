@@ -64,11 +64,11 @@ void MovementControl::doControl() {
 		mCurrentState->doControl(mSensorData);
 	}
 
-	// bool wall =  mSensorData.irdistances.obstacleInFront 
- //            || (mSensorData.irdistances.wheelRight <= 0.05f && mSensorData.irdistances.wheelRight >= -0.03f)
- //            || (mSensorData.irdistances.wheelLeft <= 0.05f && mSensorData.irdistances.wheelLeft >= -0.03f)
- //            || (mSensorData.sonarDistance <= 0.13f);
- //    std::cout << "Front wall detected: " << wall << std::endl;
+	bool wall =  mSensorData.irdistances.obstacleInFront 
+            || (mSensorData.irdistances.wheelRight <= 0.06f && mSensorData.irdistances.wheelRight >= -0.03f)
+            || (mSensorData.irdistances.wheelLeft <= 0.06f && mSensorData.irdistances.wheelLeft >= -0.03f)
+            || (mSensorData.sonarDistance <= 0.13f);
+    std::cout << "Front wall detected: " << wall << std::endl;
 }
 
 void MovementControl::receive_sonar(const roboard_drivers::sonar::ConstPtr &msg) {

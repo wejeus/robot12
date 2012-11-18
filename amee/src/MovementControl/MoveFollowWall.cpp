@@ -107,6 +107,7 @@ using namespace amee;
             } else {
                 std::cout << "T Intersection: CAN'T ALIGN -> ROTATE RIGHT NOW" << std::endl;  
                 mState.set(RotateRight);
+                MoveFollowWall::publishState(T_INTERSECTION_HANDLED);
                 return;
             }
         }
@@ -119,6 +120,7 @@ using namespace amee;
         // if we have seen a big enough gap on the right side, we don't need to align to the front wall anymore
         if (mSensorData.odometry.distance - mState.gapStartDist >= TAIL_LENGTH) {
             mState.set(RotateRight);
+            MoveFollowWall::publishState(T_INTERSECTION_HANDLED);
             return;
         }
 
@@ -126,6 +128,7 @@ using namespace amee;
             mFrontWallAligner->doControl(mSensorData);
         } else {
             mState.set(RotateRight);
+            MoveFollowWall::publishState(T_INTERSECTION_HANDLED);
         }
     }
 
@@ -145,7 +148,7 @@ using namespace amee;
             mWallAligner->doControl(mSensorData);
         } else {
             
-            MoveFollowWall::PublishState(ALIGNED_TO_WALL);
+            MoveFollowWall::publishState(ALIGNED_TO_WALL);
             mState.set(FollowWall);
         }
 
@@ -171,6 +174,7 @@ using namespace amee;
             mFrontWallAligner->doControl(mSensorData);
         } else {
             mState.set(RotateLeft);
+            MoveFollowWall::publishState(ALIGNED_TO_FRONT_WALL);
         }
     }
 
@@ -196,12 +200,11 @@ using namespace amee;
 
         if (nextToWall()) {
             mState.set(AlignToWall);
-            MoveFollowWall::PublishState(FOUND_BEGINNING_OF_WALL);
+            MoveFollowWall::publishState(FOUND_BEGINNING_OF_WALL);
             return;
         }
 
         if (mFoundWallRightBack && mFoundWallRightFront) {
-            MoveFollowWall::PublishState(FOUND_BEGINNING_OF_WALL);
             // both sensors have seen the wall, but it's not continues, so go to evil wall handling
             mState.set(HandleEvilWalls);
             mState.handleWallInitDistance = TAIL_LENGTH; // make sure it moves far enough for a u-turn
@@ -226,7 +229,7 @@ using namespace amee;
             } else {
                 mState.set(HandleEvilWalls);
             }
-            PublishState(ROTATED_LEFT);
+            publishState(ROTATED_LEFT);
           }
     }
 
@@ -242,7 +245,7 @@ using namespace amee;
             mRotater->doControl(mSensorData);
           } else {
             mState.set(LookForBeginningOfWall);   
-            MoveFollowWall::PublishState(ROTATED_RIGHT);
+            MoveFollowWall::publishState(ROTATED_RIGHT);
           }
     }
 
@@ -261,7 +264,7 @@ using namespace amee;
             if (mStraightMove->isRunning()) {
                 mStraightMove->doControl(mSensorData);
             } else {
-                MoveFollowWall::PublishState(MOVED_TAIL);
+                MoveFollowWall::publishState(MOVED_TAIL);
                 mState.set(RotateRight);   
             }
         }
@@ -286,7 +289,7 @@ using namespace amee;
             mState.set(LookForBeginningOfWall); 
         } else if (!seesWall(mSensorData.irdistances.rightFront) 
             && !seesWall(mSensorData.irdistances.rightBack)) {
-            MoveFollowWall::PublishState(FOUND_END_OF_WALL);
+            MoveFollowWall::publishState(FOUND_END_OF_WALL);
             mState.set(MoveTail);
         } else {
             mStraightMove->doControl(mSensorData);
@@ -326,7 +329,7 @@ using namespace amee;
         // std::cout << mSensorData.irdistances << std::endl;
         if (wallInFront()) {
             mState.set(AlignToFrontWall);
-            PublishState(FOLLOWED_WALL);
+            publishState(FOLLOWED_WALL);
             return;
         }
 
@@ -340,7 +343,7 @@ using namespace amee;
             } 
 
          } else if (!seesWall(mSensorData.irdistances.rightFront) && seesWall(mSensorData.irdistances.rightBack)) {
-            PublishState(FOLLOWED_WALL);
+            publishState(FOLLOWED_WALL);
             mState.set(LookForEndOfWall);
          } else if (seesWall(mSensorData.irdistances.rightFront) && !seesWall(mSensorData.irdistances.rightBack)) {
             mState.set(LookForBeginningOfWall);
@@ -391,7 +394,7 @@ using namespace amee;
         }
     }
 
-    void MoveFollowWall::PublishState(int state) { // publishes the state
+    void MoveFollowWall::publishState(int state) { // publishes the state
 
         amee::FollowWallStates followWallState;
         followWallState.state = state;
