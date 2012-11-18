@@ -1,7 +1,7 @@
 #include "Mapper.h"
 #include <iostream>
 #include <cmath>
-#include <visualization_msgs/Marker.h>
+#include "../MovementControl/MoveFollowWall.h"
 
 using namespace amee;
 
@@ -26,33 +26,44 @@ void Mapper::receive_distances(const IRDistances::ConstPtr &msg)
 	mDistances.wheelLeft = msg->wheelLeft;
 }
 
-void Mapper::receive_odometry(const Odometry::ConstPtr &msg) {
-	// TODO others and synchronize with distances
-	mOdometry.timestamp = msg->timestamp;
-	// we want the angle in radians and in [0,2PI]
-	mOdometry.angle = msg->angle;
-	mOdometry.angle -= (floor(mOdometry.angle / 360.0f) * 360.0f); // move angle in [0,360]
-	mOdometry.angle = mOdometry.angle * M_PI / 180.0f; 
-	mOdometry.distance = msg->distance;
-	mOdometry.x = msg->x;
-	mOdometry.y = msg->y;
-
-	if (!mInitialized) {
-		init();
-	}
-	
+void Mapper::receive_tag(const amee::Tag::ConstPtr& msg) {
+	Map::Point p;
+	p.x = mCurrentPos.x;
+	p.y = mCurrentPos.y;
+	mTagPositions.push_back(p);
 }
 
-void Mapper::init() {
-	mStartAngle = mOdometry.angle;
-	mStartPos.x = mOdometry.x;
-	mStartPos.y = mOdometry.y;
-	mInitialized = true;
-	Measurement base;
-	base.valid = false;
-	base.pos.x = 0.0f;
-	base.pos.y = 0.0f;
-	mMeasurements.resize(7,base);
+void Mapper::receive_pose(const Pose::ConstPtr &msg) {
+	// TODO others and synchronize with distances
+	mPose.timestamp = msg->timestamp;
+	// we want the angle in radians and in [0,2PI]
+	mPose.theta = msg->theta;
+	mPose.theta -= (floor(mPose.theta / 360.0f) * 360.0f); // move angle in [0,360]
+	mPose.theta = mPose.theta * M_PI / 180.0f; 
+	// mPose.distance = msg->distance;
+	mPose.x = msg->x;
+	mPose.y = msg->y;	
+}
+
+void Mapper::receive_wallFollowState(const amee::FollowWallStates::ConstPtr &msg) {
+}
+
+void Mapper::init(const FollowWallStates::ConstPtr &msg) {
+	if (msg->state == amee::MoveFollowWall::ALIGNED_TO_WALL && !mInitialized) {
+		mStartAngle = mPose.theta - (mPose.theta - floor(mPose.theta / 90.0f + 0.5f) * 90.0f);
+		mStartPos.x = mPose.x;
+		mStartPos.y = mPose.y;
+		mInitialized = true;
+		Measurement base;
+		base.valid = false;
+		base.pos.x = 0.0f;
+		base.pos.y = 0.0f;
+		mMeasurements.resize(7,base);
+		mMappingState = Pause;
+		mVisualizeTimer = 0;
+		mCleanTimer = 0;
+	}
+	
 }
 
 void Mapper::calculateMeasurements() {
@@ -62,7 +73,7 @@ void Mapper::calculateMeasurements() {
 	if (isValidDistance(mDistances.rightBack)) {
 		// right back position of 0
 		Map::Point p;
-		p.x = -0.05f;
+		p.x = -0.052f;
 		p.y = -0.12f;
 
 		// add distance vector (positive y is left of the robot, negative y right)
@@ -79,7 +90,7 @@ void Mapper::calculateMeasurements() {
 	if (isValidDistance(mDistances.rightFront)) {
 		// right front position of 0
 		Map::Point p;
-		p.x = 0.05f;
+		p.x = 0.052f;
 		p.y = -0.12f;
 
 		// add distance vector (positive y is left of the robot, negative y right)
@@ -91,11 +102,44 @@ void Mapper::calculateMeasurements() {
 	} else {
 		mMeasurements[1].valid = false;
 	}
+	// left front
+	if (isValidDistance(mDistances.leftFront)) {
+		// left front position of 0
+		Map::Point p;
+		p.x = 0.052f;
+		p.y = 0.12f;
+
+		// add distance vector (positive y is left of the robot, negative y right)
+		p.y += mDistances.leftFront;
+
+		mMeasurements[2].valid = true;
+		p.rotate(mCurrentAngle);
+		mMeasurements[2].pos = p + mCurrentPos;
+	} else {
+		mMeasurements[2].valid = false;
+	}
+
+	// left back
+	if (isValidDistance(mDistances.leftBack)) {
+		// left back position of 0
+		Map::Point p;
+		p.x = -0.052f;
+		p.y = 0.12f;
+
+		// add distance vector (positive y is left of the robot, negative y right)
+		p.y += mDistances.leftBack;
+
+		mMeasurements[3].valid = true;
+		p.rotate(mCurrentAngle);
+		mMeasurements[3].pos = p + mCurrentPos;
+	} else {
+		mMeasurements[3].valid = false;
+	}
 	
 }
 
 bool Mapper::isValidDistance(float dist) {
-	return dist >= 0.0f && dist <= 15.0f;
+	return dist >= 0.0f && dist <= 0.15f;
 }
 
 void Mapper::setVisualizationPublisher(ros::Publisher pub) {
@@ -103,90 +147,125 @@ void Mapper::setVisualizationPublisher(ros::Publisher pub) {
 }
 
 void Mapper::visualize() {
-	visualization_msgs::Marker points;
-    points.header.frame_id = "/map_visual";
-    points.header.stamp = ros::Time::now();
-    points.ns = "points_and_lines";
-    points.action = visualization_msgs::Marker::ADD;
-    points.pose.orientation.w = 1.0;
+	if (mVisualizeTimer == 8) {
+		mVisualizeTimer = 0;
+	
+		mMap.getVisualization(mVis);
+		mVis.robotPose.x = mCurrentPos.x;
+		mVis.robotPose.y = mCurrentPos.y;
+		mVis.robotPose.theta = mCurrentAngle;
 
-    points.id = 0;
+		// for (unsigned int i = 0; i < mMeasurements.size(); ++i) {
+		// 	if (mMeasurements[i].valid) {
+		// 		Point p;
+		// 		p.x = mMeasurements[i].pos.x;
+		// 		p.y = mMeasurements[i].pos.y;
+		// 		mVis.currentMeasurements.push_back(p);
+		// 	}
+		// }
 
+		mVis.tags.resize(mTagPositions.size());
 
+		for (unsigned int i = 0; i < mTagPositions.size(); ++i) {
+			// Point p;
+			// p.x = mTagPositions[i].x;
+			// p.y = mTagPositions[i].y;
+			mVis.tags[i].x = mTagPositions[i].x;
+			mVis.tags[i].y = mTagPositions[i].y;
+			//mVis.tags.push_back(p);
+		}
 
-    points.type = visualization_msgs::Marker::POINTS;
-    // line_strip.type = visualization_msgs::Marker::LINE_STRIP;
-    // line_list.type = visualization_msgs::Marker::LINE_LIST;
+		vis_pub.publish(mVis);
+	}
+	++mVisualizeTimer;
+}
 
+void Mapper::setAngleToN90Deg() {
+	// float diffToPi = M_PI - mCurrentAngle;
+	// diffToPi = diffToPi >= 0.0f ? diffToPi : -diffToPi;
+	// float diffToHalfPi = M_PI/2.0f - mCurrentAngle;
+	// diffToHalfPi = diffToHalfPi >= 0.0f ? diffToHalfPi : -diffToHalfPi;
+	// float diffToThreeHalfPi = 3.0f / 2.0f * M_PI - mCurrentAngle;
+	// diffToThreeHalfPi = diffToThreeHalfPi >= 0.0f ? diffToThreeHalfPi : -diffToThreeHalfPi;
 
-
-    // POINTS markers use x and y scale for width/height respectively
-    points.scale.x = 0.2;
-    points.scale.y = 0.2;
-
-    // // LINE_STRIP/LINE_LIST markers use only the x component of scale, for the line width
-    // line_strip.scale.x = 0.1;
-    // line_list.scale.x = 0.1;
-
-    // Points are green
-    points.color.g = 1.0f;
-    points.color.a = 1.0;
-
-    // // Line strip is blue
-    // line_strip.color.b = 1.0;
-    // line_strip.color.a = 1.0;
-
-    // // Line list is red
-    // line_list.color.r = 1.0;
-    // line_list.color.a = 1.0;
-
-    // Create the vertices for the points and lines
-    for (unsigned int i = 0; i < mMeasurements.size(); ++i)
-    {
-
-      geometry_msgs::Point p;
-      p.x = mMeasurements[i].pos.x;
-      p.y = mMeasurements[i].pos.y;
-      p.z = 0.0f;
-
-      points.points.push_back(p);
-      // line_strip.points.push_back(p);
-
-      // The line list needs two points for each line
-      // line_list.points.push_back(p);
-      // p.z += 1.0;
-      // line_list.points.push_back(p);
-    }
-
-
-    vis_pub.publish(points);
-    // marker_pub.publish(line_strip);
-    // marker_pub.publish(line_list);
+	float timesPi = mCurrentAngle / (M_PI / 2);
+	mCurrentAngle = floor(timesPi + 0.5f) * (M_PI/2.0f);
+	std::cout << "setting angle to " << mCurrentAngle << std::endl;
+}
+void Mapper::cleanMap() {
+	if (mCleanTimer == 8) {
+		mCleanTimer = 0;
+		mMap.reduceNumWalls(mCurrentPos, 0.4f);
+	}
+	++mCleanTimer;
 }
 
 void Mapper::doMapping() {
 	if (mInitialized) {
 		// set origin
-		mCurrentPos.x = mOdometry.x - mStartPos.x;
-		mCurrentPos.y = mOdometry.y - mStartPos.y;
+		mCurrentPos.x = mPose.x - mStartPos.x;
+		mCurrentPos.y = mPose.y - mStartPos.y;
 		
 		// rotate odometry coordinate system so that it is parallel to the map's system
-		mCurrentPos.rotate(mStartAngle); 
-		mCurrentAngle = mOdometry.angle - mStartAngle;
+		//mCurrentPos.rotate(-mStartAngle); 
+		mCurrentAngle = mPose.theta;// - mStartAngle;
 		std::cout << "Current position in maze: " << mCurrentPos.x << ", " << mCurrentPos.y << std::endl;
 		std::cout << "Current angle in maze: " << mCurrentAngle * (180.0f / M_PI) << std::endl;
+	
+		// setAngleToN90Deg();	
+	
 		calculateMeasurements();
 
-		for (int i = 0; i < mMeasurements.size(); ++i) {
+		for (unsigned int i = 0; i < mMeasurements.size(); ++i) {
 			Measurement m = mMeasurements[i];
-			std::cout << i <<": is valid? " << m.valid << " x " << m.pos.x << " y " << m.pos.y << std::endl;
+			// std::cout << i <<": is valid? " << m.valid << " x " << m.pos.x << " y " << m.pos.y << std::endl;
+			if (m.valid) {
+				mMap.addMeasurement(m.pos);
+			}
 		}
+		cleanMap();
 		visualize();
+		mMap.print();
+
 	}
 
 
 	//TODO
-	// std::cout << "Diff in timestamp: " << (mOdometry.timestamp - mDistances.timestamp) << std::endl;
+	// std::cout << "Diff in timestamp: " << (mPose.timestamp - mDistances.timestamp) << std::endl;
+}
+
+
+
+void mapTest(ros::Publisher& vispub) {
+	Map map;
+
+	Map::Point p;
+	p.x = 0;
+	p.y = 0;
+	for (int i = 0; i < 100; ++i) {
+		p.x += 0.01f; 
+		map.addMeasurement(p);
+	}
+
+	for (int i = 0; i < 100; ++i) {
+		p.y += 0.01f;
+		map.addMeasurement(p); 
+	}
+
+	for (int i = 0; i < 10; ++i) {
+		p.x -= 0.01f;
+		map.addMeasurement(p);
+	}
+
+	for (int i = 0; i < 10; ++i) {
+		p.y -= 0.01f;
+		map.addMeasurement(p);
+	}
+
+	MapVisualization vis;
+	map.getVisualization(vis);
+	vispub.publish(vis);
+
 }
 
 int main(int argc, char **argv)
@@ -204,13 +283,15 @@ int main(int argc, char **argv)
 	// create subscriber for distances
 	ros::Subscriber dist_sub;
 	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &Mapper::receive_distances, &mapper);
-	ros::Subscriber odo_sub = n.subscribe("/amee/motor_control/odometry", 100, &Mapper::receive_odometry, &mapper);
+	ros::Subscriber odo_sub = n.subscribe("/amee/pose", 100, &Mapper::receive_pose, &mapper);
+	ros::Subscriber state_sub = n.subscribe("/amee/follow_wall_states",10, &Mapper::init, &mapper);
+	ros::Subscriber tag_sub = n.subscribe("/amee/tag",10, &Mapper::receive_tag, &mapper);
 
-  	ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("visualization_marker", 10);
+  	ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);
 
     mapper.setVisualizationPublisher(marker_pub);
 
-	ros::Rate loop_rate(30);
+	ros::Rate loop_rate(30); //30
 	
 	while(ros::ok()){
 		
@@ -222,6 +303,7 @@ int main(int argc, char **argv)
 		
 		// map!
 		mapper.doMapping();
+		// mapTest(marker_pub);
 	}
 
 	return 0;

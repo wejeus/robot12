@@ -5,6 +5,12 @@
 #include "ros/ros.h"
 
 namespace amee{
+		
+
+	static const int ALIGN_RIGHT_WALL = 0;	
+	static const int ALIGN_LEFT_WALL = 1;
+	static const int ALIGN_FRONT_WALL = 2;
+
 	class MoveAlignWall : public MovementState {
 	public:
 		MoveAlignWall(ros::Publisher& pub);
@@ -18,9 +24,6 @@ namespace amee{
 		void init(const SensorData& data, const int& side);
 		virtual bool isRunning() const;
 		virtual void doControl(const SensorData& data);
-	
-		const static int RIGHT_WALL = 0;	
-		const static int LEFT_WALL = 1;
 	private:
 		ros::Publisher mSpeedPub;
 		int mWallSide;

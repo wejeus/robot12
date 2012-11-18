@@ -30,13 +30,19 @@ Eigen::Vector3f EKF::g(Eigen::Vector2f u, Eigen::Vector3f mu_t_1) { // velocity 
 	// move to .h?
 	Eigen::Vector3f movement;
 
-	float dt    = 1; // TODO: take from timestamps 
+	float dt    = 0.025; // TODO: take from timestamps 
 	float v     = (u(0) + u(1)) /2;
 	float omega = (u(0) - u(1)) / WHEEL_BASE;
+	float radius = v/omega;
+
+	if(omega <= 0.001) {
+		radius = 10000; // when omega is 0 the radius becomes inf, set it to something big instead (it will cancel out anyways)
+		omega = 0;
+	}
 
 	// Velocity motion model. From probabilistic  robotics p. 127
-	movement(0) = -v/omega * sin(mu_t_1(2) + v/omega * sin(mu_t_1(2) + omega*dt));
-	movement(1) = +v/omega * cos(mu_t_1(2) - v/omega * cos(mu_t_1(2) + omega*dt));
+	movement(0) = -radius * sin(mu_t_1(2) + radius * sin(mu_t_1(2) + omega*dt));
+	movement(1) = +radius * cos(mu_t_1(2) - radius * cos(mu_t_1(2) + omega*dt));
 	movement(2) = mu_t_1(2) + omega*dt;
 
 	mu_bar = mu_t_1 + movement;
@@ -80,8 +86,12 @@ void EKF::init(){
 
 }
 
-void EKF::estimate(amee::Velocity controlSignal, amee::Odometry measurement)
+void EKF::estimate(amee::Velocity controlSignal, roboard_drivers::Encoder measurement)
 {
+	// TEST printout
+	std::cout << "control signal: " << controlSignal << std::endl;
+	std::cout << "measurement: " << measurement << std::endl;
+
 	//Notation taken from Probabilistic robotics
 
 	// --- convert to matrix form --- move to function???
@@ -98,9 +108,9 @@ void EKF::estimate(amee::Velocity controlSignal, amee::Odometry measurement)
 	u(1) = controlSignal.right;
 
 	// Measurement (movement from last measurement)
-	z(0) = measurement.leftWheelDistance;
-	z(1) = measurement.rightWheelDistance;	
-	z(2) = (measurement.leftWheelDistance - measurement.rightWheelDistance) / WHEEL_BASE;
+	z(0) = measurement.left;
+	z(1) = measurement.right;	
+	z(2) = (measurement.left - measurement.right) / WHEEL_BASE;
 	
 	I.Identity();
 
@@ -111,6 +121,16 @@ void EKF::estimate(amee::Velocity controlSignal, amee::Odometry measurement)
 	z_hat       = EKF::h(mu_bar, mu_bar_t_1);
 	mu          = mu_bar + K * (z - z_hat);
 	sigma       = (I - K * H) * sigma_bar;
+
+	std::cout << "u: " << controlSignal << std::endl;
+	std::cout << "z: " << measurement << std::endl;
+
+	std::cout << "mu_bar: " << mu_bar(0) << std::endl;
+	std::cout << "sigma_bar: " << sigma_bar(0,0) << std::endl;
+	std::cout << "K: " << K(0) << std::endl;
+	std::cout << "z_hat: " << z_hat(0) << std::endl;
+	std::cout << "mu: " << mu(0) << std::endl;
+	std::cout << "sigma: " << sigma(0) << std::endl;
 
 	// --- Copy data to pose types ---
 	mPose.x = mu(0);

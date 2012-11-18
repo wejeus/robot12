@@ -5,40 +5,53 @@
 #include <cmath>
 #include "../Amee.h"
 #include "Localize.h"
+#include "roboard_drivers/Encoder.h"
 #include "EKF.h"
 #include "Eigen/Eigen"
+#include "../MovementControl/MoveFollowWall.h"
 //#include "roboard_drivers/Encoder"
+
 
 void Localize::init() 
 {
-
+	ros::spinOnce();
+	mPose.x = mOdometry.x;
+	mPose.y = mOdometry.y;
+	mPose.theta = mOdometry.angle;
 
 }
 
-void Localize::receiveMotorSpeed(const roboard_drivers::Motor::ConstPtr &v) {
-	speed.left  = v->left;
-	speed.right = v->right;
-	speed.linear = (v->left + v->right)/2;
-	speed.angular = (v->left - v->right)/WHEEL_BASE;
+void Localize::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
+	mLastOdometry = mOdometry;
+	std::cout << mLastOdometry.timestamp << " " << mOdometry.timestamp << std::endl;
+	mOdometry.x = msg->x;
+	mOdometry.y = msg->y;
+	mOdometry.angle = msg->angle;
+	mOdometry.timestamp = msg->timestamp;
+	mOdometry.leftWheelDistance = msg->leftWheelDistance;
+	mOdometry.rightWheelDistance = msg->rightWheelDistance;
+	//std::cout << "Odometry " << mOdometry.x << " " << mOdometry.y << " " << mOdometry.angle << std::endl;
+	mPose.theta += mOdometry.angle - mLastOdometry.angle;
+
+	// Calc x & y with corrected theta
+	float leftDistance = mOdometry.leftWheelDistance - mLastOdometry.leftWheelDistance;
+	float rightDistance = mOdometry.rightWheelDistance - mLastOdometry.rightWheelDistance;
+	float distance = (leftDistance + rightDistance) / 2.0f;
+
+	//std::cout << "distance: " << leftDistance << " " << rightDistance << std::endl;
+
+	mPose.x += cos(mPose.theta / 180.0f * M_PI) * distance;
+	mPose.y += sin(mPose.theta / 180.0f * M_PI) * distance;
+	mPose.theta = mPose.theta - floor(mPose.theta / 360) * 360.0f;
 }
 
-void Localize::receiveEncoder(const amee::Odometry::ConstPtr &msg) {
-	encoderMeasurement.leftWheelDistance = msg->leftWheelDistance;
-	encoderMeasurement.rightWheelDistance = msg->rightWheelDistance;
+void Localize::receiveFollowWallState(const amee::FollowWallStates::ConstPtr &msg) {
+	followWallState.state = msg->state;
+	if(followWallState.state == amee::MoveFollowWall::ALIGNED_TO_WALL) {
+		mPose.theta -= mPose.theta - floor(mPose.theta / 90.0f + 0.5f) * 90.0f;
+	}
+	mPose.theta = mPose.theta - floor(mPose.theta / 360) * 360.0f;
 }
-
-void Localize::receiveControlSignal(const amee::Velocity::ConstPtr &ctrl) {
-	controlSignal.left  = ctrl->left;
-	controlSignal.right = ctrl->right;
-	controlSignal.linear = (ctrl->left + ctrl->right)/2;
-	controlSignal.angular = (ctrl->left - ctrl->right)/WHEEL_BASE;
-}
-
-void Localize::publishPose(ros::Publisher pose_pub) {
-	pose_pub.publish(pose);
-}
-
-
 
 int main(int argc, char **argv) 
 {
@@ -48,48 +61,31 @@ int main(int argc, char **argv)
 
 	// -- Initialize localizer
 	Localize localize;
-	localize.init();
+	localize.init();		
 
 	// -- Subscribe & Publish topics
-	ros::Subscriber enc_sub;
-	ros::Subscriber motorSpeed_sub;
-	ros::Subscriber controlSignal_sub;
+	ros::Subscriber odo_sub;
+	ros::Subscriber followWallState_sub;
 	ros::Publisher  pose_pub;
 
-	enc_sub           = n.subscribe("/serial/encoder",     100, &Localize::receiveEncoder, &localize);       // Subscribe encoder
-	motorSpeed_sub    = n.subscribe("/serial/motor_speed", 100, &Localize::receiveMotorSpeed, &localize);    // Subscribe motorSpeed
-	controlSignal_sub = n.subscribe("/amee/motor_control/set_wheel_velocities", 100, &Localize::receiveControlSignal, &localize); // Subscribe contrlSignal
+	odo_sub            = n.subscribe("/amee/motor_control/odometry", 100, &Localize::receiveOdometry, &localize);  // Subscribe encoder
+	followWallState_sub= n.subscribe("/amee/follow_wall_states", 100, &Localize::receiveFollowWallState, &localize); // Subscribe motorSpeed
 
-	pose_pub = n.advertise<amee::Pose>("/pose", 100); // Publish pose
+	pose_pub = n.advertise<amee::Pose>("/amee/pose", 100); // Publish pose
 	
 	ros::Rate loop_rate(40);
-
-	// Create filter
-	EKF ekf;
-	ekf.init();
-
 
 	// -- Estimate pose
 	while(ros::ok())
 	{
-		localize.lastEncoderMeasurement = localize.encoderMeasurement; // Save last before spinOnce
+		ros::spinOnce(); // call all callbacks
 
-		ros::spinOnce();   // call all callbacks
-
-		localize.measurement.leftWheelDistance  = localize.encoderMeasurement.leftWheelDistance  - localize.lastEncoderMeasurement.leftWheelDistance;
-		localize.measurement.rightWheelDistance = localize.encoderMeasurement.rightWheelDistance - localize.lastEncoderMeasurement.rightWheelDistance;
-		//localize.measurement.IMUtheta = ;...
-		
-		ekf.estimate(localize.controlSignal, localize.measurement); // have pose in the init function instead!
-		
 		// -- Publish pose
-		localize.publishPose(pose_pub);
-
-		loop_rate.sleep(); // go to sleep for a short while
+		pose_pub.publish(localize.mPose);
+		// Sleep for a while
+		loop_rate.sleep(); 
 
 	}
-
-
 
 	return 0;
 }

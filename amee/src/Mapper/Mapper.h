@@ -3,8 +3,11 @@
 
 #include "ros/ros.h"
 #include "amee/IRDistances.h"
-#include "amee/Odometry.h"
+#include "amee/FollowWallStates.h"
+#include "amee/Tag.h"
 #include "Map.h"
+#include <vector>
+#include "amee/MapVisualization.h"
 
 namespace amee {
 
@@ -14,21 +17,30 @@ class Mapper {
 		Mapper(ros::Publisher pub);
 		~Mapper();
 		void receive_distances(const amee::IRDistances::ConstPtr &msg);
-		void receive_odometry(const amee::Odometry::ConstPtr &msg);
+		void receive_pose(const amee::Pose::ConstPtr &msg);
+		void receive_tag(const amee::Tag::ConstPtr &msg);
+		void receive_wallFollowState(const amee::FollowWallStates::ConstPtr &msg);
 		void doMapping();
-		void init();
+		void init(const amee::FollowWallStates::ConstPtr &msg);
 		void setVisualizationPublisher(ros::Publisher pub);
+
+		enum MappingState {Pause, NextToWall, Rotating};
 	
 	private:
 		ros::Publisher map_pub;
 		ros::Publisher vis_pub;
 
 		amee::IRDistances mDistances;
-		amee::Odometry mOdometry;
+		amee::Pose mPose;
 		amee::Map mMap;
 		bool mInitialized;
 		amee::Map::Point mStartPos;
 		float mStartAngle;
+
+		int mVisualizeTimer;
+		int mCleanTimer;
+
+		MappingState mMappingState;
 
 		amee::Map::Point mCurrentPos; // current position in map coordinates
 		float mCurrentAngle; // current angle in map coordinates
@@ -39,10 +51,15 @@ class Mapper {
 		};
 
 		std::vector<Measurement> mMeasurements;
+		std::vector<Map::Point> mTagPositions;
+
+		MapVisualization mVis;
 
 		void calculateMeasurements();
 		bool isValidDistance(float dist);
 		void visualize();
+		void setAngleToN90Deg();
+		void cleanMap();
 	};
 }
 #endif

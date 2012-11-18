@@ -15,7 +15,7 @@ MoveAlignWall::~MoveAlignWall() {
 
 void MoveAlignWall::init(const SensorData& data) {
     // New align requested, init align procedure
-    mWallSide = RIGHT_WALL;
+    mWallSide = ALIGN_RIGHT_WALL;
     mIsRunning = true;
     mStartingAngle = data.odometry.angle;
     publishSpeeds(0.0f, 0.0f);
@@ -39,10 +39,15 @@ void MoveAlignWall::doControl(const SensorData& data) {
 
     float wallSign = 1.0f;
 
-    if (mWallSide == LEFT_WALL) {
+    if (mWallSide == ALIGN_LEFT_WALL) {
         frontDist = data.irdistances.leftFront;
         backDist = data.irdistances.leftBack;
         wallSign = -1.0f;
+    }
+
+    if (mWallSide == ALIGN_FRONT_WALL) {
+        frontDist = data.irdistances.wheelLeft;
+        backDist = data.irdistances.wheelRight;
     }
 
     if (fabs(mStartingAngle - data.odometry.angle) > 180.0f) { 
@@ -65,7 +70,7 @@ void MoveAlignWall::doControl(const SensorData& data) {
         if (fabs(rotationSpeed) > MAX_ROTATION_SPEED) {
             // saturate speed to ROTATION_SPEED if too high
             rotationSpeed = speedSign * MAX_ROTATION_SPEED;
-        } else {
+        } else if (fabs(rotationSpeed) < MIN_ROTATION_SPEED) {
             // saturate speed to ROTATION_SPEED if too low
             rotationSpeed = speedSign * MIN_ROTATION_SPEED;
         }
