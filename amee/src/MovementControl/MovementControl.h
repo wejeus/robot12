@@ -28,6 +28,13 @@ class MovementControl {
 		void doControl();
 		void init();
 
+		static bool wallInFront(const SensorData& data) {
+		   	return data.irdistances.obstacleInFront 
+	            || (data.irdistances.wheelRight <= 0.05f && data.irdistances.wheelRight >= -0.03f)
+	            || (data.irdistances.wheelLeft <= 0.05f && data.irdistances.wheelLeft >= -0.03f)
+	            || (data.sonarDistance <= 0.13f);
+		}
+
 		static const int TYPE_MOVE_STRAIGHT = 1;
 		static const int TYPE_MOVE_ROTATE = 2;
 		static const int TYPE_MOVE_COORDINATE = 3;
@@ -37,8 +44,6 @@ class MovementControl {
 		static const int TYPE_ALIGN_TO_FRONT_WALL = 7;
 
 	private:
-
-
 
 		amee::SensorData mSensorData;
 

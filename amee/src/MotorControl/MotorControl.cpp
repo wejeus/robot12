@@ -127,9 +127,13 @@ void MotorControl::receive_speed(const amee::Velocity::ConstPtr &v) {
 
 // Sets the given speed ( in m/s ) to both motors.
 void MotorControl::setSpeed(float vLeft, float vRight) {
+	// if ((fabs(vLeft - mVelocity.left) >= 0.02f) || (fabs(vRight - mVelocity.right) >= 0.02f)) {
+
 	mVelocity.left = vLeft;
 	mVelocity.right = vRight;
 	mMeasurementValidCounter = 2 * NUM_AVERAGED_MEASUREMENTS;
+	// }
+	
 	// std::cout << "SET NEW SPEED!!! vLeft = " << vLeft << " vRight = " << vRight << std::endl;
 	/*mOdometry.leftWheelDistance = 0.0f;
 	mOdometry.rightWheelDistance = 0.0f;
@@ -154,7 +158,7 @@ void MotorControl::drive()
 	float leftVPWM = -mVelocity.left / (2.0f * M_PI * WHEEL_RADIUS * REVOLUTION_PER_SEC_LEFT);
 	float rightVPWM = -mVelocity.right / (2.0f * M_PI * WHEEL_RADIUS * REVOLUTION_PER_SEC_RIGHT);
 	// std::cout << "Target(pwm): " << leftVPWM << " " << rightVPWM << std::endl;
-	if (irOk()){
+	if (irOk() && !(mVelocity.left == 0.0f && mVelocity.right == 0.0f)){
 		if (measurementsValid()) {//measurementsValid()) {
 			// calculate current velocity (in pwm) based on the last two encoder values 
 			Velocity pwmVelocity;

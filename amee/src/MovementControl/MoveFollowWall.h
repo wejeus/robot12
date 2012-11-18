@@ -123,7 +123,7 @@ namespace amee{
 		// helper functions
 		bool seesWall(float distance);
 		bool wallInFront();
-		bool frontAlignmentPossible();
+		
 
 		bool nextToWall();
 

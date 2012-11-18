@@ -38,16 +38,13 @@ void MoveStraight::init(const SensorData &data, float distance, float vel) {
 
 bool MoveStraight::isRunning() const {return mRunning;}
 
-/**
- * Publishes a 
- **/
 void MoveStraight::doControl(const SensorData &data){
-	// std::cout << mStartingDistance << std::endl << mTargetDistance << std::endl << data.odometry.distance << std::endl;
+	 // std::cout << "sd: " << mStartingDistance << " t:" << mTargetDistance << " cd:" << data.odometry.distance << std::endl;
 
 	if (mGoingDistance) {
 		float travelledDistance = data.odometry.distance - mStartingDistance;
-		// std::cout << travelledDistance << std::endl;
-		if (fabs(mTargetDistance - travelledDistance) <= 0.01f) {
+		// std::cout << "travelled " << travelledDistance << std::endl;
+		if (fabs(mTargetDistance - travelledDistance) <= 0.008f) {
 			// std::cout << "MoveStraight: Distance reached!!!" << std::endl;
 			mRunning = false;
 			Velocity v; v.right = 0.0f; v.left = 0.0f;
@@ -57,7 +54,8 @@ void MoveStraight::doControl(const SensorData &data){
 	}
 
 	if (mFirstRun) {
-		Velocity v; v.right = mVelocity; v.left = mVelocity;
+		float direction = mTargetDistance > 0.0f ? 1.0f : -1.0f;
+		Velocity v; v.right = direction * mVelocity; v.left = direction * mVelocity;
 		mPub.publish(v);
 		mFirstRun = false;
 	}

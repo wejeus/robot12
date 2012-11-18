@@ -4,6 +4,7 @@
 #include "MoveStraight.h"
 #include "MoveAlignWall.h"
 #include "MoveAlignToFrontWall.h"
+#include "MovementControl.h"
 #include "amee/FollowWallStates.h"
 
 #ifndef M_PI
@@ -101,15 +102,7 @@ using namespace amee;
             publishSpeeds(0.0f,0.0f);
             mState.initialized = true;
 
-            if (frontAlignmentPossible()) { 
-                std::cout << "T Intersection: ALIGNMENT POSSIBLE" << std::endl;  
-                mFrontWallAligner->init(mSensorData, MIN_WALL_DISTANCE);    
-            } else {
-                std::cout << "T Intersection: CAN'T ALIGN -> ROTATE RIGHT NOW" << std::endl;  
-                mState.set(RotateRight);
-                MoveFollowWall::publishState(T_INTERSECTION_HANDLED);
-                return;
-            }
+            mFrontWallAligner->init(mSensorData, MIN_WALL_DISTANCE);    
         }
 
         // if we see a wall reset the gapDistance (because there is no gap!!)
@@ -160,14 +153,9 @@ using namespace amee;
             std::cout << "AlignToFrontWall init" << std::endl;
             publishSpeeds(0.0f,0.0f);
             mState.initialized = true;
-            // TODO WE HAVE TO DISTINGUISH WHETHER WE ARE IN FRONT OF A EVIL WALL OR NOT
-            // DO THIS BY CHECKING THE DISTANCES MEASURED BY THE IRS UNDERNEATH AMEE
-            if (frontAlignmentPossible()) { 
-                mFrontWallAligner->init(mSensorData, MIN_WALL_DISTANCE);    
-            } else {
-                mState.set(RotateLeft);
-                return;
-            }
+            
+            mFrontWallAligner->init(mSensorData, MIN_WALL_DISTANCE);    
+    
         }
 
         if (mFrontWallAligner->isRunning()) {
@@ -425,19 +413,8 @@ using namespace amee;
         return rB && (wallLength >= IR_BASE_RIGHT);
     }
 
-    bool MoveFollowWall::frontAlignmentPossible() {
-        bool rightOk = mSensorData.irdistances.wheelRight >= -0.03f && mSensorData.irdistances.wheelRight <= 0.12;
-        bool leftOk = mSensorData.irdistances.wheelLeft >= -0.03f && mSensorData.irdistances.wheelLeft <= 0.12f;
-        return leftOk && rightOk;
-    }
-
     bool MoveFollowWall::wallInFront() {
-        // TODO use constants
-        // return (mSensorData.irdistances.frontShortRange <= 0.11f && mSensorData.irdistances.frontShortRange >= 0.0f)
-        return mSensorData.irdistances.obstacleInFront 
-            || (mSensorData.irdistances.wheelRight <= 0.05f && mSensorData.irdistances.wheelRight >= -0.03f)
-            || (mSensorData.irdistances.wheelLeft <= 0.05f && mSensorData.irdistances.wheelLeft >= -0.03f)
-            || (mSensorData.sonarDistance <= 0.13f);
+        return MovementControl::wallInFront(mSensorData);
     }
 
 

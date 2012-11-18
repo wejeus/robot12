@@ -6,6 +6,7 @@
 
 namespace amee{
 	class MoveAlignWall;
+	class MoveStraight;
 
 	class MoveAlignToFrontWall : public MovementState {
 	public:
@@ -20,12 +21,15 @@ namespace amee{
 	private:
 		ros::Publisher mSpeedPub;
 		MoveAlignWall* mWallAligner;
+		MoveStraight* mStraightMover;
 		
 		bool mIsRunning;
 		bool mRefDistReached;
+		bool mCanAlign;
 		float mRefDist;
 		
 		void publishSpeeds(float left, float right);
+		bool frontAlignmentPossible(const SensorData& data);
 
 	}; 
 
