@@ -12,6 +12,13 @@ typedef size_t NodeID;
 
 class Node{
 	public:
+		enum NODE_TYPE{
+			NODE_NEXT_TO_WALL = 1,
+			NODE_ROTATE_LEFT = 2, 
+			NODE_ROTATE_RIGHT = 4, 
+			NODE_TAG = 8
+		};
+
 		Node();
 		Node(float, float, NodeID);
 		~Node();
@@ -20,22 +27,32 @@ class Node{
 
 		//getters
 		const std::vector<NodeID>& getNeighbours() const;
+		void getNeighbours(NodeID *) const;
 		const std::map<NodeID, float>& getNeighb_dists() const;
 		float getDist(const NodeID) const;
 
 		inline float x() const;
 		inline float y() const;
 		NodeID getID() const;
+		const size_t numEdges() const;
+		const int getType() const;
 
 		//setters
 		inline void x(const float);
 		inline void y(const float);
 		inline void id(const NodeID);
+		void setType(const int);
+		void removeType(const int);
+
 
 		void connectNeighbours(Node&);
 
+
+		
+
 	private:
-		float mX, mY;
+		float mX, mY, mAngle;
+		int mNODE_STATE;
 		NodeID mId;
 		std::vector<NodeID> mNeighbours;
 		std::map<NodeID, float> mNeighb_dists;

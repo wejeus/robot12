@@ -62,30 +62,19 @@ int main(int argc, char ** argv){
 	}
 
 
+	cout << "\n\nSetting type of 0 to NODE_NEXT_TO_WALL and NODE_TAG" << endl;
+	nList[0].setType(Node::NODE_NEXT_TO_WALL | Node::NODE_TAG);
+	cout << nList[0].getType() << " == " << (Node::NODE_NEXT_TO_WALL | Node::NODE_TAG) << "?" << endl;
+	cout << "Removing the NODE_NEXT_TO_WALL" << endl;
+	nList[0].removeType(Node::NODE_NEXT_TO_WALL);
+	cout << nList[0].getType() << " == " << Node::NODE_TAG << "?"<< endl;
+
+
 	cout << "adding the nodes to the graph" << endl;
 	for(size_t i=0; i<SIZE; ++i){
 		g.addNode(&nList[i]);
 	}
 
-
-/*
-
-	float _dists[SIZE*SIZE] = { 0.0f, 7.0f, 9.0f, LL  , LL  ,14.0f,
-				    7.0f, 0.0f,10.0f,15.0f, LL  , LL  ,
-				    9.0f,10.0f, 0.0f,11.0f, LL  , 2.0f,
-				    LL  ,15.0f,11.0f, 0.0f, 6.0f, LL  ,
-				    LL  , LL  , LL  , 6.0f, 0.0f, 9.0f,
-				   14.0f, LL  , 2.0f, LL  , 9.0f, 0.0f};
-
-	float ** dists = new float*[SIZE];
-	
-	for(size_t i=0; i<SIZE; ++i){
-		dists[i] = new float[SIZE];
-		for(size_t j=0; j<SIZE; ++j){
-			dists[i][j] = _dists[6*i + j];
-		}
-	}
-*/
 
 
 	float pathD[SIZE];

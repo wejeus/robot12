@@ -43,6 +43,13 @@ Node::~Node(){}
 
 const std::vector<NodeID>& Node::getNeighbours() const { return mNeighbours; }
 
+void Node::getNeighbours(NodeID * list) const {
+        for(size_t i=0; i<mNeighbours.size(); ++i){
+                list[i] = mNeighbours[i];
+        }
+
+}
+
 const std::map<NodeID, float>& Node::getNeighb_dists() const { return mNeighb_dists; }
 
 float Node::getDist(const NodeID id) const{
@@ -68,6 +75,9 @@ inline float Node::y() const { return mY; }
 
 NodeID Node::getID() const { return mId; }
 
+const size_t Node::numEdges() const { return mNeighbours.size(); }
+
+const int Node::getType() const { return mNODE_STATE; }
 
 
 inline void Node::x(const float x){ mX = x; }
@@ -75,6 +85,10 @@ inline void Node::x(const float x){ mX = x; }
 inline void Node::y(const float y){ mY = y; }
 
 inline void Node::id(const NodeID id){ mId = id; }
+
+void Node::setType(const int t) { mNODE_STATE |= t; }
+void Node::removeType(const int t) { mNODE_STATE &= ~(1<<(t-1)); }
+
 
 /**
  * Two way connection
