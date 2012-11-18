@@ -66,7 +66,7 @@ inline float Node::x() const { return mX; }
 
 inline float Node::y() const { return mY; }
 
-inline NodeID Node::getID() const { return mId; }
+NodeID Node::getID() const { return mId; }
 
 
 

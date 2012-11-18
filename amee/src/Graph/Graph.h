@@ -14,13 +14,13 @@ class Graph{
 		Graph& operator=(const Graph&);
 
 		size_t size() const;
-		void addNode(const Node&);
-		const Node& getNode(const NodeID) const;
+		void addNode(Node *);
+		const Node * getNode(const NodeID) const;
 
-		const std::vector<Node>& getNodes() const;
+		const std::vector<Node*>& getNodes() const;
 
 	private:
-		std::vector<Node> mNodes;
+		std::vector<Node*> mNodes;
 
 };//class Graph
 

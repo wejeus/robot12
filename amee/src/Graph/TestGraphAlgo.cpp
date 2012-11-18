@@ -25,10 +25,11 @@ int main(int argc, char ** argv){
 
 	Node * nList = new Node[SIZE];
 
-	float f_list[] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f};
+	float x_list[] = {0.0f, 7.0f,  2.5f,  7.0f,  5.0f,  3.0f};	
+	float y_list[] = {0.0f, 0.0f, 10.0f, 15.0f, 20.0f, 13.0f};
 	
 	for(size_t i=0; i<SIZE; ++i){
-		nList[i] = Node(f_list[i], f_list[i], i);
+		nList[i] = Node(x_list[i], y_list[i], i);
 	}
 
 	
@@ -53,8 +54,8 @@ int main(int argc, char ** argv){
 		vector<NodeID> v = nList[i].getNeighbours();
 		for(it = v.begin(); it != v.end(); ++it){
 			cout << "Dist: " << i << " to " << (*it) << " == " << nList[i].getDist((*it)) << endl;
-			cout << "And : " << (*it) << " to " << i << " == " << nList[(*it)].getDist(i) << endl;
-			cout << endl;
+//			cout << "And : " << (*it) << " to " << i << " == " << nList[(*it)].getDist(i) << endl;
+//			cout << endl;
 		}
 		cout << "##############################" << endl;
 		
@@ -63,11 +64,11 @@ int main(int argc, char ** argv){
 
 	cout << "adding the nodes to the graph" << endl;
 	for(size_t i=0; i<SIZE; ++i){
-		g.addNode(nList[i]);
+		g.addNode(&nList[i]);
 	}
 
 
-
+/*
 
 	float _dists[SIZE*SIZE] = { 0.0f, 7.0f, 9.0f, LL  , LL  ,14.0f,
 				    7.0f, 0.0f,10.0f,15.0f, LL  , LL  ,
@@ -84,7 +85,7 @@ int main(int argc, char ** argv){
 			dists[i][j] = _dists[6*i + j];
 		}
 	}
-
+*/
 
 
 	float pathD[SIZE];
@@ -95,7 +96,7 @@ int main(int argc, char ** argv){
 	PathFinderAlgo pf;
 	
 	cout << "running Dijkstra's algorithm on the graph with source set to " << source << endl;
-	pf.Dijkstra(g, source, dists, pathD, path);
+	pf.Dijkstra(g, source, pathD, path);
 
 	cout << "here are the distances from source(" << source << ") to each node: " << endl;
 	for(size_t i=0; i<SIZE; ++i){
@@ -111,10 +112,10 @@ int main(int argc, char ** argv){
 	cout << endl;
 
 	cout << "cleaning up" << endl;
-	for(size_t i=0; i<SIZE; ++i){
+/*	for(size_t i=0; i<SIZE; ++i){
 		delete [] dists[i];
 	}
-	delete [] dists;
+	delete [] dists;*/
 	delete [] nList;
 
 	return 0;

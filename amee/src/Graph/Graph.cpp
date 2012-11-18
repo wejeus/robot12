@@ -7,10 +7,10 @@ namespace amee{
 Graph::Graph(){}
 
 Graph::Graph(const Graph& ref){
-	std::vector<Node> v = ref.getNodes();
+	std::vector<Node*> v = ref.getNodes();//TODO: fix this part, should be copied
 	mNodes.clear();
 
-	for(std::vector<Node>::iterator it = v.begin(); it != v.end(); ++it){
+	for(std::vector<Node*>::iterator it = v.begin(); it != v.end(); ++it){
 		mNodes.push_back(*it);
 	}	
 }
@@ -30,11 +30,11 @@ Graph& Graph::operator=(const Graph& ref){
 
 size_t Graph::size() const { return mNodes.size(); }
 
-void Graph::addNode(const Node& n){ mNodes.push_back(n); }
+void Graph::addNode(Node * n){ mNodes.push_back(n); }
 
-const Node& Graph::getNode(const NodeID id) const { return mNodes[id]; }
+const Node * Graph::getNode(const NodeID id) const { return mNodes[id]; }
 
-const std::vector<Node>& Graph::getNodes() const { return mNodes; }
+const std::vector<Node*>& Graph::getNodes() const { return mNodes; }
 
 };// namespace amee
 

@@ -1,46 +1,42 @@
 #include "PathFinderAlgo.h"
 #include <iostream>
 #include <cmath>
+#include <queue>
 
 using namespace amee;
 using namespace std;
 
 #define LONG_MAX 2147483647
 #define BIG_FLOAT 999999999999.9f
+#define BIG_INTEGER 9999999
 #define NODE_ID_UNDEFINED -1
 
-namespace amee{
+
 
 class CompareNode {
 public:
-	CompareNode(const Node& source, float * pathDistance):pathD(pathDistance){
-		x0 = source.x(); y0 = source.y();
-	}
-	bool operator()(Node& n1, Node& n2){
-		//TODO: check distance to source from both n1 and n2 return true if n1 is less than n2
-		if(EuclidDist(n1.x(), n1.y()) < EuclidDist(n2.x(), n2.y()))
+	CompareNode(float * prioKey):mPrioKey(prioKey){}
+
+	bool operator()(const NodeID& n1, const NodeID& n2) const {
+		
+		if(mPrioKey[n1] > mPrioKey[n2]){
 			return true;
+		}
 		return false;
 	}
-/*
-	void setSource(const Node& source){
-		mSource = source;
-	}
-*/
+
 private:
-//	Node mSource;
-	float x0, y0;
-	float * pathD;
-	inline float EuclidDist(const float& x1, const float& y1){
-		return sqrt(pow((x1 - x0),2) + pow((y1 - y0), 2));
-	}
+	float * mPrioKey;
 };
 
+typedef priority_queue<NodeID, vector<NodeID>, CompareNode> NodePQ;
+
+namespace amee{
 
 /**
  * Calculates the distances from a source to all nodes in the graph.
  */
-void PathFinderAlgo::Dijkstra(const Graph& g, const NodeID& source, float const* const* dist, float * pathD, NodeID * path) {
+void PathFinderAlgo::Dijkstra(const Graph& g, const NodeID& source, float * pathD, NodeID * path) {
 	size_t size = g.size();
 	bool visited[size];
 	size_t i, k, mini;
@@ -60,8 +56,9 @@ void PathFinderAlgo::Dijkstra(const Graph& g, const NodeID& source, float const*
 	path[source] = 0;
 
 
-	//Dijkstra
 
+	//Dijkstra
+/*
 	for (k = 0; k < size; ++k) {
 		mini = -1;
 		for (i = 0; i < size; ++i)
@@ -80,14 +77,43 @@ void PathFinderAlgo::Dijkstra(const Graph& g, const NodeID& source, float const*
 				path[(*it)] = mini;
 			}
 		}
-/*
-		for (i = 0; i < size; ++i)
-			if (dist[mini][i])
-				if (pathD[mini] + dist[mini][i] < pathD[i]){ 
-					pathD[i] = pathD[mini] + dist[mini][i];
-					path[i] = mini;
-				}
+	}
 */
+
+	//Dijkstra with priority queue
+
+	const CompareNode compareFunc(pathD);
+	NodePQ pq(compareFunc); //creating a priority queue with some args to the compare function
+
+	const std::vector<Node*> gNodes = g.getNodes();
+	
+	std::vector<Node*>::const_iterator n_it;
+	for(n_it=gNodes.begin(); n_it != gNodes.end(); ++n_it){
+		pq.push((*n_it)->getID());
+	}
+
+	NodeID curID;
+
+	while(!pq.empty()){
+		curID = pq.top(); pq.pop();
+
+		if(visited[curID]) continue;
+
+		visited[curID] = true;
+
+		if(fabs(pathD[curID] - BIG_FLOAT) < 0.00001)
+			break;
+		
+		v = &(g.getNode(curID)->getNeighbours());
+		for(it = v->begin(); it != v->end(); ++it){
+			float alt = pathD[curID] + g.getNode(curID)->getDist(*it);
+
+			if(alt < pathD[(*it)]){
+				pathD[(*it)] = alt;
+				path[(*it)] = curID;
+				pq.push((*it));
+			}
+		}
 	}
 }
 

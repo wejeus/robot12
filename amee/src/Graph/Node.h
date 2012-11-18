@@ -25,7 +25,7 @@ class Node{
 
 		inline float x() const;
 		inline float y() const;
-		inline NodeID getID() const;
+		NodeID getID() const;
 
 		//setters
 		inline void x(const float);
