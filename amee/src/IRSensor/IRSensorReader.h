@@ -36,9 +36,9 @@ private:
 public:
 		IRSensorReader();
 		void setDistancePublisher(ros::Publisher pub);
-		void calibrate(int sensor);
 		void receiveRawData(const roboard_drivers::adc_val::ConstPtr &msg);
 	// protected:
-	// private:
+	 private:
+	 	float limit(float val);
 };
 #endif

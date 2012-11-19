@@ -8,6 +8,7 @@
 #include "MoveStop.h"
 #include "MoveFollowWall.h"
 #include "MoveAlignWall.h"
+#include "MoveAlignToFrontWall.h"
 #include "amee/FollowWallStates.h"
 #include <std_msgs/Int32.h>
 
@@ -20,6 +21,7 @@ MovementControl::MovementControl(ros::Publisher& pub, ros::Publisher& statesPub)
 	mStopState = new MoveStop(pub);
 	mFollowWallState = new MoveFollowWall(pub, statesPub);
 	mAlignWallState = new MoveAlignWall(pub);
+	mAlignToFrontWallState = new MoveAlignToFrontWall(pub);
 	mCurrentState = mStopState;
 }
 
@@ -29,6 +31,7 @@ MovementControl::~MovementControl() {
 	delete mStopState;
 	delete mFollowWallState;
 	delete mAlignWallState;
+	delete mAlignToFrontWallState;
 }
 
 void MovementControl::setSpeedPublisher(ros::Publisher& pub) {
@@ -60,10 +63,12 @@ void MovementControl::doControl() {
 	if (mCurrentState->isRunning()) {
 		mCurrentState->doControl(mSensorData);
 	}
+
+    std::cout << "Front wall detected: " << wallInFront(mSensorData) << std::endl;
 }
 
 void MovementControl::receive_sonar(const roboard_drivers::sonar::ConstPtr &msg) {
-	mSensorData.sonarDistance = msg->distance;
+	mSensorData.sonarDistance = msg->distance / 100.0f;
 	// std::cout << "Sonar received: " << mSensorData.sonarDistance << std::endl;
 }
 
@@ -101,6 +106,10 @@ void MovementControl::receive_command(const amee::MovementCommand::ConstPtr &msg
 			mAlignWallState->init(mSensorData);
 			mCurrentState = mAlignWallState;
 		break;
+		case TYPE_ALIGN_TO_FRONT_WALL:
+			mAlignToFrontWallState->init(mSensorData);
+			mCurrentState = mAlignToFrontWallState;
+		break;
 		// default: std::cout << "GAY COMMAND RECEIVED" << std::endl;
 	}
 }
@@ -112,7 +121,7 @@ void MovementControl::init() {
 int main(int argc, char **argv)
 {
 	
-	ros::init(argc, argv, "MovementControlNode");//Creates a node named "MotorControl"
+	ros::init(argc, argv, "MovementControlNode");//Creates a node named "MovementControlNode"
 	ros::NodeHandle n;
 
 	ros::Publisher vel_pub = n.advertise<Velocity>("/amee/motor_control/set_wheel_velocities", 100);
@@ -132,13 +141,13 @@ int main(int argc, char **argv)
 
 	ros::Subscriber command_sub = n.subscribe("/MovementControl/MovementCommand",10,&MovementControl::receive_command, &control);
 
-	ros::Rate loop_rate(20);
+	ros::Rate loop_rate(100);
 	while((vel_pub.getNumSubscribers() == 0 || sonar_interval_pub.getNumSubscribers() == 0) && ros::ok()) {
 		loop_rate.sleep();
 	} 
 
 	std_msgs::Int32 interval;
-	interval.data = 400;
+	interval.data = 50;
 	sonar_interval_pub.publish(interval);
 
 	control.init();

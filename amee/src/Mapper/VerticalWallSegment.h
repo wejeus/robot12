@@ -15,6 +15,8 @@ class VerticalWallSegment : public WallSegment{
 		virtual bool addMeasurement(const Map::Point& pos);
 		virtual WallVisualization getVisualization();
 		virtual float distanceTo(const Map::Point& pos);
+		virtual float getX();
+		virtual float getY();
 		virtual int getType();
 		virtual bool isSmall();
 		virtual bool mergeWall(WallSegment* wall);

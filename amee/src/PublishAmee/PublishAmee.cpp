@@ -53,8 +53,8 @@ int main(int argc, char **argv){
 			mc.x = atof(argv[6]); mc.y = atof(argv[7]);
 			wait(pub);
 			pub.publish(mc);
-		}else if(strcmp(argv[1], "forward") == 0){
-			if(argc < 3){printError("forward [distance]"); return 0;}
+		}else if(strcmp(argv[1], "straight") == 0){
+			if(argc < 3){printError("straight [distance]"); return 0;}
 			pub = nodeHandle.advertise<MovementCommand>("/MovementControl/MovementCommand", 1);
 			MovementCommand mc;
 			mc.type = 1; mc.distance = atof(argv[2]);
@@ -84,6 +84,18 @@ int main(int argc, char **argv){
             pub = nodeHandle.advertise<MovementCommand>("/MovementControl/MovementCommand", 1);
             MovementCommand mc;
             mc.type = 5;
+            wait(pub);
+            pub.publish(mc);
+        }else if(strcmp(argv[1], "alignWall") == 0){
+            pub = nodeHandle.advertise<MovementCommand>("/MovementControl/MovementCommand", 1);
+            MovementCommand mc;
+            mc.type = 6;
+            wait(pub);
+            pub.publish(mc);
+        }else if(strcmp(argv[1], "alignFront") == 0){
+            pub = nodeHandle.advertise<MovementCommand>("/MovementControl/MovementCommand", 1);
+            MovementCommand mc;
+            mc.type = 7;
             wait(pub);
             pub.publish(mc);
         }else if(strcmp(argv[1], "reset") == 0){

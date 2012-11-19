@@ -95,6 +95,14 @@ int VerticalWallSegment::getType() {
 	return VERTICAL;
 }
 
+float VerticalWallSegment::getX() {
+	return mFrom.x;
+}
+
+float VerticalWallSegment::getY() {
+	return (mFrom.y + mTo.y) / 2.0f;
+}
+
 float VerticalWallSegment::distanceTo(const Map::Point& pos) {
 	if (pos.y < mFrom.y || pos.y > mTo.y) {
 		return pos.x - mFrom.x;

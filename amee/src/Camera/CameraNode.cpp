@@ -14,7 +14,7 @@
 
 
 const float max_speed 	= 0.03f;
-int camera_interval 	= 500;
+int camera_interval 	= 1000;
 int camera_width 	= 320;
 int camera_height	= 240;
 
