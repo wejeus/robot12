@@ -231,6 +231,9 @@ void Mapper::visualize() {
 		}
 
 		vis_pub.publish(mVis);
+
+		graph_pub.publish(mGraph.getGraphMsg());
+
 	}
 	++mVisualizeTimer;
 }
