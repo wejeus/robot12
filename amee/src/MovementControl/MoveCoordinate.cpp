@@ -47,6 +47,7 @@ void MoveCoordinate::doControl(const SensorData& data) {
 		mSensorData = data;
 
 		if(mFirstRun){
+			cout << "In MoveCoordinate mFirstRun" << endl;
 
 			float destPoint[2] = {mX, mY};
 			float curPoint[2] = {mCurX, mCurY};
@@ -67,7 +68,9 @@ void MoveCoordinate::doControl(const SensorData& data) {
 
 		if (mRotater->isRunning()) {
 			mRotater->doControl(mSensorData);
-		}else{
+		}else if(!mRotationDone){//only one time
+			cout << "In MoveCoordinate, done rotating, now moving to the point" << endl;
+
 			mRotationDone = true;
 			mStraightMove->init(mSensorData, mDistance);
 		}
@@ -76,6 +79,7 @@ void MoveCoordinate::doControl(const SensorData& data) {
 			if(mStraightMove->isRunning()){
 				mStraightMove->doControl(mSensorData);
 			}else{
+				cout << "In MoveCoordinate, done with the MoveCoordinate movement." << endl;
 				mRunning = false;
 			}
 		}

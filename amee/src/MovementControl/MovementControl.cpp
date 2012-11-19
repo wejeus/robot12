@@ -8,6 +8,7 @@
 #include "MoveStop.h"
 #include "MoveFollowWall.h"
 #include "MoveAlignWall.h"
+#include "MoveCoordinate.h"
 #include "amee/FollowWallStates.h"
 #include <std_msgs/Int32.h>
 
@@ -20,6 +21,7 @@ MovementControl::MovementControl(ros::Publisher& pub, ros::Publisher& statesPub)
 	mStopState = new MoveStop(pub);
 	mFollowWallState = new MoveFollowWall(pub, statesPub);
 	mAlignWallState = new MoveAlignWall(pub);
+	mCoordinateState = new MoveCoordinate(pub);
 	mCurrentState = mStopState;
 }
 
@@ -29,6 +31,7 @@ MovementControl::~MovementControl() {
 	delete mStopState;
 	delete mFollowWallState;
 	delete mAlignWallState;
+	delete mCoordinateState;
 }
 
 void MovementControl::setSpeedPublisher(ros::Publisher& pub) {
@@ -83,8 +86,10 @@ void MovementControl::receive_command(const amee::MovementCommand::ConstPtr &msg
 			mRotationState->init(mSensorData, angle);
 		break;
 		case TYPE_MOVE_COORDINATE:
-		 	// std::cout << "MOVE TO COORDINATE" << std::endl;
+		 	std::cout << "MOVE TO COORDINATE" << std::endl;
 		 	//TODO initialize MoveCoonrdinate here
+			mCurrentState = mCoordinateState;
+			mCoordinateState->init(mSensorData);
 		 	// and change state
 		break;
 		case TYPE_FOLLOW_WALL:
