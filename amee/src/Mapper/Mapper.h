@@ -4,6 +4,7 @@
 #include "ros/ros.h"
 #include "amee/IRDistances.h"
 #include "amee/FollowWallStates.h"
+#include "amee/Odometry.h"
 #include "amee/Tag.h"
 #include "Map.h"
 #include <vector>
@@ -17,11 +18,11 @@ class Mapper {
 		Mapper(ros::Publisher pub);
 		~Mapper();
 		void receive_distances(const amee::IRDistances::ConstPtr &msg);
-		void receive_pose(const amee::Pose::ConstPtr &msg);
+		void receiveOdometry(const amee::Odometry::ConstPtr &msg);
 		void receive_tag(const amee::Tag::ConstPtr &msg);
 		void receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg);
 		void doMapping();
-		void init(const amee::FollowWallStates::ConstPtr &msg);
+		void init();
 		void setVisualizationPublisher(ros::Publisher pub);
 
 		enum MappingState {Pause, NextToWall, Rotating};
@@ -32,25 +33,31 @@ class Mapper {
 
 		amee::IRDistances mDistances;
 		amee::Pose mPose;
+		amee::Odometry mOdometry;
 		amee::Map mMap;
 		bool mInitialized;
-		amee::Map::Point mStartPos;
-		float mStartAngle;
+		// amee::Map::Point mStartPos;
+		// float mStartAngle;
 
 		int mVisualizeTimer;
 		int mCleanTimer;
 
 		MappingState mMappingState;
 
-		amee::Map::Point mCurrentPos; // current position in map coordinates
-		float mCurrentAngle; // current angle in map coordinates
+		// amee::Map::Point mCurrentPos; // current position in map coordinates
+		// float mCurrentAngle; // current angle in map coordinates
 
 		struct Measurement {
 			bool valid;
 			amee::Map::Point pos;
 		};
 
-		static const int 
+		static const int RIGHT_FRONT = 1;
+		static const int RIGHT_BACK = 0;
+		static const int LEFT_FRONT = 2;
+		static const int LEFT_BACK = 3;
+
+		static const float IR_BASE_RIGHT = 0.104;
 
 		std::vector<Measurement> mMeasurements;
 		std::vector<Map::Point> mTagPositions;
@@ -61,6 +68,8 @@ class Mapper {
 		bool isValidDistance(float dist);
 		void visualize();
 		void cleanMap();
+		int followedWallDirection();
+		void mapping();
 	};
 }
 #endif

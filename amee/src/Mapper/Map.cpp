@@ -47,23 +47,32 @@ void Map::reduceNumWalls(const Point& pos, float distance) {
 	}
 }
 
-void Map::addMeasurement(Point pos) {
+WallSegment* Map::addMeasurement(const Point& pos, int newWallType) {
 	bool belongsToWall = false;
 	std::list<WallSegment*>::const_iterator iterator = mWalls.begin(), end = mWalls.end();
+	WallSegment* result = NULL;
 
 	while (iterator != end) {// !belongsToWall
-		bool temp = (*iterator)->addMeasurement(pos); // TODO do not add to all
+		WallSegment* wall = (*iterator);
+		bool temp = wall->addMeasurement(pos); // TODO do not add to all
 		belongsToWall = belongsToWall || temp;
+		if (temp) { // TODO associate only to one wall!!!
+			result = wall;
+		}
 		++iterator;
 	}
 	// std::cout << "belongsToWall " << belongsToWall << std::endl;
-	if (!belongsToWall) {
-		WallSegment* horizontalWall = new HorizontalWallSegment(pos);
-		WallSegment* verticalWall = new VerticalWallSegment(pos);
-		mWalls.push_back(horizontalWall);
-		mWalls.push_back(verticalWall);
+	if (!belongsToWall && (newWallType != WallSegment::NONE)) {
+		if (newWallType == WallSegment::HORIZONTAL) {
+			result = new HorizontalWallSegment(pos);
+			mWalls.push_back(result);	
+		} else {
+			result = new VerticalWallSegment(pos);
+			mWalls.push_back(result);
+		}
 	}
 	//TODO tidy up
+	return result;
 }
 
 void Map::print() {
