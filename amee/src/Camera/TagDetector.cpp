@@ -14,7 +14,7 @@
 #include <sstream>
 #include <string>
 
-// #define ROS
+#define ROS
 
 #ifdef ROS
 #include "ros/ros.h"
@@ -66,7 +66,7 @@ int CANNY_HIGH = 92;
 int GAUSSIAN_KERNEL_SIZE = 7;
 int GAUSSIAN_SIGMA = 1.5;
 double TAG_MIN_PIXEL_AREA = 1500.0;
-int TAG_SIZE = 200;
+int TAG_SIZE = 50;
 int NEEDED_PIXELS_RED_BORDER = 400;
 int NEEDED_PIXELS_RED_THRESHOLD = 400;
 char TAG_FILES[] = "tags/files.txt";
@@ -285,6 +285,8 @@ void setNextTagTimout() {
 
 /* Thresholds redpixels and saves resulting binary image in destImage, returns number of red pixels in image */
 int filterRedPixels(Mat &srcImage, Mat &destImage) {
+    resize(srcImage, destImage, Size(100, 100), 0, 0, INTER_LINEAR);
+
     Mat hsvImage, firstRedSection, secondRedSection;
     cvtColor(srcImage, hsvImage, CV_BGR2HSV);
     
@@ -419,9 +421,9 @@ COLOR determineTagColor(Mat &ROI) {
     // }
 
     // Debug: adjustment of saturation params.
-    inRange(hsvImage, Scalar(SATURATION_COLOR_LOW, saturationLow, valueLow), Scalar(SATURATION_COLOR_HIGH, saturationHigh, valueHigh), binaryImage);
-    log("Match: %d\n", countNonZero(binaryImage));
-    show(windowTag, binaryImage);
+    // inRange(hsvImage, Scalar(SATURATION_COLOR_LOW, saturationLow, valueLow), Scalar(SATURATION_COLOR_HIGH, saturationHigh, valueHigh), binaryImage);
+    // log("Match: %d\n", countNonZero(binaryImage));
+    // show(windowTag, binaryImage);
 
     return bestMatch.color;
 }
@@ -444,8 +446,8 @@ bool initTemplates() {
             thresholdBlackWhite(tag.image, tag.image);
             
             // Debug
-            // show(windowTag, tag.image);
-            // waitKey();
+            show(windowTag, tag.image);
+            waitKey();
 
             if( ! tag.image.data) {
                 cout << "Image not found!" << endl;
@@ -481,7 +483,7 @@ TAG_CLASS classifyTagUsingTemplate(Mat &ROI) {
     // equalizeHist(tmpROI, tmpROI);
     thresholdBlackWhite(tmpROI, tmpROI);
     
-    // show(windowTag, tmpROI);
+    show(windowTag, tmpROI);
 
     double bestMatch = 100;
     TAG_CLASS obj;
@@ -565,7 +567,7 @@ void stream(string source) {
         cout << "I will now stream from camera: " << source << endl;
         CAMERA_ID = atoi(source.c_str());
     } else {
-        SOURCE_IS_SINGLE_IMAGE = false;
+        SOURCE_IS_SINGLE_IMAGE = true;
     }
 
     if (SOURCE_IS_SINGLE_IMAGE) {
