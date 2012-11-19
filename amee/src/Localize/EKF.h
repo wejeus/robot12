@@ -16,7 +16,7 @@ class EKF {
 
 // number of states, measurements and controls (s,m,c)
 #define nos 3
-#define nom 2
+#define nom 6
 #define noc 2
 
 
@@ -68,7 +68,9 @@ public:
 
 	Matrix<float,nom,nos> hJac(Matrix<float,nos,1> mu_bar, Matrix<float,nos,1> mu_t_1);
 	
-	void estimate(amee::Velocity controlSignal, roboard_drivers::Encoder measurement);
+	void estimate(amee::Velocity controlSignal, amee::Pose measurement1, amee::Pose measuremnent2);
+	void setMeasurement1(amee::Pose measurement1);
+	void setMeasurement2(amee::Pose measurement2);
 
 	amee::Pose getMu();
 	amee::Pose getSigma();
@@ -79,6 +81,8 @@ public:
 
 
 	amee::Pose mPose;	
+	amee::Pose mMeasurement1;
+	amee::Pose mMeasurement2;
 		
 };
 #endif

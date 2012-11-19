@@ -33,10 +33,10 @@ void Localize::receiveMotorSpeed(const roboard_drivers::Motor::ConstPtr &v) {
 	speed.angular = (v->left - v->right)/WHEEL_BASE;
 }
 
-void Localize::receiveEncoder(const roboard_drivers::Encoder::ConstPtr &msg) {
-	encoderMeasurement.left = msg->left;
-	encoderMeasurement.right = msg->right;
-}
+// void Localize::receiveEncoder(const roboard_drivers::Encoder::ConstPtr &msg) {
+// 	encoderMeasurement.left = msg->left;
+// 	encoderMeasurement.right = msg->right;
+// }
 
 void Localize::receiveControlSignal(const amee::Velocity::ConstPtr &ctrl) {
 	controlSignal.left  = ctrl->left;
@@ -91,17 +91,17 @@ int main(int argc, char **argv)
 	// -- Estimate pose
 	while(ros::ok())
 	{
-		localize.lastEncoderMeasurement = localize.encoderMeasurement; // Save last before updating with spinOnce
+		//localize.lastEncoderMeasurement = localize.encoderMeasurement; // Save last before updating with spinOnce
 
 		ros::spinOnce(); // call all callbacks
 
-		// Calc relative measurements in tics
-		localize.measurement.left  = (localize.encoderMeasurement.left  - localize.lastEncoderMeasurement.left) * TICS_PER_REVOLUTION / (2.0f * M_PI * WHEEL_RADIUS);;
-		localize.measurement.right = (localize.encoderMeasurement.right - localize.lastEncoderMeasurement.right) * TICS_PER_REVOLUTION / (2.0f * M_PI * WHEEL_RADIUS);;
-		//localize.measurement.IMUtheta = ;...
+		// // Calc relative measurements in tics
+		// localize.measurement.left  = (localize.encoderMeasurement.left  - localize.lastEncoderMeasurement.left) * TICS_PER_REVOLUTION / (2.0f * M_PI * WHEEL_RADIUS);;
+		// localize.measurement.right = (localize.encoderMeasurement.right - localize.lastEncoderMeasurement.right) * TICS_PER_REVOLUTION / (2.0f * M_PI * WHEEL_RADIUS);;
+		// //localize.measurement.IMUtheta = ;...
 		
 		// Estimate pose w kalman filter
-		ekf.estimate(localize.controlSignal, localize.measurement);
+		ekf.estimate(localize.controlSignal, localize.measurement1, localize.measurement2);
 		
 		// Get pose from kalman filter
 		localize.pose = ekf.getPose();
