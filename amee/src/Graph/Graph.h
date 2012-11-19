@@ -19,7 +19,7 @@ class Graph{
 		const Node * getNode(const NodeID) const;
 		void connectNodes(int id1, int id2);
 
-		const amee::GraphMsg& getGraphMsg() const;
+		const amee::GraphMsg& getGraphMsg();
 
 		const std::vector<Node*>& getNodes() const;
 

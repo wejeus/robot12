@@ -421,7 +421,7 @@ int main(int argc, char **argv)
 	ros::Subscriber tag_sub = n.subscribe("/amee/tag",10, &Mapper::receive_tag, &mapper);
 
   	ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);
-  	ros::Publisher graph_pub = n.advertise<amee::MapVisualization>("/amee/map/graph",10);
+  	ros::Publisher graph_pub = n.advertise<amee::GraphMsg>("/amee/map/graph",10);
 
     mapper.setVisualizationPublisher(marker_pub);
     mapper.setGraphPublisher(graph_pub);

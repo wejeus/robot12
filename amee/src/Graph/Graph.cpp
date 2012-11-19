@@ -38,7 +38,14 @@ const Node * Graph::getNode(const NodeID id) const { return mNodes[id]; }
 
 const std::vector<Node*>& Graph::getNodes() const { return mNodes; }
 
-const amee::GraphMsg& Graph::getGraphMsg() const {return mMsg; }
+const amee::GraphMsg& Graph::getGraphMsg() {
+	unsigned int size = mNodes.size();
+	mMsg.nodes.resize(size); //TODO fix me
+	for (unsigned int i = 0; i < mNodes.size(); ++i) {
+		mMsg.nodes[i] = mNodes[i]->toMsg();
+	}
+	return mMsg;
+}
 
 void Graph::connectNodes(int id1, int id2) {
 	if ((id1 < 0) || (id1 >= (int)mNodes.size()) || (id2 <0) || (id2 >= (int)mNodes.size())) {
