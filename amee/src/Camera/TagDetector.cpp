@@ -209,7 +209,7 @@ void render(Mat &frame) {
         CLASSIFICATION_IN_PROGRESS = true;
         // log("Found some object, classification in progress...\n");
 
-        publishMovement(5); // Stop motors
+        // publishMovement(5); // Stop motors
         // sleep(1);
 
         if ( ! SOURCE_IS_SINGLE_IMAGE) {
@@ -241,14 +241,14 @@ void render(Mat &frame) {
             
             setNextTagTimout();
 
-            imout(frame, "success_");
+            // imout(frame, "success_");
             
         } else {
-            imout(frame, "noFindRect_");
+            // imout(frame, "noFindRect_");
             log("Could not find (possible) tag rectangle in image\n");
         }
                 
-        publishMovement(4); // continue wall following
+        // publishMovement(4); // continue wall following
 
         CLASSIFICATION_IN_PROGRESS = false;           
     } else {
