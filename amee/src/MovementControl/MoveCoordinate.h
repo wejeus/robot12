@@ -19,7 +19,7 @@ namespace amee{
 		virtual void doControl(const SensorData &data);
 
 	private:
-		static const float DISTANCE_THRESHHOLD = 0.01f; //in meters
+		// static const float DISTANCE_THRESHHOLD = 0.01f; //in meters
 
 		bool mRunning;
 		bool mFirstRun;
@@ -37,7 +37,7 @@ namespace amee{
 		// allows us to move straight
 		amee::MoveStraight *mStraightMove;
 
-		bool distReached() const;
+		// bool distReached() const;
 		float getRotationAngle(const float[2], const float[2]) const;
 		float checkDirection(const float) const;
 		float euclidDist(const float[2], const float[2]) const;

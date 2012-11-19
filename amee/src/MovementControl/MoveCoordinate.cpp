@@ -47,7 +47,9 @@ void MoveCoordinate::doControl(const SensorData& data) {
 		mSensorData = data;
 
 		if(mFirstRun){
-			cout << "In MoveCoordinate mFirstRun" << endl;
+			cout << "In MoveCoordinate mFirstRun, destpos: (" 
+				 << mX << ", " << mY << ")" << " curPos: ("
+				 << mCurX << ", " << mCurY << ")" << endl;
 
 			float destPoint[2] = {mX, mY};
 			float curPoint[2] = {mCurX, mCurY};
@@ -58,6 +60,7 @@ void MoveCoordinate::doControl(const SensorData& data) {
 
 			mAngle = getRotationAngle(curPoint, destPoint);
 			mDistance = euclidDist(curPoint, destPoint);
+			cout << "Rotate: " << mAngle << ", and then move " << mDistance << endl;
 
 			mRotater->init(mSensorData, mAngle);
 
@@ -69,7 +72,7 @@ void MoveCoordinate::doControl(const SensorData& data) {
 		if (mRotater->isRunning()) {
 			mRotater->doControl(mSensorData);
 		}else if(!mRotationDone){//only one time
-			cout << "In MoveCoordinate, done rotating, now moving to the point" << endl;
+			cout << "In MoveCoordinate, done rotating, now initiating straight movement" << endl;
 
 			mRotationDone = true;
 			mStraightMove->init(mSensorData, mDistance);
@@ -86,9 +89,9 @@ void MoveCoordinate::doControl(const SensorData& data) {
 	}
 }
 
-bool MoveCoordinate::distReached() const {
-	return (sqrt(pow(mX - mCurX, 2) + pow(mY - mCurY, 2)) < DISTANCE_THRESHHOLD);
-}
+// bool MoveCoordinate::distReached() const {
+// 	return (sqrt(pow(mX - mCurX, 2) + pow(mY - mCurY, 2)) < DISTANCE_THRESHHOLD);
+// }
 
 float MoveCoordinate::getRotationAngle(const float p1[2], const float p2[2]) const {
 	float dX = p2[0] - p1[0];
