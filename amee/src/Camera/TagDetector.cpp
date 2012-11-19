@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
              return 0;
     }
 
-    while ((c = getopt (argc, argv, "trds:")) != -1) {
+    while ((c = getopt (argc, argv, "trwds:")) != -1) {
         switch (c) {
             case 'd':
                 DISPLAY_GRAPHICAL = true;
