@@ -11,8 +11,10 @@
 #include <string>
 #include <unistd.h>
 #include <sys/time.h>
+#include <sstream>
+#include <string>
 
-// #define ROS
+#define ROS
 
 #ifdef ROS
 #include "ros/ros.h"
@@ -45,7 +47,7 @@ bool EQUALIZE_HISTOGRAM = true;
 bool DISPLAY_GRAPHICAL = false;
 int CAMERA_INTERVAL = 10;
 bool USE_TEMPLATES = false;
-bool INIT_ROS = false;
+bool USE_ROS = false;
 bool CLASSIFICATION_IN_PROGRESS = false;
 bool WAIT_FOR_TIMEOUT = false;
 bool SOURCE_IS_SINGLE_IMAGE = false;
@@ -96,6 +98,7 @@ void setNextTagTimout();
 double lastTagTimeout;
 // VideoCapture capture;
 int CAMERA_ID = -1;
+bool CAPTURE_HIGHRES_IMAGE = false;
 vector<TagTemplate> sourceTemplates;
 int erosionSize = 2;
 Mat erosionElement = getStructuringElement(MORPH_ELLIPSE, Size(2*erosionSize + 1, 2*erosionSize + 1));
@@ -136,7 +139,7 @@ int main(int argc, char *argv[]) {
                 USE_TEMPLATES = true;     
                 break;
             case 'r':
-                INIT_ROS = true;     
+                USE_ROS = true;     
                 break;
             case 'w':
                 WAIT_FOR_TIMEOUT = true;     
@@ -171,7 +174,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    if (INIT_ROS) {
+    if (USE_ROS) {
         initROS(argc, argv);
     }
 
@@ -181,6 +184,17 @@ int main(int argc, char *argv[]) {
     
     if (DISPLAY_GRAPHICAL) cvDestroyWindow(windowResult);
     return 0;
+}
+
+int id = 0;
+char buf[100];
+void imout(Mat &frame, string type) {
+    std::ostringstream ostr;
+    ostr << type << id << ".jpg";
+    std::string s = ostr.str();
+    //imwrite(strcat(strcat(type.c_str(), s.c_str()), ".jpg"), frame);
+    imwrite(s, frame);
+    id++;
 }
 
 // TODO: Goal -> Classification block should not run so often...
@@ -198,12 +212,15 @@ void render(Mat &frame) {
         // sleep(1);
 
         if ( ! SOURCE_IS_SINGLE_IMAGE) {
+            CAPTURE_HIGHRES_IMAGE = true;
             captureSingleFrame(frame);
+            CAPTURE_HIGHRES_IMAGE = false;
         }
 
         if (findTagROI(frame, thresholdedImage, ROI)) {
 
             if (!prepareROI(ROI, ROI)) {
+                imout(frame, "noPrepare_");
                 log("Could not prepare ROI!\n");
             }
 
@@ -216,7 +233,10 @@ void render(Mat &frame) {
             log("Object: %s\n", class2name(res).c_str()); 
             setNextTagTimout();
 
+            imout(frame, "success_");
+            
         } else {
+            imout(frame, "noFindRect_");
             log("Could not find (possible) tag rectangle in image\n");
         }
                 
@@ -224,7 +244,8 @@ void render(Mat &frame) {
 
         CLASSIFICATION_IN_PROGRESS = false;           
     } else {
-        log("Could not find enough red pixels in source image\n");
+        imout(frame, "fail_");
+        log("Could not find enough red pixels in source image or timeout blocked\n");
     }
 
     show(windowResult, frame);
@@ -482,7 +503,7 @@ void initROS(int argc, char *argv[]) {
 
     mapPublisher = rosNodeHandle.advertise<Tag>("/amee/tag", 100);
     movementPublisher = rosNodeHandle.advertise<MovementCommand>("/MovementControl/MovementCommand", 1);
-    rawMotorPublisher = rosNodeHandle.advertise<Motor>("/serial/motor_speed", 100);
+//    rawMotorPublisher = rosNodeHandle.advertise<Motor>("/serial/motor_speed", 100);
 
     #else
     log("ROS IS NOT DEFINED");
@@ -507,22 +528,21 @@ bool captureSingleFrame(Mat &frame) {
     // }
     // return true;
 
-    
+    //capture->open(CAMERA_ID);
 
-    capture->open(CAMERA_ID);
-
-    
-    if (!capture->grab()) { 
-        cout << "Could not grab new frame!" << endl;
-        return false;
-    } else {
-        if (!capture->retrieve(frame)) {
-           cout << "Could not decode and return new frame!" << endl;
-           return false;
-        }
+    if (CAPTURE_HIGHRES_IMAGE) {
+        capture->set(CV_CAP_PROP_FRAME_WIDTH, 640);
+        capture->set(CV_CAP_PROP_FRAME_HEIGHT, 480);
     }
+
+    if (!capture->read(frame)) {
+       cout << "Could not decode and return new frame!" << endl;
+       return false;
+    }
+
     return true;
 }
+
 
 // TODO: Stream from video file
 void stream(string source) {
@@ -548,6 +568,8 @@ void stream(string source) {
     } else {
         cout << "Streaming started..." << endl;
 
+capture->open(CAMERA_ID);
+        
         while (true) {
             Mat frame;
             if ( ! CLASSIFICATION_IN_PROGRESS && captureSingleFrame(frame)) { 
@@ -623,16 +645,18 @@ void show(const string& winname, InputArray mat) {
 
 void publishMovement(int state) {
     #ifdef ROS
-    // roboard_drivers::Motor motorMessage;
-    // motorMessage.left = 0.0f;
-    // motorMessage.right = 0.0f;
-    // rawMotorPublisher.publish(motorMessage);
+    if (USE_ROS) {
+        // roboard_drivers::Motor motorMessage;
+        // motorMessage.left = 0.0f;
+        // motorMessage.right = 0.0f;
+        // rawMotorPublisher.publish(motorMessage);
 
-    if (state == 4) log("Publish WALL\n");
-    if (state == 5) log("Publish STOPWALL\n");
-    MovementCommand mc;
-    mc.type = state;
-    movementPublisher.publish(mc);
+        if (state == 4) log("Publish WALL\n");
+        if (state == 5) log("Publish STOPWALL\n");
+        MovementCommand mc;
+        mc.type = state;
+        movementPublisher.publish(mc);
+    }
     #endif
 }
 
