@@ -121,7 +121,7 @@ void MovementControl::init() {
 int main(int argc, char **argv)
 {
 	
-	ros::init(argc, argv, "MovementControlNode");//Creates a node named "MotorControl"
+	ros::init(argc, argv, "MovementControlNode");//Creates a node named "MovementControlNode"
 	ros::NodeHandle n;
 
 	ros::Publisher vel_pub = n.advertise<Velocity>("/amee/motor_control/set_wheel_velocities", 100);
