@@ -10,6 +10,8 @@ Mapper::Mapper(ros::Publisher pub) {
 	map_pub = pub;
 	mInitialized = false;
 	mMappingState = Pause;
+	mNodeId = 0;
+	mLastNodeId = -1;
 }
 
 Mapper::~Mapper() {
@@ -59,18 +61,38 @@ void Mapper::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
 }
 
 void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg) {
+	int type = 0;
 	switch(msg->state) {
+		case amee::MoveFollowWall::INIT:
+			mLastNodeId = -1;
+			break;
 		case amee::MoveFollowWall::ALIGN_TO_WALL_OUT:
 			init(); //  only does sth if not initalized
+			type = amee::Node::NODE_NEXT_TO_WALL;
+			addNode(type);
 			mMappingState = NextToWall;
 			break;
 		case amee::MoveFollowWall::ROTATE_LEFT_IN:
+			type = amee::Node::NODE_ROTATE_LEFT;
+			addNode(type);
 			mMappingState = Rotating;
 			break;
 		case amee::MoveFollowWall::ROTATE_RIGHT_IN:
 			mMappingState = Rotating;
+			type = amee::Node::NODE_ROTATE_RIGHT;
+			addNode(type);
 		default:
 			mMappingState = Pause;
+	}
+}
+
+void Mapper::addNode(int type) {
+	amee::Node n(mPose,mNodeId);
+	n.setType(type);
+	mGraph.addNode(n);
+	if (mLastNodeId != -1) {
+		mGraph.connectNodes(mNodeId, mLastNodeId);
+		mLastNodeId = mNodeId;
 	}
 }
 
@@ -173,6 +195,10 @@ bool Mapper::isValidDistance(float dist) {
 
 void Mapper::setVisualizationPublisher(ros::Publisher pub) {
 	vis_pub = pub;
+}
+
+void Mapper::setGraphPublisher(ros::Publisher pub) {
+	graph_pub = pub;
 }
 
 void Mapper::visualize() {
@@ -392,8 +418,10 @@ int main(int argc, char **argv)
 	ros::Subscriber tag_sub = n.subscribe("/amee/tag",10, &Mapper::receive_tag, &mapper);
 
   	ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);
+  	ros::Publisher graph_pub = n.advertise<amee::MapVisualization>("/amee/map/graph",10);
 
     mapper.setVisualizationPublisher(marker_pub);
+    mapper.setGraphPublisher(graph_pub);
 
 	ros::Rate loop_rate(30); //30
 	

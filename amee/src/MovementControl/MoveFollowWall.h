@@ -42,6 +42,7 @@ namespace amee{
 		static const int T_INTERSECTION_HANDLING_OUT = 19;
 		static const int EDGE_OF_WALL_IN = 20;
 		static const int EDGE_OF_WALL_OUT = 21;
+		static const int INIT = 22;
 
 	private:
 		enum WallFollowState {FollowWall, LookForEndOfWall, MoveTail,

@@ -9,6 +9,7 @@
 #include "Map.h"
 #include <vector>
 #include "amee/MapVisualization.h"
+#include "../Graph/Graph.h"
 
 namespace amee {
 
@@ -24,20 +25,24 @@ class Mapper {
 		void doMapping();
 		void init();
 		void setVisualizationPublisher(ros::Publisher pub);
+		void setGraphPublisher(ros::Publisher pub);
 
 		enum MappingState {Pause, NextToWall, Rotating};
 	
 	private:
 		ros::Publisher map_pub;
 		ros::Publisher vis_pub;
+		ros::Publisher graph_pub;
 
 		amee::IRDistances mDistances;
 		amee::Pose mPose;
 		amee::Odometry mOdometry;
 		amee::Map mMap;
 		bool mInitialized;
-		// amee::Map::Point mStartPos;
-		// float mStartAngle;
+	
+		amee::Graph mGraph;
+		int mNodeId;
+		int mLastNodeId; // set to -1 if there is no last node
 
 		int mVisualizeTimer;
 		int mCleanTimer;
@@ -70,6 +75,7 @@ class Mapper {
 		void cleanMap();
 		int followedWallDirection();
 		void mapping();
+		void addNode(int type);
 	};
 }
 #endif

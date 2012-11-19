@@ -38,7 +38,7 @@ using namespace amee;
         mRunning = true;
         mState.set(FollowWall);
 
-        ros::Publisher pub_follewWallStates;
+        publishState(INIT);
     }
 
     void MoveFollowWall::publishSpeeds(float left, float right) {
