@@ -14,6 +14,7 @@ class MoveStop;
 class MoveFollowWall;
 class MoveAlignWall;
 class MoveAlignToFrontWall;
+class MoveCoordinate;
 
 class MovementControl {
 
@@ -53,6 +54,7 @@ class MovementControl {
 
 		amee::MoveRotate* mRotationState;
 		amee::MoveStraight* mStraightState;
+		amee::MoveCoordinate* mCoordinateState;
 		amee::MoveStop* mStopState;
 		amee::MoveFollowWall* mFollowWallState;
 		amee::MoveAlignWall* mAlignWallState;

@@ -4,7 +4,7 @@
 #include "MoveRotate.h"
 #include "MoveStraight.h"
 #include <cmath>
-#include <complex>
+#include <numeric>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -26,13 +26,16 @@ MoveCoordinate::~MoveCoordinate() {
 }
 
 void MoveCoordinate::init(const SensorData& data) {
-	// TODO: set initial values
-	mX = data.odometry.x;
-	mY = data.odometry.y;
-	mAngle = data.odometry.angle;
 	mRunning = true;
 	mFirstRun = true;
 	mRotationDone = false;
+}
+
+void MoveCoordinate::init(const SensorData &data, const float &x, const float &y){
+	init(data);
+
+	mX = x;
+	mY = y;
 }
 
 bool MoveCoordinate::isRunning() const { return mRunning; }
@@ -43,16 +46,28 @@ void MoveCoordinate::doControl(const SensorData& data) {
 		mCurX = data.odometry.x;
 		mCurY = data.odometry.y;
 
+		//TODO: remove this
+		mSensorData = data;
+
 		if(mFirstRun){
+			cout << "In MoveCoordinate mFirstRun, destpos: (" 
+				 << mX << ", " << mY << ")" << " curPos: ("
+				 << mCurX << ", " << mCurY << ")" << endl;
+			cout << "Starting angle: " << data.odometry.angle << endl;
+			mCurAngle = fmod(data.odometry.angle, 360);
 
-			complex<float> ref_vec(1.0f, 0.0f);
-			complex<float> point(mCurX, mCurY);
+			float destPoint[2] = {mX, mY};
+			float curPoint[2] = {mCurX, mCurY};
 
-			float distance = norm(point);
-			float angle = acos(inner_prod(ref_vec, point,0) / (norm(ref_vec)*norm(point)));
-			cout << "distance " << distance << ", angle " << angle << endl;
+			// float distance = norm(curPoint);
+			// float angle = acos(inner_product(destPoint, destPoint+3, curPoint, 0.0f) / (norm(destPoint)*norm(curPoint)));
+			// cout << "distance " << distance << ", angle " << angle << endl;
 
-			mRotater->init(data);
+			mAngle = getRotationAngle(curPoint, destPoint);
+			mDistance = euclidDist(curPoint, destPoint);
+			cout << "Rotate: " << mAngle << ", and then move " << mDistance << endl;
+
+			mRotater->init(mSensorData, mAngle);
 
 			// Velocity v; //TODO: set the volocity data values
 			// mPub.publish(v);
@@ -61,30 +76,59 @@ void MoveCoordinate::doControl(const SensorData& data) {
 
 		if (mRotater->isRunning()) {
 			mRotater->doControl(mSensorData);
-		}else{
+		}else if(!mRotationDone){//only one time
+			cout << "In MoveCoordinate, done rotating, now initiating straight movement" << endl;
+
 			mRotationDone = true;
-			mStraightMove->init(mSensorData);
+			mStraightMove->init(mSensorData, mDistance);
 		}
 
 		if(mRotationDone){//rotation done, go straight to the point
 			if(mStraightMove->isRunning()){
 				mStraightMove->doControl(mSensorData);
 			}else{
+				cout << "In MoveCoordinate, done with the MoveCoordinate movement." << endl;
 				mRunning = false;
 			}
 		}
 	}
-
-/* from python code
-	ref_vec = (1.0, 0.0) # Reference vector, set to coordinate axis in direction of robot
-    point = (x, y)
-    distance = norm(point)
-    angle = math.acos(dot_product(ref_vec, point) / (norm(ref_vec)*norm(point)))
-    self.move_rotate(angle * (180/math.pi))
-    self.move_straight(distance)
-*/
 }
 
-bool distReached() {
-	return (sqrt(pow(mX - mCurX, 2) + pow(mY - mCurY, 2)) < DISTANCE_THRESHHOLD);
+// bool MoveCoordinate::distReached() const {
+// 	return (sqrt(pow(mX - mCurX, 2) + pow(mY - mCurY, 2)) < DISTANCE_THRESHHOLD);
+// }
+
+float MoveCoordinate::getRotationAngle(const float p1[2], const float p2[2]) const {
+	float dX = p2[0] - p1[0];
+	float dY = p2[1] - p1[1];
+
+	float v = atan2(dY, dX) * 180 / M_PI;
+	float angleDifference = v - mCurAngle;
+
+	return checkDirection(angleDifference);
+
 }
+
+
+float MoveCoordinate::checkDirection(const float f) const {
+	float tmp = fabs(f);
+	if(tmp > 180.0f && tmp < 360.0f){
+		if(f < 0)
+			return f+360.0f;
+		return f-360.0f;
+	}
+
+	float f_mod = f;
+	return fmod(f_mod, 360);
+}
+
+float MoveCoordinate::euclidDist(const float p1[2], const float p2[2]) const {
+	float p[2] = {p2[0]-p1[0], p2[1]-p1[1]};
+	return sqrt(norm(p));
+}
+
+float MoveCoordinate::norm(const float p[2]) const {
+	return (p[0]*p[0] + p[1]*p[1]);
+}
+
+
