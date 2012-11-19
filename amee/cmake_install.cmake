@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # Install script for directory: /home/robot/ros_workspace/robotamee/amee
+=======
+# Install script for directory: /home/hfm/git/robot12/amee
+>>>>>>> hanif
 
 # Set the install prefix
 IF(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -38,7 +42,13 @@ ELSE(CMAKE_INSTALL_COMPONENT)
   SET(CMAKE_INSTALL_MANIFEST "install_manifest.txt")
 ENDIF(CMAKE_INSTALL_COMPONENT)
 
+<<<<<<< HEAD
 FILE(WRITE "/home/robot/ros_workspace/robotamee/amee/${CMAKE_INSTALL_MANIFEST}" "")
 FOREACH(file ${CMAKE_INSTALL_MANIFEST_FILES})
   FILE(APPEND "/home/robot/ros_workspace/robotamee/amee/${CMAKE_INSTALL_MANIFEST}" "${file}\n")
+=======
+FILE(WRITE "/home/hfm/git/robot12/amee/${CMAKE_INSTALL_MANIFEST}" "")
+FOREACH(file ${CMAKE_INSTALL_MANIFEST_FILES})
+  FILE(APPEND "/home/hfm/git/robot12/amee/${CMAKE_INSTALL_MANIFEST}" "${file}\n")
+>>>>>>> hanif
 ENDFOREACH(file)

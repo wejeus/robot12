@@ -7,15 +7,14 @@
 #include <queue>
 #include <utility>
 
-/*
-
-a simple node that synchronizes two messages. That means:
-Listen to /amee/motor_control/odometry and to /amee/sensors/irdistances and match the messages based on their timestamp(they won't be exactly equal, so you have to look for the minimal difference).
-
-We'll need this kind of functionality for the mapper and maybe for other nodes as well. To spare roscore I think the best would be to copy the code later to the nodes where it's needed. It might be a good idea to design the code in a way that the message type is easily changeable ( assuming that every message has a field timestamp).
-At the moment I'm just matching the last two received messages, but by taking a look at their timestamps I saw that this is not always working. So what the mapper needs is the IR distances measured at a certain known position. Without synchronizing it might happen that the mapper maps walls based on IR readings that were measured at a different position than the mapper thinks, what of course would result in an incorrect map.
-
+/**
+ * A simple node that synchronizes two messages. That means:
+ * Listen to /amee/motor_control/odometry and to /amee/sensors/irdistances and match the messages based on their timestamp (they won't be exactly equal, so we are looking for those that are within a threshold, and drop the rest).
 */
+
+#ifndef DEBUG
+#define DEBUG 1 //set this to 1 or 0 to enable and disable the print outs
+#endif
 
 using namespace amee;
 ros::Subscriber	ir_sub;
@@ -29,9 +28,8 @@ std::queue<IRDistances> mIRList;
 std::queue<Odometry> mOdoList;
 std::queue<std::pair<IRDistances,Odometry> > mCorrList;
 
+#if DEBUG == 1
 int mIR_count = 0, mOdo_count = 0, pair_count = 0;
-
-
 
 void printCorrections(){
 	while(!mCorrList.empty()){
@@ -43,6 +41,7 @@ void printCorrections(){
 			  << "\tPairs: " << pair_count << std::endl;
 	}
 }
+#endif
 
 /**
  * Stable marriage problem? Naah, its too overkill...
@@ -58,13 +57,19 @@ void doCorrection(){
 			mIRList.pop(); mOdoList.pop();
 			std::pair<IRDistances, Odometry> p = std::make_pair(tmpIR,tmpOdo);
 			mCorrList.push(p);
+#if DEBUG == 1
 			++mIR_count; ++mOdo_count; ++pair_count;
+#endif
 		}else if(tmpIR.timestamp - tmpOdo.timestamp > 0){
 			mOdoList.pop();
+#if DEBUG == 1
 			++mOdo_count;
+#endif
 		}else{//if tmpIR.timestamp - tmpOdo.timestamp < 0
 			mIRList.pop();
+#if DEBUG == 1
 			++mIR_count;
+#endif
 		}
 	}
 }
@@ -82,19 +87,20 @@ int main(int argc, char **argv){
 	ros::NodeHandle n;
 	ir_sub = n.subscribe("/amee/sensors/irdistances", 10000, receive_ir);
 	odo_sub = n.subscribe("/amee/motor_control/odometry", 10000, receive_odo);
-	//cor_pub = n.advertise</*"TODO:add msg type"*/>("/amee/sensors/imu", 10000);
 
 	ros::Rate loop_rate(10);
-	struct timeval start, end;
+/*	struct timeval start, end;*/
 
 	while(ros::ok()){
 		loop_rate.sleep();
 		ros::spinOnce();
 		doCorrection();
 
+#if DEBUG == 1
 		loop_rate.sleep();
 		printCorrections();
 		loop_rate.sleep();
+#endif
 	}
 	return 0;
 }
