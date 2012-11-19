@@ -2,7 +2,7 @@
 
 import roslib; roslib.load_manifest('amee')
 import rospy, math, operator, sys
-from amee.msg import MapVisualization, WallVisualization
+from amee.msg import MapVisualization, WallVisualization, NodeMsg, GraphMsg
 #import and init pygame
 import pygame
 pygame.init() 
@@ -18,6 +18,7 @@ pygame.display.flip()
 #pygame.draw.line(window, (255, 255, 255), (0, 0), (30, 50))
 
 #draw it to the screen
+nodes = []
 
 def refresh(msg):
   window.fill((0, 0, 0))
@@ -26,7 +27,7 @@ def refresh(msg):
   for wall in msg.walls:
     color = (255,20,147)
     if (wall.type == 1):
-    	color = (255,20,147)
+      color = (255,20,147)
     start = transform(wall.startX,wall.startY)
     end = transform(wall.endX,wall.endY)
     #print end
@@ -40,6 +41,11 @@ def refresh(msg):
   for tag in msg.tags:
     drawTag(tag.x,tag.y)  
   drawAmee(msg.robotPose.x,msg.robotPose.y,msg.robotPose.theta)
+
+  for node in nodes:
+    (x, y, theta) = node
+    drawNode(x, y, theta)
+
   pygame.display.flip() 
 
 def findScaleAndOffset(msg):
@@ -65,6 +71,13 @@ def findScaleAndOffset(msg):
   #print ("Scale: " + str(scale))
   #print ("Offset: "  + str(offset))
 
+def drawNode(x,y,theta):
+  r = int(scale[0] * 0.02)
+  pygame.draw.circle(window,(0,255,0),transform(x,y),r)  
+  start = transform(x,y)
+  end = (int(start[0] + r * math.cos(theta)),int(start[1] - r * math.sin(theta)))
+  pygame.draw.line(window,(255,0,0),start,end)  
+
 def drawAmee(x,y,theta):
   r = int(scale[0] * 0.12)
   pygame.draw.circle(window,(255,255,255),transform(x,y),r)  
@@ -80,6 +93,11 @@ def drawTag(x,y):
 def transform(x,y):
   return (int(scale[0] * x + offset[0]),resolution[1] - int(scale[1] * y + offset[1]))
 
+def onNodeMsgUpdate(msg):
+  for nodeMsg in msg.nodes:
+    node = (nodeMsg.pose.x, nodeMsg.pose.y, nodeMsg.pose.theta)
+    nodes.append(node)
+
 
 if __name__ == '__main__':
     # Register this node
@@ -88,6 +106,7 @@ if __name__ == '__main__':
     try:
         # The TOPIC we want to listen to
         rospy.Subscriber("/amee/map/visualization", MapVisualization, refresh)
+        rospy.Subscriber("/amee/map/graph", GraphMsg, onNodeMsgUpdate)
 
         rospy.loginfo("Displaying map...")
 
