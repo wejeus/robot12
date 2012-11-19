@@ -14,7 +14,7 @@
 #include <sstream>
 #include <string>
 
-#define ROS
+// #define ROS
 
 #ifdef ROS
 #include "ros/ros.h"
@@ -80,6 +80,7 @@ string color2string(COLOR object);
 void drawText(Mat &image, string text);
 void initROS(int argc, char *argv[]);
 void publishMovement(int state);
+void publishMap(double timestamp, int object, int color);
 void stream(string source);
 bool captureSingleFrame(Mat &frame);
 
@@ -228,9 +229,16 @@ void render(Mat &frame) {
             // TODO: move robot so that tag is in center (1. determine distance from tag center to image normal 2. move(distance))
             
             if (USE_TEMPLATES) res = classifyTagUsingTemplate(ROI);
+            COLOR color = determineTagColor(ROI);
+            struct timeval tagTimeout;
+            gettimeofday(&tagTimeout, NULL);
+            double timestamp = tagTimeout.tv_sec+double(tagTimeout.tv_usec)/1000000.0;
+            
+            log("Color: %s, ", color2string(color).c_str());
+            log("Object: %s\n", class2name(res).c_str());
 
-            log("Color: %s, ", color2string(determineTagColor(ROI)).c_str());
-            log("Object: %s\n", class2name(res).c_str()); 
+            publishMap(timestamp, res, color);
+            
             setNextTagTimout();
 
             imout(frame, "success_");
@@ -656,6 +664,19 @@ void publishMovement(int state) {
         MovementCommand mc;
         mc.type = state;
         movementPublisher.publish(mc);
+    }
+    #endif
+}
+
+void publishMap(double timestamp, int object, int color) {
+    #ifdef ROS
+    if (USE_ROS) {
+        Tag t;
+        t.timestamp = timestamp;
+        t.side = 1;
+        t.object = object;
+        t.color = color
+        mapPublisher.publish(tag);
     }
     #endif
 }
