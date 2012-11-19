@@ -94,7 +94,8 @@ void setNextTagTimout();
 
 /* Globals */
 double lastTagTimeout;
-VideoCapture capture;
+// VideoCapture capture;
+int CAMERA_ID = -1;
 vector<TagTemplate> sourceTemplates;
 int erosionSize = 2;
 Mat erosionElement = getStructuringElement(MORPH_ELLIPSE, Size(2*erosionSize + 1, 2*erosionSize + 1));
@@ -193,10 +194,6 @@ void render(Mat &frame) {
         CLASSIFICATION_IN_PROGRESS = true;
         // log("Found some object, classification in progress...\n");
 
-        roboard_drivers::Motor motorMessage;
-        motorMessage.left = 0.0f;
-        motorMessage.right = 0.0f;
-        rawMotorPublisher.publish(motorMessage);
         publishMovement(5); // Stop motors
         // sleep(1);
 
@@ -492,12 +489,34 @@ void initROS(int argc, char *argv[]) {
     #endif
 }
 
+VideoCapture *capture = new VideoCapture();
+// VideoCapture *capture;
+
 bool captureSingleFrame(Mat &frame) {
-    if (!capture.grab()) { 
+    // VideoCapture capture;
+    // capture.open(CAMERA_ID);
+
+    // if (!capture.grab()) { 
+    //     cout << "Could not grab new frame!" << endl;
+    //     return false;
+    // } else {
+    //     if (!capture.retrieve(frame)) {
+    //        cout << "Could not decode and return new frame!" << endl;
+    //        return false;
+    //     }
+    // }
+    // return true;
+
+    
+
+    capture->open(CAMERA_ID);
+
+    
+    if (!capture->grab()) { 
         cout << "Could not grab new frame!" << endl;
         return false;
     } else {
-        if (!capture.retrieve(frame)) {
+        if (!capture->retrieve(frame)) {
            cout << "Could not decode and return new frame!" << endl;
            return false;
         }
@@ -507,45 +526,59 @@ bool captureSingleFrame(Mat &frame) {
 
 // TODO: Stream from video file
 void stream(string source) {
-    cout << "Starting TagDetection using local input." << endl;
-    
+    cout << "Starting TagDetection using raw input." << endl;
+
     if (!strcmp(source.c_str(), "")) {
         cout << "No input source!" << endl;
         return;
     }
 
     if (isdigit(*source.c_str())) {
-        log("Initializing camera: %s\n", source.c_str());
-        capture.open(atoi(source.c_str()));
-        
-        if (!capture.isOpened()) {
-            cout << "ERROR: capture is NULL" << endl;
-            return;
-        }
+        cout << "I will now stream from camera: " << source << endl;
+        CAMERA_ID = atoi(source.c_str());
+    } else {
+        SOURCE_IS_SINGLE_IMAGE = false;
     }
 
-    if (capture.isOpened()) {
-        // Stream from webcam
+    if (SOURCE_IS_SINGLE_IMAGE) {
+        cout << "Reading single image: " << source.c_str() << endl;
+        Mat image = imread(source.c_str(), 1);
+        render(image);
+        waitKey();
+    } else {
+        cout << "Streaming started..." << endl;
+
         while (true) {
             Mat frame;
             if ( ! CLASSIFICATION_IN_PROGRESS && captureSingleFrame(frame)) { 
                 render(frame);
             }
-
-            if (DISPLAY_GRAPHICAL) {
-                // if(waitKey(CAMERA_INTERVAL) >= 0) break;
-            } else {
-                // usleep(CAMERA_INTERVAL*1000);
-            }
         }
-    } else {
-        // Read single image
-        SOURCE_IS_SINGLE_IMAGE = true;
-        cout << "Reading image: " << source.c_str() << endl;
-        Mat image = imread(source.c_str(), 1);
-        render(image);
-        waitKey();
     }
+
+// capture.open(atoi(source.c_str()));
+    // if (capture.isOpened()) {
+    //     // Stream from webcam
+    //     while (true) {
+    //         Mat frame;
+    //         if ( ! CLASSIFICATION_IN_PROGRESS && captureSingleFrame(frame)) { 
+    //             render(frame);
+    //         }
+
+    //         if (DISPLAY_GRAPHICAL) {
+    //             // if(waitKey(CAMERA_INTERVAL) >= 0) break;
+    //         } else {
+    //             // usleep(CAMERA_INTERVAL*1000);
+    //         }
+    //     }
+    // } else {
+    //     // Read single image
+    //     SOURCE_IS_SINGLE_IMAGE = true;
+    //     cout << "Reading image: " << source.c_str() << endl;
+    //     Mat image = imread(source.c_str(), 1);
+    //     render(image);
+    //     waitKey();
+    // }
 }
 
 
@@ -590,6 +623,11 @@ void show(const string& winname, InputArray mat) {
 
 void publishMovement(int state) {
     #ifdef ROS
+    // roboard_drivers::Motor motorMessage;
+    // motorMessage.left = 0.0f;
+    // motorMessage.right = 0.0f;
+    // rawMotorPublisher.publish(motorMessage);
+
     if (state == 4) log("Publish WALL\n");
     if (state == 5) log("Publish STOPWALL\n");
     MovementCommand mc;
