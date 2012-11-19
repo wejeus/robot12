@@ -19,17 +19,29 @@ namespace amee{
 		virtual bool isRunning() const;
 		virtual void doControl(const SensorData& data);
 
-		static const int FOLLOWED_WALL = 1;
-		static const int FOUND_END_OF_WALL =  2;
-		static const int MOVED_TAIL = 3;
-		static const int ROTATE_RIGHT = 4;
-		static const int ROTATE_LEFT = 5;
-		static const int FOUND_BEGINNING_OF_WALL = 6;
-		static const int ALIGNED_TO_WALL = 7;
-		static const int ALIGNED_TO_FRONT_WALL = 8;
-		static const int EVIL_WALLS_HANDLED = 9;
-		static const int T_INTERSECTION_HANDLED = 10;
-		static const int EDGE_OF_WALL_HANDLED = 11;
+		// Constants for state change messages.
+		static const int FOLLOW_WALL_IN = 0;
+		static const int FOLLOW_WALL_OUT = 1;
+		static const int LOOK_FOR_END_OF_WALL_IN = 2;
+		static const int LOOK_FOR_END_OF_WALL_OUT = 3;
+		static const int MOVE_TAIL_IN =  4;
+		static const int MOVE_TAIL_OUT = 5;
+		static const int ROTATE_RIGHT_IN = 6;
+		static const int ROTATE_RIGHT_OUT = 7;
+		static const int ROTATE_LEFT_IN = 8;
+		static const int ROTATE_LEFT_OUT = 9;
+		static const int LOOK_FOR_BEGINNING_OF_WALL_IN = 10;
+		static const int LOOK_FOR_BEGINNING_OF_WALL_OUT = 11;
+		static const int ALIGN_TO_WALL_IN = 12;
+		static const int ALIGN_TO_WALL_OUT = 13;
+		static const int ALIGN_TO_FRONT_WALL_IN = 14;
+		static const int ALIGN_TO_FRONT_WALL_OUT = 15;
+		static const int HANDLE_EVIL_WALLS_IN = 16;
+		static const int HANDLE_EVIL_WALLS_OUT = 17;
+		static const int T_INTERSECTION_HANDLING_IN = 18;
+		static const int T_INTERSECTION_HANDLING_OUT = 19;
+		static const int EDGE_OF_WALL_IN = 20;
+		static const int EDGE_OF_WALL_OUT = 21;
 
 	private:
 		enum WallFollowState {FollowWall, LookForEndOfWall, MoveTail,

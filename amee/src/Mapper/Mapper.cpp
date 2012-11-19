@@ -60,14 +60,14 @@ void Mapper::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
 
 void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg) {
 	switch(msg->state) {
-		case amee::MoveFollowWall::ALIGNED_TO_WALL:
+		case amee::MoveFollowWall::ALIGN_TO_WALL_OUT:
 			init(); //  only does sth if not initalized
 			mMappingState = NextToWall;
 			break;
-		case amee::MoveFollowWall::ROTATE_LEFT:
+		case amee::MoveFollowWall::ROTATE_LEFT_IN:
 			mMappingState = Rotating;
 			break;
-		case amee::MoveFollowWall::ROTATE_RIGHT:
+		case amee::MoveFollowWall::ROTATE_RIGHT_IN:
 			mMappingState = Rotating;
 		default:
 			mMappingState = Pause;
@@ -273,7 +273,7 @@ void Mapper::mapping() {
 			float diffDist = mDistances.rightFront - mDistances.rightBack;
 			float meanDist = (mDistances.rightFront + mDistances.rightBack) / 2.0f;
 			float relativeTheta = atan(diffDist / IR_BASE_RIGHT);
-
+			std::cout << "Old pose: x:" << mPose.x << " y:" << mPose.y << " theta: " << mPose.theta << std::endl;
 			// determine theta of the wall (orienation we are heading to)
 			float wallTheta = 0.0f;
 			if (wall->getType() == WallSegment::VERTICAL) {
@@ -313,7 +313,7 @@ void Mapper::mapping() {
 				mPose.y = wall->getY() + sideOfWall * centerDistToWall;
 			}
 
-			
+			std::cout << "New pose: x:" << mPose.x << " y:" << mPose.y << " theta: " << mPose.theta << std::endl;
 
 			// std::cout << "Wall theta " << wallTheta * (180.0f / M_PI) << ", relativeTheta: " << relativeTheta * (180.0f / M_PI)
 			// << " sum: " << (wallTheta + relativeTheta) * (180.0f / M_PI) << std::endl;
