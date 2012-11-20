@@ -21,7 +21,6 @@ class HorizontalWallSegment : public WallSegment{
 		virtual bool isSmall();
 		virtual bool mergeWall(WallSegment* wall);
 	private:
-		Map::Point mFrom, mTo;
 		unsigned int mNumberOfPoints;
 		float mYAcc;
 

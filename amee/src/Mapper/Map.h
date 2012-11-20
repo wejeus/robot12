@@ -37,6 +37,34 @@ class Map {
 				r.y = y + b.y;
 				return r;
 			}
+
+			const Point operator-(const Point& b) const {
+				Point r;
+				r.x = x - b.x;
+				r.y = y - b.y;
+				return r;
+			}
+
+			const Point operator*(const float& t) const {
+				Point r;
+				r.x = t * r;
+				r.y = t * y;
+				return r;
+			}
+
+			const float operator*(const Point& b) const {
+				return x * b.x + y * b.y;
+			}
+
+			const Point normalized() const {
+				float l = length();
+				Point r(x/l, y/l);
+				return r;
+			}
+			float length() const {
+				return sqrt(x*x + y*y);
+			}
+
 			void rotate(float angle) {
 				float tx = x;
 				float ty = y;

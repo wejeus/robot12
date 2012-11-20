@@ -9,22 +9,9 @@ namespace amee {
 class WallSegment {
 
 	public:
-		static const float ORTHOGONAL_TOLERANCE = 0.02f;
-		static const float WALL_THICKNESS = 0.015f;
-		static const float PARALLEL_TOLERANCE = 0.04f;
-		static const int HORIZONTAL = 0;
-		static const int VERTICAL = 1;
-		static const int NONE = 2;
-		static const float SMALL_THRESHOLD = 0.02f;
-		static const float SMALL_LENGTH = 0.035f;
-		static const float ORTHOGONAL_MERGE_THRESHOLD = 0.04f;
-		static const float PARALLEL_MERGE_THRESHOLD = 0.10f;
-		static const float ERROR_TOLERANCE = 0.05f; // decscibes how off a measurement can be from a wall so that it is still associated to the wall
-
-
 		WallSegment(){};
 		virtual ~WallSegment(){};
-		
+
 		// virtual Orientation getOrientation() const = 0;
 		virtual WallVisualization getVisualization() = 0;
 		// returns the distance from this wall to the given position
@@ -59,14 +46,23 @@ class WallSegment {
 		/** Tries to merge this wall with the given one. Returns true if merging was successful. If successful the given wall can
 		be deleted since this instance will represent the merged wall. */
 		virtual bool mergeWall(WallSegment* wall) = 0;
-
 		
-	protected:
+		static const float ORTHOGONAL_TOLERANCE = 0.02f;
+		static const float WALL_THICKNESS = 0.015f;
+		static const float PARALLEL_TOLERANCE = 0.04f;
+		static const int HORIZONTAL = 0;
+		static const int VERTICAL = 1;
+		static const int NONE = 2;
+		static const float SMALL_THRESHOLD = 0.02f;
+		static const float SMALL_LENGTH = 0.035f;
+		static const float ORTHOGONAL_MERGE_THRESHOLD = 0.04f;
+		static const float PARALLEL_MERGE_THRESHOLD = 0.10f;
+protected:
 		Map::Point mFrom, mTo;
 
 		/* Adds the given point to this wall. Call this only if the measurement belongs to this wall!*/
 		virtual bool addMeasurement(const Map::Point& pos) = 0;
-		
+
 		// Return true if the line segments (fromA, toA) and (fromB, toB) intersect. If so t and s describe the intersection point such as
 		// intersection = fromA + t * (toA - fromA)
 		// and 
