@@ -16,7 +16,7 @@ namespace amee {
 class Mapper {
 
 	public:
-		Mapper(ros::Publisher pub);
+		Mapper();
 		~Mapper();
 		void receive_distances(const amee::IRDistances::ConstPtr &msg);
 		void receiveOdometry(const amee::Odometry::ConstPtr &msg);
@@ -27,10 +27,9 @@ class Mapper {
 		void setVisualizationPublisher(ros::Publisher pub);
 		void setGraphPublisher(ros::Publisher pub);
 
-		enum MappingState {Pause, NextToWall, Rotating};
+		enum MappingState {Pause, Mapping, Localizing};
 	
 	private:
-		ros::Publisher map_pub;
 		ros::Publisher vis_pub;
 		ros::Publisher graph_pub;
 
@@ -69,13 +68,19 @@ class Mapper {
 
 		MapVisualization mVis;
 
+		float mLeftWallStartDist;
+		float mRightWallStartDist;
+		bool mLeftNextToWall;
+		bool mRightNextToWall;
+
 		void calculateMeasurements();
 		bool isValidDistance(float dist);
 		void visualize();
 		void cleanMap();
-		int followedWallDirection();
+		void followedWallDirection(int& left, int& right);
 		void mapping();
 		void addNode(int type);
+		void checkIfNextToWall();
 	};
 }
 #endif

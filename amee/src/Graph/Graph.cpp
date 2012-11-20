@@ -42,7 +42,7 @@ const amee::GraphMsg& Graph::getGraphMsg() {
 	unsigned int size = mNodes.size();
 	mMsg.nodes.resize(size); //TODO fix me
 	for (unsigned int i = 0; i < mNodes.size(); ++i) {
-		mMsg.nodes[i] = mNodes[i]->toMsg();
+		mNodes[i]->toMsg(mMsg.nodes[i]);
 	}
 	return mMsg;
 }
@@ -52,11 +52,14 @@ void Graph::connectNodes(int id1, int id2) {
 		std::cout << "ERROR in Graph::connectNodes(int id1, int id2): id1:" << id1 << " or id2:" << id2 << " is invalid." << std::endl;
 		return;
 	}
+
+	if (id1 == id2) {
+		return;
+	}
 	// unsigned int u_id1 = (unsigned int)id1;
 
-	Node n1 = *(mNodes[id1]);
-	Node n2 = *(mNodes[id2]); 
-	n1.connectNeighbours(n2);
+	// std::cout << "connecting neighbors " << id1 << " " << id2 << std::endl;
+	mNodes[id1]->connectNeighbours(mNodes[id2]);
 }
 
 };// namespace amee
