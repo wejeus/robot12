@@ -72,7 +72,7 @@ bool HorizontalWallSegment::mergeWall(WallSegment* wall) {
 }
 
 bool HorizontalWallSegment::addMeasurement(const Map::Point& p) {
-	if (isInRange(p)) {
+	// if (isInRange(p)) {
 		++mNumberOfPoints;
 		
 		mFrom.x = mFrom.x < p.x ? mFrom.x : p.x;
@@ -82,8 +82,8 @@ bool HorizontalWallSegment::addMeasurement(const Map::Point& p) {
 		mFrom.y = mYAcc / mNumberOfPoints;
 		mTo.y = mFrom.y; 
 		return true;
-	} 
-	return false;
+	// } 
+	// return false;
 }
 
 int HorizontalWallSegment::getType() {

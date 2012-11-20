@@ -77,7 +77,7 @@ bool VerticalWallSegment::isSmall() {
 }
 
 bool VerticalWallSegment::addMeasurement(const Map::Point& p) {
-	if (isInRange(p)) {
+	// if (isInRange(p)) {
 		++mNumberOfPoints;
 		
 		mFrom.y = mFrom.y < p.y ? mFrom.y : p.y;
@@ -87,8 +87,8 @@ bool VerticalWallSegment::addMeasurement(const Map::Point& p) {
 		mFrom.x = mXAcc / mNumberOfPoints;
 		mTo.x = mFrom.x; 
 		return true;
-	} 
-	return false;
+	// } 
+	// return false;
 }
 
 int VerticalWallSegment::getType() {

@@ -319,25 +319,25 @@ void Mapper::mapping() {
 	WallSegment* walls[mMeasurements.size()];
 
 	if (mMeasurements[RIGHT_BACK].valid) {
-		walls[RIGHT_BACK] = mMap.addMeasurement(mMeasurements[RIGHT_BACK].pos, rightType);
+		// walls[RIGHT_BACK] = mMap.addMeasurement(mMeasurements[RIGHT_BACK].pos, rightType);
 	} else {
 		walls[RIGHT_BACK] = NULL;
 	}
 
 	if (mMeasurements[RIGHT_FRONT].valid) {
-		walls[RIGHT_FRONT] = mMap.addMeasurement(mMeasurements[RIGHT_FRONT].pos, rightType);
+		// walls[RIGHT_FRONT] = mMap.addMeasurement(mMeasurements[RIGHT_FRONT].pos, rightType);
 	} else {
 		walls[RIGHT_FRONT] = NULL;
 	}
 
 	if (mMeasurements[LEFT_BACK].valid) {
-		walls[LEFT_BACK] = mMap.addMeasurement(mMeasurements[LEFT_BACK].pos, leftType);
+		// walls[LEFT_BACK] = mMap.addMeasurement(mMeasurements[LEFT_BACK].pos, leftType);
 	} else {
 		walls[LEFT_BACK] = NULL;
 	}
 
 	if (mMeasurements[LEFT_FRONT].valid) {
-		walls[LEFT_FRONT] = mMap.addMeasurement(mMeasurements[LEFT_FRONT].pos, leftType);
+		// walls[LEFT_FRONT] = mMap.addMeasurement(mMeasurements[LEFT_FRONT].pos, leftType);
 	} else {
 		walls[LEFT_FRONT] = NULL;
 	}
@@ -465,22 +465,22 @@ void mapTest(ros::Publisher& vispub) {
 	p.y = 0;
 	for (int i = 0; i < 100; ++i) {
 		p.x += 0.01f; 
-		map.addMeasurement(p, WallSegment::HORIZONTAL);
+		// map.addMeasurement(p, WallSegment::HORIZONTAL);
 	}
 
 	for (int i = 0; i < 100; ++i) {
 		p.y += 0.01f;
-		map.addMeasurement(p, WallSegment::VERTICAL); 
+		// map.addMeasurement(p, WallSegment::VERTICAL); 
 	}
 
 	for (int i = 0; i < 10; ++i) {
 		p.x -= 0.01f;
-		map.addMeasurement(p, WallSegment::HORIZONTAL);
+		// map.addMeasurement(p, WallSegment::HORIZONTAL);
 	}
 
 	for (int i = 0; i < 10; ++i) {
 		p.y -= 0.01f;
-		map.addMeasurement(p, WallSegment::VERTICAL);
+		// map.addMeasurement(p, WallSegment::VERTICAL);
 	}
 
 	MapVisualization vis;
