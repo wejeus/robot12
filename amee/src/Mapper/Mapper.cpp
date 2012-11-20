@@ -67,20 +67,25 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 			mLastNodeId = -1;
 			break;
 		case amee::MoveFollowWall::ALIGN_TO_WALL_OUT:
-			init(); //  only does sth if not initalized
+			init(); //  only does sth if not initialized
 			type = amee::Node::NODE_NEXT_TO_WALL;
 			addNode(type);
 			mMappingState = NextToWall;
 			break;
+		case amee::MoveFollowWall::FOLLOW_WALL_OUT:
+			if(mInitialized) addNode(amee::Node::NODE_NEXT_TO_WALL);
+			mMappingState = Pause;
+			break;
 		case amee::MoveFollowWall::ROTATE_LEFT_IN:
 			type = amee::Node::NODE_ROTATE_LEFT;
-			addNode(type);
+			if (mInitialized) addNode(type);
 			mMappingState = Rotating;
 			break;
 		case amee::MoveFollowWall::ROTATE_RIGHT_IN:
 			mMappingState = Rotating;
 			type = amee::Node::NODE_ROTATE_RIGHT;
-			addNode(type);
+			if (mInitialized) addNode(type);
+			break;
 		default:
 			mMappingState = Pause;
 	}
@@ -92,8 +97,9 @@ void Mapper::addNode(int type) {
 	mGraph.addNode(n);
 	if (mLastNodeId != -1) {
 		mGraph.connectNodes(mNodeId, mLastNodeId);
-		mLastNodeId = mNodeId;
-	}
+	} 
+	mLastNodeId = mNodeId;
+	mNodeId++;
 }
 
 void Mapper::init() {

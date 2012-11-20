@@ -41,7 +41,7 @@ class Node{
 		int numEdges() const;
 		int getType() const;
 
-		amee::NodeMsg toMsg() const;
+		void toMsg(amee::NodeMsg& msg) const;
 
 		//setters
 		inline void x(const float);
@@ -50,7 +50,7 @@ class Node{
 		inline void id(const NodeID);
 
 		void setType(const int);
-		void connectNeighbours(Node&);
+		void connectNeighbours(Node*);
 
 
 	private:
@@ -65,7 +65,7 @@ class Node{
 
 	protected:
 		void addNeighbour(const NodeID&);
-		void setDist(Node&, const float&);
+		void setDist(Node*, const float&);
 		
 };//class Node
 

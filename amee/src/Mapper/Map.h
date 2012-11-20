@@ -47,6 +47,9 @@ class Map {
 		// Adds the given measurement to an existing wall if possible. If not possible, it creates a new wall of type newWallType
 		// at position pos. The returned WallSegment is either the associated wall segment or null if no association worked.
 		WallSegment* addMeasurement(const Point& pos, int newWallType);
+
+		//TODO
+		// amee::Pose localize(amee::Pose& pose); // localize based on given pose
 		void print();
 		void getVisualization(MapVisualization& vis);
 		/** Tries to reduce the number of walls by unifying walls that are close to the given pos (if the seem to be one wall)
