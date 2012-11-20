@@ -6,8 +6,7 @@
 
 using namespace amee;
 
-Mapper::Mapper(ros::Publisher pub) {
-	map_pub = pub;
+Mapper::Mapper() {
 	mInitialized = false;
 	mMappingState = Pause;
 	mNodeId = 0;
@@ -39,6 +38,7 @@ void Mapper::receive_tag(const amee::Tag::ConstPtr& msg) {
 
 void Mapper::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
 	Odometry lastOdometry = mOdometry;
+	mOdometry.distance = msg->distance;
 	mOdometry.x = msg->x;
 	mOdometry.y = msg->y;
 	mOdometry.angle = msg->angle;
@@ -80,21 +80,29 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 			init(); //  only does sth if not initialized
 			type = amee::Node::NODE_NEXT_TO_WALL;
 			addNode(type);
-			mMappingState = NextToWall;
+			mMappingState = Mapping;
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_OUT:
 			if(mInitialized) addNode(amee::Node::NODE_NEXT_TO_WALL);
-			mMappingState = Pause;
+			// mMappingState = Pause;
 			break;
 		case amee::MoveFollowWall::ROTATE_LEFT_IN:
 			type = amee::Node::NODE_ROTATE_LEFT;
 			if (mInitialized) addNode(type);
-			mMappingState = Rotating;
+			mMappingState = Mapping;
 			break;
 		case amee::MoveFollowWall::ROTATE_RIGHT_IN:
-			mMappingState = Rotating;
+			mMappingState = Mapping;
 			type = amee::Node::NODE_ROTATE_RIGHT;
 			if (mInitialized) addNode(type);
+			break;
+		case amee::MoveFollowWall::FOLLOW_WALL_IN:
+		case amee::MoveFollowWall::HANDLE_EVIL_WALLS_IN:
+		case amee::MoveFollowWall::ALIGN_TO_FRONT_WALL_IN:
+		case amee::MoveFollowWall::T_INTERSECTION_HANDLING_IN:
+		case amee::MoveFollowWall::MOVE_TAIL_IN:
+		// case amee::MoveFollowWall::LOOK_FOR_BEGINNING_OF_WALL_IN:
+			mMappingState = Mapping;
 			break;
 		default:
 			mMappingState = Pause;
@@ -267,25 +275,33 @@ void Mapper::cleanMap() {
 }
 
 void Mapper::doMapping() {
+	if (mInitialized) {
 
-	switch(mMappingState) {
-		case Pause:
-		case Rotating:	
-			mapping();
-			break;
-		case NextToWall:
-			mapping();
-			break;
+		calculateMeasurements();
+		checkIfNextToWall(); 
+
+		switch(mMappingState) {
+			case Pause:
+				// std::cout << "Mapper state: Pause" << std::endl;
+				break;
+			case Mapping:
+				// std::cout << "Mapper state: Mapping, left wall:" << mLeftNextToWall << " right wall: " << mRightNextToWall << std::endl;
+				mapping();
+				break;
+			case Localizing:
+				// std::cout << "Mapper state: Localizing" << std::endl;
+				// TODO localize()
+				break;
+		}
+
+		visualize();
 	}
-	
-	//TODO
-	// std::cout << "Diff in timestamp: " << (mPose.timestamp - mDistances.timestamp) << std::endl;
 }
 
 void Mapper::mapping() {
-	if (!mInitialized) {
-		return;
-	}
+	// if (!mInitialized) {
+	// 	return;
+	// }
 	// // set origin
 	// mCurrentPos.x = mPose.x - mStartPos.x;
 	// mCurrentPos.y = mPose.y - mStartPos.y;
@@ -296,23 +312,47 @@ void Mapper::mapping() {
 	// std::cout << "Current position in maze: " << mPose.x << ", " << mPose.y << std::endl;
 	// std::cout << "Current angle in maze: " << mPose.theta * (180.0f / M_PI) << std::endl;
 
-	calculateMeasurements();
-
-	int newType = followedWallDirection();
+	int leftType = 0;
+	int rightType = 0;
+	followedWallDirection(leftType, rightType); // gets the type for new walls (Vertical, Horizontal or none)
 
 	WallSegment* walls[mMeasurements.size()];
 
-	for (unsigned int i = 0; i < mMeasurements.size(); ++i) {
-		Measurement m = mMeasurements[i];
-		// std::cout << i <<": is valid? " << m.valid << " x " << m.pos.x << " y " << m.pos.y << std::endl;
-		if (m.valid) {
-			walls[i] = mMap.addMeasurement(m.pos, newType);
-		} else {
-			walls[i] = NULL;
-		}
+	if (mMeasurements[RIGHT_BACK].valid) {
+		walls[RIGHT_BACK] = mMap.addMeasurement(mMeasurements[RIGHT_BACK].pos, rightType);
+	} else {
+		walls[RIGHT_BACK] = NULL;
 	}
 
-	if((walls[RIGHT_BACK] == walls[RIGHT_FRONT]) && (walls[RIGHT_BACK] != NULL) && mMappingState == NextToWall) {
+	if (mMeasurements[RIGHT_FRONT].valid) {
+		walls[RIGHT_FRONT] = mMap.addMeasurement(mMeasurements[RIGHT_FRONT].pos, rightType);
+	} else {
+		walls[RIGHT_FRONT] = NULL;
+	}
+
+	if (mMeasurements[LEFT_BACK].valid) {
+		walls[LEFT_BACK] = mMap.addMeasurement(mMeasurements[LEFT_BACK].pos, leftType);
+	} else {
+		walls[LEFT_BACK] = NULL;
+	}
+
+	if (mMeasurements[LEFT_FRONT].valid) {
+		walls[LEFT_FRONT] = mMap.addMeasurement(mMeasurements[LEFT_FRONT].pos, leftType);
+	} else {
+		walls[LEFT_FRONT] = NULL;
+	}
+
+	// for (unsigned int i = 0; i < mMeasurements.size(); ++i) {
+	// 	Measurement m = mMeasurements[i];
+	// 	// std::cout << i <<": is valid? " << m.valid << " x " << m.pos.x << " y " << m.pos.y << std::endl;
+	// 	if (m.valid) {
+	// 		walls[i] = mMap.addMeasurement(m.pos, newType);
+	// 	} else {
+	// 		walls[i] = NULL;
+	// 	}
+	// }
+
+	if((walls[RIGHT_BACK] == walls[RIGHT_FRONT]) && (walls[RIGHT_BACK] != NULL) && mRightNextToWall && mLeftNextToWall) {// && mMappingState == Mapping) {
 			// both measurements have been associated with the same wall
 			// TODO change position
 			WallSegment* wall = walls[RIGHT_BACK];
@@ -336,12 +376,12 @@ void Mapper::mapping() {
 				}
 
 				// now reset theta accordingly
-				// mPose.theta = wallTheta + relativeTheta;
+				mPose.theta = wallTheta + relativeTheta;
 
 				// now we want to reset the x coordinate
 				float normalDistToWall = cos(relativeTheta) * meanDist;
 				float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
-				// mPose.x = wall->getX() + sideOfWall * centerDistToWall;
+				mPose.x = wall->getX() + sideOfWall * centerDistToWall;
 			} else {
 				// std::cout << "wall y " << wall->getY() << " pose y " << mPose.y << std::endl;
 				float sideOfWall = 1.0f;
@@ -353,12 +393,12 @@ void Mapper::mapping() {
 				}
 
 				// now reset theta accordingly
-				// mPose.theta = wallTheta + relativeTheta;
+				mPose.theta = wallTheta + relativeTheta;
 
 				// now we want to reset the y coordinate
 				float normalDistToWall = cos(relativeTheta) * meanDist;
 				float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
-				// mPose.y = wall->getY() + sideOfWall * centerDistToWall;
+				mPose.y = wall->getY() + sideOfWall * centerDistToWall;
 			}
 
 			// std::cout << "New pose: x:" << mPose.x << " y:" << mPose.y << " theta: " << mPose.theta << std::endl;
@@ -368,24 +408,53 @@ void Mapper::mapping() {
 	}
 
 	cleanMap();
-	visualize();
 	// mMap.print();
 }
 
-int Mapper::followedWallDirection() {
+void Mapper::followedWallDirection(int& left, int& right) {
 	float theta = mPose.theta;
-	// if (mMappingState == NextToWall) {
-		if ((fabs(theta) <= M_PI/4.0f) || (fabs(theta - M_PI) <= M_PI/4.0f)) {
-			return WallSegment::HORIZONTAL;
+	left = WallSegment::NONE;
+	right = WallSegment::NONE;
+	if (mMappingState == Mapping) {
+		if ((fabs(theta) <= M_PI/5.0f) || (fabs(theta - M_PI) <= M_PI/5.0f)) {
+			if (mRightNextToWall) {
+				right = WallSegment::HORIZONTAL;
+			}
+			if (mLeftNextToWall) {
+				left = WallSegment::HORIZONTAL;
+			}
 		} 
-		if ((fabs(theta - M_PI/2.0f) <= M_PI/4.0f) || (fabs(theta - 3.0f/2.0f*M_PI) <= M_PI/4.0f)) {
-			return WallSegment::VERTICAL;
+
+		if ((fabs(theta - M_PI/2.0f) <= M_PI/5.0f) || (fabs(theta - 3.0f/2.0f*M_PI) <= M_PI/5.0f)) {
+			if (mRightNextToWall) {
+				right = WallSegment::VERTICAL;
+			}
+			if (mLeftNextToWall) {
+				left = WallSegment::VERTICAL;
+			}
 		}
-		return WallSegment::NONE;
-	// } else {
-	// 	return WallSegment::NONE;
-	// }
-}
+	}
+}	
+
+ void Mapper::checkIfNextToWall() {
+        bool rF = mMeasurements[RIGHT_FRONT].valid;
+        bool rB = mMeasurements[RIGHT_BACK].valid;
+        if (!rF) {
+            mRightWallStartDist = mOdometry.distance;
+        }
+        float wallLength = mOdometry.distance - mRightWallStartDist;
+        // std::cout << "wall length is " << wallLength << " currentDist is " << mOdometry.distance << " start dist: " << mRightWallStartDist << std::endl;
+        mRightNextToWall = rB && (wallLength >= IR_BASE_RIGHT);
+
+        bool lF = mMeasurements[LEFT_FRONT].valid;
+        bool lB = mMeasurements[LEFT_BACK].valid;
+
+        if (!lF) {
+        	mLeftWallStartDist = mOdometry.distance;
+        }
+        wallLength = mOdometry.distance - mLeftWallStartDist;
+        mLeftNextToWall = lB && (wallLength >= IR_BASE_RIGHT); // TODO check whether IR base left is equal to IR base right
+    }
 
 
 void mapTest(ros::Publisher& vispub) {
@@ -426,15 +495,11 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "MapperNode");
 	ros::NodeHandle n;
 
-	ros::Publisher	map_pub;
-	//map_pub = n.advertise<Velocity>("/amee/map", 100);
-
 	// create the mapper
-	Mapper mapper(map_pub);
+	Mapper mapper;
 	
 	// create subscriber for distances
-	ros::Subscriber dist_sub;
-	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &Mapper::receive_distances, &mapper);
+	ros::Subscriber	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &Mapper::receive_distances, &mapper);
 	ros::Subscriber odo_sub = n.subscribe("/amee/motor_control/odometry", 100, &Mapper::receiveOdometry, &mapper);
 	ros::Subscriber state_sub = n.subscribe("/amee/follow_wall_states",10, &Mapper::receive_FollowWallState, &mapper);
 	ros::Subscriber tag_sub = n.subscribe("/amee/tag",10, &Mapper::receive_tag, &mapper);
