@@ -19,8 +19,6 @@ class EKF {
 #define nom 6
 #define noc 2
 
-
-
 private:
 
 public:
@@ -79,10 +77,8 @@ public:
 	int getNom();
 	int getNoc();
 
-
 	amee::Pose mPose;	
 	amee::Pose mMeasurement1;
 	amee::Pose mMeasurement2;
-		
 };
 #endif

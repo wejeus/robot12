@@ -10,6 +10,7 @@
 #include <vector>
 #include "amee/MapVisualization.h"
 #include "../Graph/Graph.h"
+#include "../Localize/EKF.h"
 
 namespace amee {
 
@@ -22,6 +23,7 @@ class Mapper {
 		void receiveOdometry(const amee::Odometry::ConstPtr &msg);
 		void receive_tag(const amee::Tag::ConstPtr &msg);
 		void receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg);
+		void receive_control(const amee::Velocity::ConstPtr& msg);
 		void doMapping();
 		void init();
 		void setVisualizationPublisher(ros::Publisher pub);
@@ -32,6 +34,11 @@ class Mapper {
 	private:
 		ros::Publisher vis_pub;
 		ros::Publisher graph_pub;
+
+		EKF ekf;
+		amee::Velocity mControlSignal;
+		amee::Pose mMeasurement1;
+		amee::Pose mMeasurement2;
 
 		amee::IRDistances mDistances;
 		amee::Pose mPose;

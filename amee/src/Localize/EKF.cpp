@@ -34,6 +34,8 @@ void EKF::init(){
 
 	I.setIdentity();
 
+	G.setIdentity();
+
 	// set H to "identity" 
 	H.setZero();
 	H(0,0) = 1;
