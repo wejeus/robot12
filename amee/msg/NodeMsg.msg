@@ -1,7 +1,4 @@
-float32 x
-float32 y
-float32 theta
+amee/Pose pose
 uint32[] edges
 uint32 nodeID
-uint32 TYPE
-
+uint32 type

@@ -1,83 +1,134 @@
 #include <iostream>
-#include "MoveCoordinate.h"
-#include <cmath>
 #include "amee/Velocity.h"
+#include "MoveCoordinate.h"
+#include "MoveRotate.h"
+#include "MoveStraight.h"
+#include <cmath>
+#include <numeric>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 using namespace amee;
+using namespace std;
 
 MoveCoordinate::MoveCoordinate(ros::Publisher& pub) {
-	mSpeedPub = pub;
-	mIsRotating = false;
+	mPub = pub;
+	mRotater = new MoveRotate(mPub);
+	mStraightMove = new MoveStraight(mPub);
+	mRunning = false;
 }
 
 MoveCoordinate::~MoveCoordinate() {
+	delete mRotater;
+	delete mStraightMove;
 }
 
 void MoveCoordinate::init(const SensorData& data) {
-	// New rotation requested, init rotation procedure
-
-	mCurrentRelativeAngle = 0.0f;
-	mStartingAngle = data.odometry.angle;
-	mIsRotating = true;
-	mTargetAngle = 90.0f;
-	publishSpeeds(0.0f, 0.0f);
+	mRunning = true;
+	mFirstRun = true;
+	mRotationDone = false;
 }
 
-void MoveCoordinate::init(const SensorData& data, const float& degrees) {
+void MoveCoordinate::init(const SensorData &data, const float &x, const float &y){
 	init(data);
-	mTargetAngle = degrees;
+
+	mX = x;
+	mY = y;
 }
 
-bool MoveCoordinate::isRunning() const {
-	return mIsRotating;
-}
+bool MoveCoordinate::isRunning() const { return mRunning; }
 
 void MoveCoordinate::doControl(const SensorData& data) {
-/* from python code
-	ref_vec = (1.0, 0.0) # Reference vector, set to coordinate axis in direction of robot
-        point = (x, y)
-        distance = norm(point)
-        angle = math.acos(dot_product(ref_vec, point) / (norm(ref_vec)*norm(point)))
-        self.move_rotate(angle * (180/math.pi))
-        self.move_straight(distance)
-*/
 
-	float MAX_ROTATION_SPEED = 0.1;
-	float MIN_ROTATION_SPEED = 0.06;
+	if(mRunning) {
+		mCurX = data.odometry.x;
+		mCurY = data.odometry.y;
 
-	mCurrentRelativeAngle = data.odometry.angle - mStartingAngle;
-	// std::cout << mCurrentRelativeAngle << std::endl;
-	// std::cout << data.odometry << std::endl;
-	// std::cout << "target=" << mTargetAngle << std::endl;
-	if (fabs(mCurrentRelativeAngle - mTargetAngle) > 0.8) {
-		float K_p = 1.0/200.0; // starts to slow down 20 degrees before final angle
-		float angleError = mTargetAngle - mCurrentRelativeAngle;
+		//TODO: remove this
+		mSensorData = data;
 
-		// lower speed as we come closer to "degreesToTravel"
-		float rotationSpeed = K_p * angleError;
-		float speedSign = rotationSpeed > 0.0f ? 1.0 : -1.0f;
+		if(mFirstRun){
+			cout << "In MoveCoordinate mFirstRun, destpos: (" 
+				 << mX << ", " << mY << ")" << " curPos: ("
+				 << mCurX << ", " << mCurY << ")" << endl;
+			cout << "Starting angle: " << data.odometry.angle << endl;
+			mCurAngle = fmod(data.odometry.angle, 360);
 
-		if (fabs(rotationSpeed) > MAX_ROTATION_SPEED) {
-			// saturate speed to ROTATION_SPEED if too high
-			rotationSpeed = speedSign * MAX_ROTATION_SPEED;
-		} else {
-			// saturate speed to ROTATION_SPEED if too low
-			rotationSpeed = speedSign * MIN_ROTATION_SPEED;
+			float destPoint[2] = {mX, mY};
+			float curPoint[2] = {mCurX, mCurY};
+
+			// float distance = norm(curPoint);
+			// float angle = acos(inner_product(destPoint, destPoint+3, curPoint, 0.0f) / (norm(destPoint)*norm(curPoint)));
+			// cout << "distance " << distance << ", angle " << angle << endl;
+
+			mAngle = getRotationAngle(curPoint, destPoint);
+			mDistance = euclidDist(curPoint, destPoint);
+			cout << "Rotate: " << mAngle << ", and then move " << mDistance << endl;
+
+			mRotater->init(mSensorData, mAngle);
+
+			// Velocity v; //TODO: set the volocity data values
+			// mPub.publish(v);
+			mFirstRun = false;
 		}
 
-		publishSpeeds(-rotationSpeed, rotationSpeed);
-		
-	} else {
-		// Rotation done! Reset current angle movement
-		// std::cout << "TARGET ANGLE REACHED" << std::endl;
-		mIsRotating = false;
-		publishSpeeds(0.0f, 0.0f);
+		if (mRotater->isRunning()) {
+			mRotater->doControl(mSensorData);
+		}else if(!mRotationDone){//only one time
+			cout << "In MoveCoordinate, done rotating, now initiating straight movement" << endl;
+
+			mRotationDone = true;
+			mStraightMove->init(mSensorData, mDistance);
+		}
+
+		if(mRotationDone){//rotation done, go straight to the point
+			if(mStraightMove->isRunning()){
+				mStraightMove->doControl(mSensorData);
+			}else{
+				cout << "In MoveCoordinate, done with the MoveCoordinate movement." << endl;
+				mRunning = false;
+			}
+		}
 	}
 }
 
-void MoveCoordinate::publishSpeeds(float left, float right) {
-	Velocity v;
-	v.left = left;
-	v.right = right;
-	mSpeedPub.publish(v);
+// bool MoveCoordinate::distReached() const {
+// 	return (sqrt(pow(mX - mCurX, 2) + pow(mY - mCurY, 2)) < DISTANCE_THRESHHOLD);
+// }
+
+float MoveCoordinate::getRotationAngle(const float p1[2], const float p2[2]) const {
+	float dX = p2[0] - p1[0];
+	float dY = p2[1] - p1[1];
+
+	float v = atan2(dY, dX) * 180 / M_PI;
+	float angleDifference = v - mCurAngle;
+
+	return checkDirection(angleDifference);
+
 }
+
+
+float MoveCoordinate::checkDirection(const float f) const {
+	float tmp = fabs(f);
+	if(tmp > 180.0f && tmp < 360.0f){
+		if(f < 0)
+			return f+360.0f;
+		return f-360.0f;
+	}
+
+	float f_mod = f;
+	return fmod(f_mod, 360);
+}
+
+float MoveCoordinate::euclidDist(const float p1[2], const float p2[2]) const {
+	float p[2] = {p2[0]-p1[0], p2[1]-p1[1]};
+	return sqrt(norm(p));
+}
+
+float MoveCoordinate::norm(const float p[2]) const {
+	return (p[0]*p[0] + p[1]*p[1]);
+}
+
+

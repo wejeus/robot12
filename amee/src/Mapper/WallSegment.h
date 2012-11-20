@@ -19,6 +19,10 @@ class WallSegment {
 		// returns the distance from this wall to the given position
 		virtual float distanceTo(const Map::Point& pos) = 0;
 
+		// Return coordinates of wall center.
+		virtual float getX() = 0;
+		virtual float getY() = 0;
+
 		virtual int getType() = 0;
 
 		virtual bool isSmall() = 0; 
@@ -32,6 +36,7 @@ class WallSegment {
 		static const float PARALLEL_TOLERANCE = 0.04f;
 		static const int HORIZONTAL = 0;
 		static const int VERTICAL = 1;
+		static const int NONE = 2;
 		static const float SMALL_THRESHOLD = 0.02f;
 		static const float SMALL_LENGTH = 0.035f;
 		static const float ORTHOGONAL_MERGE_THRESHOLD = 0.04f;

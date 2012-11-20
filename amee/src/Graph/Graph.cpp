@@ -16,7 +16,9 @@ Graph::Graph(const Graph& ref){
 }
 
 Graph::~Graph(){
-	//TODO:code me
+	for (unsigned int i = 0; i < mNodes.size(); ++i) {
+		delete mNodes[i];
+	}
 }
 
 Graph& Graph::operator=(const Graph& ref){
@@ -30,11 +32,32 @@ Graph& Graph::operator=(const Graph& ref){
 
 size_t Graph::size() const { return mNodes.size(); }
 
-void Graph::addNode(Node * n){ mNodes.push_back(n); }
+void Graph::addNode(const Node& n){ mNodes.push_back(new Node(n)); }
 
 const Node * Graph::getNode(const NodeID id) const { return mNodes[id]; }
 
 const std::vector<Node*>& Graph::getNodes() const { return mNodes; }
+
+const amee::GraphMsg& Graph::getGraphMsg() {
+	unsigned int size = mNodes.size();
+	mMsg.nodes.resize(size); //TODO fix me
+	for (unsigned int i = 0; i < mNodes.size(); ++i) {
+		mMsg.nodes[i] = mNodes[i]->toMsg();
+	}
+	return mMsg;
+}
+
+void Graph::connectNodes(int id1, int id2) {
+	if ((id1 < 0) || (id1 >= (int)mNodes.size()) || (id2 <0) || (id2 >= (int)mNodes.size())) {
+		std::cout << "ERROR in Graph::connectNodes(int id1, int id2): id1:" << id1 << " or id2:" << id2 << " is invalid." << std::endl;
+		return;
+	}
+	// unsigned int u_id1 = (unsigned int)id1;
+
+	Node n1 = *(mNodes[id1]);
+	Node n2 = *(mNodes[id2]); 
+	n1.connectNeighbours(n2);
+}
 
 };// namespace amee
 
