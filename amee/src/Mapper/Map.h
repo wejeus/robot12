@@ -47,12 +47,12 @@ class Map {
 
 			const Point operator*(const float& t) const {
 				Point r;
-				r.x = t * r;
+				r.x = t * x;
 				r.y = t * y;
 				return r;
 			}
 
-			const float operator*(const Point& b) const {
+			float operator*(const Point& b) const {
 				return x * b.x + y * b.y;
 			}
 

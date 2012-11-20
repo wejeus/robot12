@@ -7,57 +7,7 @@
 namespace amee {
 
 class WallSegment {
-
-	public:
-		WallSegment(){};
-		virtual ~WallSegment(){};
-
-		// virtual Orientation getOrientation() const = 0;
-		virtual WallVisualization getVisualization() = 0;
-		// returns the distance from this wall to the given position
-		virtual float distanceTo(const Map::Point& pos) = 0;
-
-		// Return coordinates of wall center.
-		virtual float getX() = 0;
-		virtual float getY() = 0;
-
-		virtual int getType() = 0;
-
-		virtual bool isSmall() = 0; 
-
-		/** 	
-		*/
-		bool belongsToWall(const Map::Point& sensor, const Map::Point& measurement, Map::Point& intersection) {
-			Map::Point errorMeasurement = measurement + ERROR_TOLERANCE * (measurement - sensor).normalized();
-			Map::Point errorWallFrom = mFrom + PARALLEL_TOLERANCE * (mFrom - mTo).normalized();
-			Map::Point errorWallTo = mTo + PARALLEL_TOLERANCE * (mFrom - mTo).normalized();
-			float t, s;
-			bool associate = intersect(sensor, errorMeasurement, errorWallFrom, errorWallTo, t, s);
-			intersection = mFrom + s * (mTo - mFrom);
-			return associate;
-		}
-
-		bool mapMeasurement(const Map::Point& sensor, const Map::Point& measurement, Map::Point& intersection) {
-			if (belongsToWall(sensor, measurement, intersection)) {
-				addMeasurement(intersection);
-			}
-		}
-
-		/** Tries to merge this wall with the given one. Returns true if merging was successful. If successful the given wall can
-		be deleted since this instance will represent the merged wall. */
-		virtual bool mergeWall(WallSegment* wall) = 0;
-		
-		static const float ORTHOGONAL_TOLERANCE = 0.02f;
-		static const float WALL_THICKNESS = 0.015f;
-		static const float PARALLEL_TOLERANCE = 0.04f;
-		static const int HORIZONTAL = 0;
-		static const int VERTICAL = 1;
-		static const int NONE = 2;
-		static const float SMALL_THRESHOLD = 0.02f;
-		static const float SMALL_LENGTH = 0.035f;
-		static const float ORTHOGONAL_MERGE_THRESHOLD = 0.04f;
-		static const float PARALLEL_MERGE_THRESHOLD = 0.10f;
-protected:
+	protected:
 		Map::Point mFrom, mTo;
 
 		/* Adds the given point to this wall. Call this only if the measurement belongs to this wall!*/
@@ -77,6 +27,68 @@ protected:
 			t =  1.0f/det * (dirB.y * (-1.0f * p.x) + dirB.x * p.y);
 			return ((0.0f <= t) && (t <= 1.0f) && (0.0f <= s) && (s <= 1.0f));
 		}
-	};
+	
+
+	public:
+		static const float ORTHOGONAL_TOLERANCE = 0.02f;
+		static const float WALL_THICKNESS = 0.015f;
+		static const float PARALLEL_TOLERANCE = 0.04f;
+		static const int HORIZONTAL = 0;
+		static const int VERTICAL = 1;
+		static const int NONE = 2;
+		static const float SMALL_THRESHOLD = 0.02f;
+		static const float SMALL_LENGTH = 0.035f;
+		static const float ORTHOGONAL_MERGE_THRESHOLD = 0.04f;
+		static const float PARALLEL_MERGE_THRESHOLD = 0.10f;
+		static const float ERROR_TOLERANCE = 0.05f;
+
+		WallSegment(){};
+		virtual ~WallSegment(){};
+
+		// virtual Orientation getOrientation() const = 0;
+		virtual WallVisualization getVisualization() = 0;
+		// returns the distance from this wall to the given position
+		virtual float distanceTo(const Map::Point& pos) = 0;
+
+		// Return coordinates of wall center.
+		virtual float getX() = 0;
+		virtual float getY() = 0;
+
+		virtual int getType() = 0;
+
+		virtual bool isSmall() = 0; 
+
+		/** 	
+		*/
+		bool belongsToWall(const Map::Point& sensor, const Map::Point& measurement, Map::Point& intersection) {
+			Map::Point dir = (measurement - sensor).normalized();
+			Map::Point errorMeasurement = measurement + dir * 0.04f;// set as constant, but linker doesn't allow that oO
+			if (getType() == HORIZONTAL) {
+				dir.x = 1.0f;
+				dir.y = 0.0f;
+			} else {
+				dir.x = 0.0f;
+				dir.y = -1.0f;
+			}
+			Map::Point errorWallFrom = mFrom - dir * 0.04f;
+			Map::Point errorWallTo = mTo + dir * 0.04f;
+			float t, s;
+			bool associate = intersect(sensor, errorMeasurement, errorWallFrom, errorWallTo, t, s);
+			intersection = mFrom + dir * s;
+			return associate;
+		}
+
+		bool mapMeasurement(const Map::Point& sensor, const Map::Point& measurement, Map::Point& intersection) {
+			if (belongsToWall(sensor, measurement, intersection)) {
+				addMeasurement(intersection);
+				return true;
+			}
+			return false;
+		}
+
+		/** Tries to merge this wall with the given one. Returns true if merging was successful. If successful the given wall can
+		be deleted since this instance will represent the merged wall. */
+		virtual bool mergeWall(WallSegment* wall) = 0;
+	};	
 }
 #endif

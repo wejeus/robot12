@@ -3,6 +3,7 @@
 #include <cmath>
 #include "../MovementControl/MoveFollowWall.h"
 #include "WallSegment.h"
+#include "HorizontalWallSegment.h"
 
 using namespace amee;
 
@@ -489,6 +490,39 @@ void mapTest(ros::Publisher& vispub) {
 
 }
 
+void testWallSegment() {
+	Map::Point p;
+	HorizontalWallSegment* wall = new HorizontalWallSegment(p);
+	Map::Point sensor(0.0f,-0.12f);
+	Map::Point intersection;
+	for (int i=0; i < 100;++i) {
+		p.x += 0.01f;
+		sensor.x += 0.01f;
+
+		wall->mapMeasurement(sensor,p , intersection);
+		std::cout << "measurement hits wall at " << intersection.x << " " << intersection.y << std::endl;
+	}
+
+	p.x = 10.0f;
+	p.y = 2.0f;
+	std::cout << "Point " << p.x << " " << p.y << " belongs to wall: " << wall->belongsToWall(sensor,p, intersection) << std::endl;
+
+	p.x = 0.86f;
+	p.y = -0.04f;
+	std::cout << "Point " << p.x << " " << p.y << " belongs to wall: " << wall->belongsToWall(sensor,p, intersection) << std::endl;
+
+
+	p.x = 0.86f;
+	p.y = 0.04f;
+	std::cout << "Point " << p.x << " " << p.y << " belongs to wall: " << wall->belongsToWall(sensor,p, intersection) << std::endl;	
+	
+	p.x = 0.76f;
+	p.y = -0.02f;
+	std::cout << "Point " << p.x << " " << p.y << " belongs to wall: " << wall->belongsToWall(sensor,p, intersection) << std::endl;
+
+	delete wall;
+}
+
 int main(int argc, char **argv)
 {
 	
@@ -512,6 +546,8 @@ int main(int argc, char **argv)
 
 	ros::Rate loop_rate(30); //30
 	
+
+	// testWallSegment();
 	while(ros::ok()){
 		
 		// go to sleep for a short while

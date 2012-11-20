@@ -54,11 +54,12 @@ WallSegment* Map::addMeasurement(const Point& pos, int newWallType) {
 
 	while (iterator != end) {// !belongsToWall
 		WallSegment* wall = (*iterator);
-		bool temp = wall->addMeasurement(pos); // TODO do not add to all
-		belongsToWall = belongsToWall || temp;
-		if (temp) { // TODO associate only to one wall!!!
-			result = wall;
-		}
+		// TODO use new interface!
+		// bool temp = wall->addMeasurement(pos); // TODO do not add to all
+		// belongsToWall = belongsToWall || temp;
+		// if (temp) { // TODO associate only to one wall!!!
+		// 	result = wall;
+		// }
 		++iterator;
 	}
 	// std::cout << "belongsToWall " << belongsToWall << std::endl;
