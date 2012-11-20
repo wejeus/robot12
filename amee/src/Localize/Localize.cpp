@@ -1,5 +1,6 @@
 #include "ros/ros.h"
 #include <string.h>
+#include <cstdlib>
 //#include "MotorControl.h"
 #include <iostream>
 #include <cmath>
@@ -46,7 +47,7 @@ void Localize::receiveControlSignal(const amee::Velocity::ConstPtr &ctrl) {
 }
 
 void Localize::publishPose(ros::Publisher pose_pub) {
-	pose_pub.publish(pose);
+	pose_pub.publish(mPose);
 }
 
 
@@ -87,11 +88,28 @@ int main(int argc, char **argv)
 	ekf.setG(G);
 	//ekf.setH(H);
 
-
+	double i = 0;
+	srand (time(NULL));
 	// -- Estimate pose
 	while(ros::ok())
 	{
 		//localize.lastEncoderMeasurement = localize.encoderMeasurement; // Save last before updating with spinOnce
+
+		std::cout << "Main while loop, i= " << i << std::endl;
+
+
+		// debug measurement
+
+		localize.mMeasurement1.x = 3.0f + (float)rand() / (float)RAND_MAX/1.0f;
+		localize.mMeasurement1.y = 3.0f + (float)rand() / (float)RAND_MAX/1.0f;
+		localize.mMeasurement1.theta = 3.0f + (float)rand() / (float)RAND_MAX/1.0f;
+		localize.mMeasurement2.x = 3.0f + (float)rand() / (float)RAND_MAX/1.0f;
+		localize.mMeasurement2.y = 3.0f + (float)rand() / (float)RAND_MAX/1.0f;
+		localize.mMeasurement2.theta = 3.0f + (float)rand() / (float)RAND_MAX/1.0f;
+
+		localize.controlSignal.left  = 0.6f; //+ (float)rand()/(float)1 -0.5f;
+		localize.controlSignal.right = 0.6f; // + 
+		i = i + 0.01f;
 
 		ros::spinOnce(); // call all callbacks
 
@@ -104,7 +122,7 @@ int main(int argc, char **argv)
 		ekf.estimate(localize.controlSignal, localize.mMeasurement1, localize.mMeasurement2);
 		
 		// Get pose from kalman filter
-		localize.pose = ekf.getPose();
+		localize.mPose = ekf.getPose();
 		
 		// -- Publish pose
 		localize.publishPose(pose_pub);

@@ -29,7 +29,7 @@ public:
 
 	amee::Velocity controlSignal;
 	
-	amee::Pose pose; // set to zero as default
+	amee::Pose mPose; // set to zero as default
  	amee::Pose lastPose;
 	amee::Pose newPose; 
 

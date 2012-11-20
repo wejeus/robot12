@@ -223,12 +223,12 @@ void EKF::estimate(amee::Velocity controlSignal, amee::Pose measurement1, amee::
 	// Measurement (movement from last measurement)
 	// z(0) = measurement.left;
 	// z(1) = measurement.right;	
-	z(0) = mMeasurement1.x;
-	z(1) = mMeasurement1.y;
-	z(2) = mMeasurement1.theta;
-	z(3) = mMeasurement2.x;
-	z(4) = mMeasurement2.y;
-	z(5) = mMeasurement2.theta;
+	z(0) = measurement1.x;
+	z(1) = measurement1.y;
+	z(2) = measurement1.theta;
+	z(3) = measurement2.x;
+	z(4) = measurement2.y;
+	z(5) = measurement2.theta;
 	
 	std::cout << "- Functions print out " << std::endl;
 
@@ -242,12 +242,12 @@ void EKF::estimate(amee::Velocity controlSignal, amee::Pose measurement1, amee::
 	K = sigma_bar * H.transpose() * (H * sigma_bar * H.transpose() + Q); // Kalman gain
 	
 	//z_hat = EKF::h(mu_bar, mu_t_1, z_t_1);									 // Predicted measurement
-	z_hat(0) = z_pose1.x;
-	z_hat(1) = z_pose1.y;
-	z_hat(2) = z_pose1.theta;
-	z_hat(3) = z_pose2.x;
-	z_hat(4) = z_pose2.y;
-	z_hat(5) = z_pose2.theta;
+	z_hat(0) = mPose.x;
+	z_hat(1) = mPose.y;
+	z_hat(2) = mPose.theta;
+	z_hat(3) = mPose.x;
+	z_hat(4) = mPose.y;
+	z_hat(5) = mPose.theta;
 
 	// Update state
 	mu    = mu_bar + K * (z - z_hat);
@@ -265,6 +265,7 @@ void EKF::estimate(amee::Velocity controlSignal, amee::Pose measurement1, amee::
 	std::cout << "u: " << controlSignal.left << "   " << controlSignal.right << std::endl;
 
 	std::cout << "mu_t_1(0): " << mu_t_1(0) << "   " << mu_t_1(1) << "   " << mu_t_1(2) << std::endl;	
+	std::cout << "mu_bar(0): " << mu_bar(0) << "   " << mu_bar(1) << "   " << mu_bar(2) << std::endl;	
 
 	std::cout << "sigma_bar(0,0): " << sigma_bar(0,0) << "   " << sigma_bar(1,1) << "   " << sigma_bar(2,2) << std::endl;
 	std::cout << "sigma_t_1(0,0): " << sigma_t_1(0,0) << "   " << sigma_t_1(1,1) << "   " << sigma_t_1(2,2) << std::endl;
