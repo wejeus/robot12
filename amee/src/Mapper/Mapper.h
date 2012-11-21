@@ -54,6 +54,7 @@ class Mapper {
 		struct Measurement {
 			bool valid;
 			amee::Map::Point pos;
+			amee::Map::Point sensorPos;
 		};
 
 		static const int RIGHT_FRONT = 1;

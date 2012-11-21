@@ -46,34 +46,55 @@ void Map::reduceNumWalls(const Point& pos, float distance) {
 		}	
 	}
 }
+		
+	// Localizes the robot based on the given pose and measurements in the map. If localizing is not successfull outPose = inPose
+void Map::localize(const amee::Pose& inPose, const amee::Mapper::Measurement&[] measurements, amee::Pose& outPose) {
+	//TODO
+	std::vector<Map::Point> intersections; // see if constructor can take size argument
+	intersections.resize(measurements.size());
+	for (unsigned int i = 0; i < measurements.size(); ++i) {
+		for (std::list<WallSegment*)::const_iterator iter = mWalls.begin(), end = mWalls.end(); iter != end; iter++) {
+			if (b)
+		}
+	}
+}
 
-WallSegment* Map::addMeasurement(const Point& pos, int newWallType) {
-	bool belongsToWall = false;
+WallSegment* Map::findBestMatch(amee::Mapper::Measurement& m, Point& intersection) {
 	std::list<WallSegment*>::const_iterator iterator = mWalls.begin(), end = mWalls.end();
-	WallSegment* result = NULL;
+	WallMatching bestMatch;
+	bestMatch.t = 2.0f;
+	bestMatch.wall = NULL;
 
 	while (iterator != end) {// !belongsToWall
 		WallSegment* wall = (*iterator);
 		// TODO use new interface!
-		// bool temp = wall->addMeasurement(pos); // TODO do not add to all
-		// belongsToWall = belongsToWall || temp;
-		// if (temp) { // TODO associate only to one wall!!!
-		// 	result = wall;
-		// }
+		float t;
+		bool matches = wall->mapMeasurement(m.sensorPos, m.pos, intersection, t);
+		if (matches && t < bestMatch.t) {
+			bestMatch.t = t;
+			bestMatch.wall = wall;
+			m.pos = intersection;
+			belongsToWall = true;
+		}
 		++iterator;
 	}
+	return bestMatch.wall;	
+}
+
+void Map::addMeasurement(amee::Mapper::Measurement& m, int newWallType) {
+	Point intersection;
+	WallSegment* match = findBestMatch(m, intersection);
+
 	// std::cout << "belongsToWall " << belongsToWall << std::endl;
-	if (!belongsToWall && (newWallType != WallSegment::NONE)) {
+	if ((match == NULL) && (newWallType != WallSegment::NONE)) {
 		if (newWallType == WallSegment::HORIZONTAL) {
-			result = new HorizontalWallSegment(pos);
-			mWalls.push_back(result);	
+			WallSegment* wall = new HorizontalWallSegment(m.pos);
+			mWalls.push_back(wall);	
 		} else {
-			result = new VerticalWallSegment(pos);
-			mWalls.push_back(result);
+			WallSegment* wall = new VerticalWallSegment(m.pos);
+			mWalls.push_back(wall);
 		}
 	}
-	//TODO tidy up
-	return result;
 }
 
 void Map::print() {

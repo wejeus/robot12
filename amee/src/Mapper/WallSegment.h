@@ -60,7 +60,7 @@ class WallSegment {
 
 		/** 	
 		*/
-		bool belongsToWall(const Map::Point& sensor, const Map::Point& measurement, Map::Point& intersection) {
+		bool belongsToWall(const Map::Point& sensor, const Map::Point& measurement, Map::Point& intersection, float& t) {
 			Map::Point dir = (measurement - sensor).normalized();
 			Map::Point errorMeasurement = measurement + dir * 0.04f;// set as constant, but linker doesn't allow that oO
 			if (getType() == HORIZONTAL) {
@@ -72,14 +72,15 @@ class WallSegment {
 			}
 			Map::Point errorWallFrom = mFrom - dir * 0.04f;
 			Map::Point errorWallTo = mTo + dir * 0.04f;
-			float t, s;
+			float s;
 			bool associate = intersect(sensor, errorMeasurement, errorWallFrom, errorWallTo, t, s);
 			intersection = mFrom + dir * s;
 			return associate;
 		}
 
 		bool mapMeasurement(const Map::Point& sensor, const Map::Point& measurement, Map::Point& intersection) {
-			if (belongsToWall(sensor, measurement, intersection)) {
+			float t = 0.0f;
+			if (belongsToWall(sensor, measurement, intersection, t)) {
 				addMeasurement(intersection);
 				return true;
 			}

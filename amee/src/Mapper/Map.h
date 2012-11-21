@@ -71,13 +71,27 @@ class Map {
 				x = cos(angle) * tx - sin(angle) * ty;
 				y = sin(angle) * tx + cos(angle) * ty;
 			}
-		};
-		// Adds the given measurement to an existing wall if possible. If not possible, it creates a new wall of type newWallType
-		// at position pos. The returned WallSegment is either the associated wall segment or null if no association worked.
-		WallSegment* addMeasurement(const Point& pos, int newWallType);
+		}; // Point
 
-		//TODO
-		// amee::Pose localize(amee::Pose& pose); // localize based on given pose
+		struct WallMatching
+		{
+			float t;
+			WallSegment* wall;
+		};
+
+		// Adds the given measurement to an existing wall if possible. If not possible, it creates a new wall of type newWallType
+		// at position measurement. Returns true if a wall was found and no new one had to be created,
+		// false if none of the existing walls matches.
+		// If the measurement is associated with a wall the intersection between the ray (sensor, measurement) and the wall is stored
+		// in intersection. sensor describes the position where the sensor is that measured a wall at measurement.
+		// bool addMeasurement(const Point& sensor, const Point& measurement, Point& intersection, int newWallType);
+
+		// Adds the given measurement to a wall if possible. If no wall was found and createWall is true, a new wall is initialized 
+		// with the given measurement. If createWall is false, the measurement is dropped.
+		void addMeasurement(const amee::Mapper::Measurement& m, int newWallType);
+		
+		// Localizes the robot based on the given pose and measurements in the map. If localizing is not successfull outPose = inPose
+		void localize(const amee::Pose& inPose, const amee::Mapper::Measurement&[], amee::Pose& outPose);
 		void print();
 		void getVisualization(MapVisualization& vis);
 		/** Tries to reduce the number of walls by unifying walls that are close to the given pos (if the seem to be one wall)
@@ -89,6 +103,7 @@ class Map {
 	
 	private:
 		std::list<WallSegment*> mWalls;
+		WallSegment* findBestMatch(amee::Mapper::Measurement& m, Point& intersection);
 
 	};
 }
