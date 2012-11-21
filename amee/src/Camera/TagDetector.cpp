@@ -68,7 +68,7 @@ int GAUSSIAN_SIGMA = 1.5;
 double TAG_MIN_PIXEL_AREA = 1500.0;
 int TAG_SIZE = 50;
 int NEEDED_PIXELS_RED_BORDER = 400;
-int NEEDED_PIXELS_RED_THRESHOLD = 400;
+int NEEDED_PIXELS_RED_THRESHOLD = 1000;
 char TAG_FILES[] = "tags/files.txt";
 
 void render(Mat &frame);
@@ -83,6 +83,7 @@ void publishMovement(int state);
 void publishMap(double timestamp, int object, int color);
 void stream(string source);
 bool captureSingleFrame(Mat &frame);
+
 
 /* For classification */
 int filterRedPixels(Mat &srcImage, Mat &destImage);
@@ -116,6 +117,7 @@ void onTrackbar(int value, void* = NULL) {
 }
 
 // TODO: Unknown color on -> b1, b2, g2, g3, m2, s2
+// export LD_PRELOAD=/usr/lib/libv4l/v4l1compat.so
 int main(int argc, char *argv[]) {
 
     int c;
@@ -198,11 +200,21 @@ void imout(Mat &frame, string type) {
     id++;
 }
 
+double getTime() {
+    struct timeval timestamp;
+    gettimeofday(&timestamp, NULL);
+    return timestamp.tv_sec+double(timestamp.tv_usec)/1000000.0;
+}
+
 // TODO: Goal -> Classification block should not run so often...
 void render(Mat &frame) {
 
     Mat thresholdedImage, ROI;
-    TAG_CLASS res;
+    TAG_CLASS tagObject = UNKNOWN;
+    COLOR tagColor = UNKNOWN_COLOR;
+    double timestamp = 0.0f;
+
+    cout << "got frame" << endl;
 
     if ( (filterRedPixels(frame, thresholdedImage) > NEEDED_PIXELS_RED_THRESHOLD) && isReadyForNextTag()) {
 
@@ -213,31 +225,28 @@ void render(Mat &frame) {
         // sleep(1);
 
         if ( ! SOURCE_IS_SINGLE_IMAGE) {
-            CAPTURE_HIGHRES_IMAGE = true;
-            captureSingleFrame(frame);
-            CAPTURE_HIGHRES_IMAGE = false;
+            // CAPTURE_HIGHRES_IMAGE = true;
+            // captureSingleFrame(frame);
+            // CAPTURE_HIGHRES_IMAGE = false;
         }
 
         if (findTagROI(frame, thresholdedImage, ROI)) {
 
             if (!prepareROI(ROI, ROI)) {
-                imout(frame, "noPrepare_");
+                // imout(frame, "noPrepare_");
                 log("Could not prepare ROI!\n");
             }
 
             // TODO: test if ROI is "good enough" to make a classification (is in center, sharp?)
             // TODO: move robot so that tag is in center (1. determine distance from tag center to image normal 2. move(distance))
             
-            if (USE_TEMPLATES) res = classifyTagUsingTemplate(ROI);
-            COLOR color = determineTagColor(ROI);
-            struct timeval tagTimeout;
-            gettimeofday(&tagTimeout, NULL);
-            double timestamp = tagTimeout.tv_sec+double(tagTimeout.tv_usec)/1000000.0;
-            
-            log("Color: %s, ", color2string(color).c_str());
-            log("Object: %s\n", class2name(res).c_str());
+            if (USE_TEMPLATES) tagObject = classifyTagUsingTemplate(ROI);
+            tagColor = determineTagColor(ROI);
+            timestamp = getTime();
 
-            publishMap(timestamp, res, color);
+            log("\n[%f] Found: %s with color: %s\n", timestamp, class2name(tagObject).c_str(), color2string(tagColor).c_str());
+
+            publishMap(timestamp, tagObject, tagColor);
             
             setNextTagTimout();
 
@@ -245,15 +254,15 @@ void render(Mat &frame) {
             
         } else {
             // imout(frame, "noFindRect_");
-            log("Could not find (possible) tag rectangle in image\n");
+            log("\nCould not find (possible) tag rectangle in image\n");
         }
                 
         // publishMovement(4); // continue wall following
 
-        CLASSIFICATION_IN_PROGRESS = false;           
+        CLASSIFICATION_IN_PROGRESS = false;  
     } else {
-        imout(frame, "fail_");
-        log("Could not find enough red pixels in source image or timeout blocked\n");
+        // imout(frame, "fail_");
+        // log("Could not find enough red pixels in source image or timeout blocked\n");
     }
 
     show(windowResult, frame);
@@ -310,7 +319,7 @@ bool findTagROI(Mat &srcImage, Mat &thresholdedImage, Mat &ROI) {
 
     // GaussianBlur(srcImage, srcImage, Size(GAUSSIAN_KERNEL_SIZE, GAUSSIAN_KERNEL_SIZE), GAUSSIAN_SIGMA, GAUSSIAN_SIGMA);
     
-    dilate(thresholdedImage, thresholdedImage, erosionElement);
+    // dilate(thresholdedImage, thresholdedImage, erosionElement);
 
     Canny(thresholdedImage, thresholdedImage, CANNY_LOW, CANNY_HIGH);
 
@@ -380,7 +389,7 @@ COLOR determineTagColor(Mat &ROI) {
 
     Mat hsvImage, binaryImage;
     cvtColor(ROI, hsvImage, CV_BGR2HSV);
-    int numColoredPixels;
+
     vector<PixelSum> elems;
     PixelSum ps;
 
@@ -446,8 +455,8 @@ bool initTemplates() {
             thresholdBlackWhite(tag.image, tag.image);
             
             // Debug
-            show(windowTag, tag.image);
-            waitKey();
+            // show(windowTag, tag.image);
+            // waitKey();
 
             if( ! tag.image.data) {
                 cout << "Image not found!" << endl;
@@ -523,6 +532,7 @@ void initROS(int argc, char *argv[]) {
 VideoCapture *capture = new VideoCapture();
 // VideoCapture *capture;
 
+
 bool captureSingleFrame(Mat &frame) {
     // VideoCapture capture;
     // capture.open(CAMERA_ID);
@@ -553,7 +563,6 @@ bool captureSingleFrame(Mat &frame) {
     return true;
 }
 
-
 // TODO: Stream from video file
 void stream(string source) {
     cout << "Starting TagDetection using raw input." << endl;
@@ -576,42 +585,30 @@ void stream(string source) {
         render(image);
         waitKey();
     } else {
-        cout << "Streaming started..." << endl;
-
-capture->open(CAMERA_ID);
-        
+        cout << "Streaming starting..." << endl;
+        // capture->open(CAMERA_ID);
+         Mat frame;
+        IplImage* color_img;
+        CvCapture* cv_cap;
+        cv_cap = cvCaptureFromCAM(CAMERA_ID);
+        // cvSetCaptureProperty(cv_cap, CV_CAP_PROP_FPS, 15); // NOT SUPPORTED!
         while (true) {
-            Mat frame;
-            if ( ! CLASSIFICATION_IN_PROGRESS && captureSingleFrame(frame)) { 
-                render(frame);
-            }
+           
+            
+            
+            // if ( ! CLASSIFICATION_IN_PROGRESS && captureSingleFrame(frame)) { 
+            //     render(frame);
+            // }
+            color_img = cvQueryFrame(cv_cap); // get frame
+            frame = Mat(color_img);
+            render(frame);
+            
         }
+        cvReleaseCapture(&cv_cap);
     }
 
-// capture.open(atoi(source.c_str()));
-    // if (capture.isOpened()) {
-    //     // Stream from webcam
-    //     while (true) {
-    //         Mat frame;
-    //         if ( ! CLASSIFICATION_IN_PROGRESS && captureSingleFrame(frame)) { 
-    //             render(frame);
-    //         }
-
-    //         if (DISPLAY_GRAPHICAL) {
-    //             // if(waitKey(CAMERA_INTERVAL) >= 0) break;
-    //         } else {
-    //             // usleep(CAMERA_INTERVAL*1000);
-    //         }
-    //     }
-    // } else {
-    //     // Read single image
-    //     SOURCE_IS_SINGLE_IMAGE = true;
-    //     cout << "Reading image: " << source.c_str() << endl;
-    //     Mat image = imread(source.c_str(), 1);
-    //     render(image);
-    //     waitKey();
-    // }
 }
+
 
 
 /* -------------------------------------------------------------------------- */
@@ -677,8 +674,9 @@ void publishMap(double timestamp, int object, int color) {
         t.timestamp = timestamp;
         t.side = 1;
         t.object = object;
-        t.color = color
-        mapPublisher.publish(tag);
+        t.color = color;
+        mapPublisher.publish(t);
+        cout << "mapPublisher: " << timestamp << " : " << object << " : " << color << endl;
     }
     #endif
 }
