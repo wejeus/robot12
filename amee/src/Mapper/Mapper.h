@@ -35,7 +35,7 @@ class Mapper {
 		ros::Publisher vis_pub;
 		ros::Publisher graph_pub;
 
-		EKF ekf;
+		amee::EKF ekf;
 		amee::Velocity mControlSignal;
 		amee::Pose mMeasurement1;
 		amee::Pose mMeasurement2;

@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 	ros::Rate loop_rate(40);
 
 	// Initiate Kalman filter
-	EKF ekf;
+	amee::EKF ekf;
 	ekf.init();
 
 	Matrix<float,nos,nos> G;

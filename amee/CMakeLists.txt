@@ -49,7 +49,7 @@ rosbuild_add_executable(MovementControl src/MovementControl/MovementControl.cpp 
 rosbuild_add_executable(PublishAmee src/PublishAmee/PublishAmee.cpp)
 rosbuild_add_executable(Localize src/Localize/Localize.cpp src/Localize/EKF.cpp src/Amee.cpp)
 rosbuild_add_executable(IMUReader src/IMUSensor/IMUReader.cpp src/Amee.cpp)
-rosbuild_add_executable(Mapper src/Mapper/Mapper.cpp src/Mapper/Map.cpp src/Mapper/HorizontalWallSegment.cpp src/Mapper/VerticalWallSegment.cpp src/Amee.cpp)
+rosbuild_add_executable(Mapper src/Mapper/Mapper.cpp src/Mapper/Map.cpp src/Mapper/HorizontalWallSegment.cpp src/Mapper/VerticalWallSegment.cpp src/Localize/EKF.cpp src/Amee.cpp)
 #rosbuild_add_executable(TagDetector src/Camera/TagDetector.cpp)
 #target_link_libraries(TagDetector opencv_core opencv_highgui opencv_imgproc opencv_video opencv_nonfree opencv_objdetect opencv_ml opencv_contrib)
 

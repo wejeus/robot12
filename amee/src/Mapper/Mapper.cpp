@@ -475,9 +475,9 @@ void Mapper::followedWallDirection(int& left, int& right) {
 
 
 void mapTest(ros::Publisher& vispub) {
-	Map map;
+	amee::Map map;
 
-	Map::Point p;
+	amee::Map::Point p;
 	p.x = 0;
 	p.y = 0;
 	for (int i = 0; i < 100; ++i) {

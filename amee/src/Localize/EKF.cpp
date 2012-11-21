@@ -16,6 +16,7 @@
 #define MEASUREMENT_NOISE 1.0f
 
 using namespace Eigen;
+using namespace amee;
 
 void EKF::init(){
 
