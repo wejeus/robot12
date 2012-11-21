@@ -48,35 +48,40 @@ void Map::reduceNumWalls(const Point& pos, float distance) {
 }
 		
 	// Localizes the robot based on the given pose and measurements in the map. If localizing is not successfull outPose = inPose
-void Map::localize(const amee::Pose& inPose, const amee::Mapper::Measurement&[] measurements, amee::Pose& outPose) {
+void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& measurements, amee::Pose& outPose) {
 	//TODO
-	std::vector<Map::Point> intersections; // see if constructor can take size argument
-	intersections.resize(measurements.size());
-	for (unsigned int i = 0; i < measurements.size(); ++i) {
-		for (std::list<WallSegment*)::const_iterator iter = mWalls.begin(), end = mWalls.end(); iter != end; iter++) {
-			if (b)
-		}
-	}
+	Point leftBack, leftFront, rightBack, rightFront;
+
+	WallSegment* bestMatch = findBestMatch(measurements.rightFront, rightFront);
+	bool rightFrontWall = bestMatch != NULL;
+	bestMatch = findBestMatch(measurements.rightBack, rightBack);
+	bool rightBackWall = bestMatch != NULL;
+	bestMatch = findBestMatch(measurements.leftFront, leftFront);
+	bool leftFrontWall = bestMatch != NULL;
+	bestMatch = findBestMatch(measurements.leftBack, leftBack);
+	bool leftBackWall = bestMatch != NULL;
+	
+	// TODO
+
+	
 }
 
 WallSegment* Map::findBestMatch(amee::Mapper::Measurement& m, Point& intersection) {
-	std::list<WallSegment*>::const_iterator iterator = mWalls.begin(), end = mWalls.end();
+	
 	WallMatching bestMatch;
 	bestMatch.t = 2.0f;
 	bestMatch.wall = NULL;
 
-	while (iterator != end) {// !belongsToWall
+	for (std::list<WallSegment*>::const_iterator iterator = mWalls.begin(), end = mWalls.end();iterator != end; iterator++) {
 		WallSegment* wall = (*iterator);
-		// TODO use new interface!
+	
 		float t;
-		bool matches = wall->mapMeasurement(m.sensorPos, m.pos, intersection, t);
-		if (matches && t < bestMatch.t) {
+		bool match = wall->belongsToWall(m.sensorPos, m.pos, intersection, t);
+		if (match && t < bestMatch.t) {
 			bestMatch.t = t;
 			bestMatch.wall = wall;
 			m.pos = intersection;
-			belongsToWall = true;
 		}
-		++iterator;
 	}
 	return bestMatch.wall;	
 }
@@ -85,8 +90,9 @@ void Map::addMeasurement(amee::Mapper::Measurement& m, int newWallType) {
 	Point intersection;
 	WallSegment* match = findBestMatch(m, intersection);
 
-	// std::cout << "belongsToWall " << belongsToWall << std::endl;
-	if ((match == NULL) && (newWallType != WallSegment::NONE)) {
+	if (match != NULL) {
+		match->mapMeasurement(m.sensorPos, m.pos, intersection);
+	} else if(newWallType != WallSegment::NONE)) {
 		if (newWallType == WallSegment::HORIZONTAL) {
 			WallSegment* wall = new HorizontalWallSegment(m.pos);
 			mWalls.push_back(wall);	

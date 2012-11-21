@@ -79,6 +79,19 @@ class Map {
 			WallSegment* wall;
 		};
 
+		struct Measurement {
+			bool valid;
+			amee::Map::Point pos;
+			amee::Map::Point sensorPos;
+		};
+
+		struct MeasurementSet {
+			Measurement leftFront;
+			Measurement leftBack;
+			Measurement rightFront;
+			Measurement rightBack;
+		};
+
 		// Adds the given measurement to an existing wall if possible. If not possible, it creates a new wall of type newWallType
 		// at position measurement. Returns true if a wall was found and no new one had to be created,
 		// false if none of the existing walls matches.
@@ -91,7 +104,7 @@ class Map {
 		void addMeasurement(const amee::Mapper::Measurement& m, int newWallType);
 		
 		// Localizes the robot based on the given pose and measurements in the map. If localizing is not successfull outPose = inPose
-		void localize(const amee::Pose& inPose, const amee::Mapper::Measurement&[], amee::Pose& outPose);
+		void localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& measurements, amee::Pose& outPose);
 		void print();
 		void getVisualization(MapVisualization& vis);
 		/** Tries to reduce the number of walls by unifying walls that are close to the given pos (if the seem to be one wall)

@@ -51,12 +51,6 @@ class Mapper {
 		// amee::Map::Point mCurrentPos; // current position in map coordinates
 		// float mCurrentAngle; // current angle in map coordinates
 
-		struct Measurement {
-			bool valid;
-			amee::Map::Point pos;
-			amee::Map::Point sensorPos;
-		};
-
 		static const int RIGHT_FRONT = 1;
 		static const int RIGHT_BACK = 0;
 		static const int LEFT_FRONT = 2;
@@ -64,7 +58,7 @@ class Mapper {
 
 		static const float IR_BASE_RIGHT = 0.104;
 
-		std::vector<Measurement> mMeasurements;
+		std::vector<Map::Measurement> mMeasurements;
 		std::vector<Map::Point> mTagPositions;
 
 		MapVisualization mVis;
