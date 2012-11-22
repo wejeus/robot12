@@ -76,11 +76,13 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 	switch(msg->state) {
 		case amee::MoveFollowWall::INIT:
 			mLastNodeId = -1;
+			mRotating = false;
 			break;
 		case amee::MoveFollowWall::ALIGN_TO_WALL_OUT:
 			init(); //  only does sth if not initialized
 			type = amee::Node::NODE_NEXT_TO_WALL;
 			addNode(type);
+			mRotating = false;
 			mMappingState = Mapping;
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_OUT:
@@ -89,10 +91,12 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 			break;
 		case amee::MoveFollowWall::ROTATE_LEFT_IN:
 			type = amee::Node::NODE_ROTATE_LEFT;
+			mRotating = true;
 			if (mInitialized) addNode(type);
 			mMappingState = Mapping;
 			break;
 		case amee::MoveFollowWall::ROTATE_RIGHT_IN:
+			mRotating = true;
 			mMappingState = Mapping;
 			type = amee::Node::NODE_ROTATE_RIGHT;
 			if (mInitialized) addNode(type);
@@ -103,6 +107,7 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 		case amee::MoveFollowWall::T_INTERSECTION_HANDLING_IN:
 		case amee::MoveFollowWall::MOVE_TAIL_IN:
 		// case amee::MoveFollowWall::LOOK_FOR_BEGINNING_OF_WALL_IN:
+			mRotating = false;
 			mMappingState = Mapping;
 			break;
 		default:
@@ -340,15 +345,19 @@ void Mapper::mapping() {
 	mset.rightFront = mMeasurements[RIGHT_FRONT];
 	
 	amee::Pose newPose;
-	mMap.localize(mPose, mset, newPose);
+	// mMap.localize(mPose, mset, newPose);
 	//mPose = newPose;
-	mPose.theta = newPose.theta;
+	// if (mRightNextToWall && !mRotating) {
+	// 	mPose.theta = newPose.theta;	
+	// }
+	
+	// std::cout << "old theta " << mPose.theta << " new one: " << newPose.theta << std::endl;
 
 	
 	// rotate odometry coordinate system so that it is parallel to the map's system
 	//mCurrentPos.rotate(-mStartAngle); 
 	// mCurrentAngle = mPose.theta;// - mStartAngle;
-	 std::cout << "Current pose in maze: " << mPose.x << ", " << mPose.y << ", " << mPose.theta << std::endl;
+	 // std::cout << "Current pose in maze: " << mPose.x << ", " << mPose.y << ", " << mPose.theta << std::endl;
 	 // std::cout << "Current angle in maze: " << mPose.theta * (180.0f / M_PI) << std::endl;
 
 	int leftType = 0;

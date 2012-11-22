@@ -41,6 +41,8 @@ class Mapper {
 		amee::Odometry mOdometry;
 		amee::Map mMap;
 		bool mInitialized;
+
+		bool mRotating;
 	
 		amee::Graph mGraph;
 		int mNodeId;

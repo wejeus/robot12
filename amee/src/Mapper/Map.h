@@ -120,6 +120,8 @@ class Map {
 		std::list<WallSegment*> mWalls;
 		WallSegment* findBestMatch(const Measurement& m, Point& intersection);
 		float getAngle(const Point& dir);
+		float moveAngleToInterval02PI(float theta);
+		float getWallAngle(const Pose& pose, WallSegment* wall);
 	};
 }
 #endif

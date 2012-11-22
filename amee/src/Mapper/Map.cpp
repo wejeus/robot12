@@ -111,8 +111,8 @@ void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& me
 	    outPose.x = rightEstimate.x;
 	    outPose.y = rightEstimate.y;
 	    outPose.theta = rightEstimate.theta;
-	    outPose.theta -= floor(outPose.theta / (2.0f * M_PI)) * 2.0f * M_PI; // move theta to [0,2PI]
-	    std::cout << "est. pose in map: x:" << outPose.x << " y:" << outPose.y << " theta: " << outPose.theta << std::endl; 
+	    outPose.theta =  moveAngleToInterval02PI(outPose.theta);// move theta to [0,2PI]
+	    // std::cout << "est. pose in map: x:" << outPose.x << " y:" << outPose.y << " theta: " << outPose.theta << std::endl; 
 	}
 	
 	
@@ -120,6 +120,14 @@ void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& me
 	// TODO left estimation
 
 	
+}
+
+float Map::moveAngleToInterval02PI(float theta) {
+	float temp = theta - floor(theta / (2.0f * M_PI)) * 2.0f * M_PI;
+	if (temp < 0.0f) {
+		return (2.0f * M_PI - temp);
+	} 
+	return temp;
 }
 
 float Map::getAngle(const Point& dir) {

@@ -39,7 +39,7 @@ class WallSegment {
 		static const int NONE = 2;
 		static const float SMALL_THRESHOLD = 0.02f;
 		static const float SMALL_LENGTH = 0.035f;
-		static const float ORTHOGONAL_MERGE_THRESHOLD = 0.04f;
+		static const float ORTHOGONAL_MERGE_THRESHOLD = 0.05f;
 		static const float PARALLEL_MERGE_THRESHOLD = 0.10f;
 		static const float ERROR_TOLERANCE = 0.05f;
 
