@@ -84,35 +84,71 @@ void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& me
 	}
 	
 	if (rightFrontWall && rightBackWall && (matchRB == matchRF)) { // measurements on the right side belong to the same wall
-		Pose rightEstimate;
-		float angleMeasurements = getAngle(rightFront - rightBack);
+		Pose rightEstimate = inPose;
+		// float angleMeasurements = getAngle(rightFront - rightBack);
 
 		float diffDist = measurements.rightFront.dist - measurements.rightBack.dist;
 		float relativeTheta = atan(diffDist / Mapper::IR_BASE_RIGHT); 
 
-		rightEstimate.theta = angleMeasurements + relativeTheta;
+		float wallTheta = getWallAngle(inPose, matchRB);
 
-		std::cout << "Angle measurements: " << angleMeasurements << " relativeTheta " << relativeTheta << std::endl; 
+		rightEstimate.theta = wallTheta + relativeTheta;
 
-		Point correctedSensorFront = rightFront + (measurements.rightFront.sensorPos - rightFront).normalized() * measurements.rightFront.dist;
-	    Point correctedSensorBack = rightBack + (measurements.rightBack.sensorPos - rightBack).normalized() * measurements.rightBack.dist;
+		float meanDist = (measurements.rightFront.dist + measurements.rightBack.dist) / 2.0f;
+	
+ 		if (matchRB->getType() == WallSegment::VERTICAL) {
+			float sideOfWall = inPose.x <= matchRB->getX() ? -1.0f : 1.0f;
+	
+			// now we want to reset the x coordinate
+			float normalDistToWall = cos(relativeTheta) * meanDist;
+			float robotR = Mapper::ROBOT_RADIUS;
+			float centerDistToWall = normalDistToWall + cos(relativeTheta) * robotR;
+			rightEstimate.x = matchRB->getX() + sideOfWall * centerDistToWall;
+		} else {
+			float sideOfWall = inPose.y <= matchRB->getY() ? -1.0f : 1.0f;
 
-	    Point frontRelativeToPose = measurements.rightFront.sensorRelativePos;
-	    frontRelativeToPose.rotate(rightEstimate.theta);
-	    Point frontBasedEstimation = correctedSensorFront - frontRelativeToPose;
+			// now we want to reset the y coordinate
+			float normalDistToWall = cos(relativeTheta) * meanDist;
+			float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
+			rightEstimate.y = matchRB->getY() + sideOfWall * centerDistToWall;
+		}
 
-	    Point backRelativeToPose = measurements.rightBack.sensorRelativePos;
-	    backRelativeToPose.rotate(rightEstimate.theta);
-	    Point backBasedEstimation = correctedSensorBack - backRelativeToPose;
+		// Point correctedSensorFront = rightFront + (measurements.rightFront.sensorPos - rightFront).normalized() * measurements.rightFront.dist;
+	 //    Point correctedSensorBack = rightBack + (measurements.rightBack.sensorPos - rightBack).normalized() * measurements.rightBack.dist;
 
-	    rightEstimate.x = 0.5f * frontBasedEstimation.x + 0.5 * backBasedEstimation.x; // we trust both estimations the same
-	    rightEstimate.y = 0.5f * frontBasedEstimation.y + 0.5 * backBasedEstimation.y;
+	 //    Point frontRelativeToPose = measurements.rightFront.sensorRelativePos;
+	 //    frontRelativeToPose.rotate(rightEstimate.theta);
+	 //    Point frontBasedEstimation = correctedSensorFront - frontRelativeToPose;
+
+	 //    Point backRelativeToPose = measurements.rightBack.sensorRelativePos;
+	 //    backRelativeToPose.rotate(rightEstimate.theta);
+	 //    Point backBasedEstimation = correctedSensorBack - backRelativeToPose;
+
+	 //    rightEstimate.x = 0.5f * frontBasedEstimation.x + 0.5 * backBasedEstimation.x; // we trust both estimations the same
+	 //    rightEstimate.y = 0.5f * frontBasedEstimation.y + 0.5 * backBasedEstimation.y;
 
 	    outPose.x = rightEstimate.x;
 	    outPose.y = rightEstimate.y;
 	    outPose.theta = rightEstimate.theta;
 	    outPose.theta =  moveAngleToInterval02PI(outPose.theta);// move theta to [0,2PI]
 	    // std::cout << "est. pose in map: x:" << outPose.x << " y:" << outPose.y << " theta: " << outPose.theta << std::endl; 
+			
+	// 		// determine relative theta to the wall
+	// 		float diffDist = mDistances.rightFront - mDistances.rightBack;
+	// 		float meanDist = (mDistances.rightFront + mDistances.rightBack) / 2.0f;
+	// 		float relativeTheta = atan(diffDist / IR_BASE_RIGHT);
+	// 		// std::cout << "Old pose: x:" << mPose.x << " y:" << mPose.y << " theta: " << mPose.theta << std::endl;
+	// 		// determine theta of the wall (orienation we are heading to)
+	
+
+	// 			// now reset theta accordingly
+	// 			mPose.theta = wallTheta + relativeTheta;
+
+	// 			// now we want to reset the y coordinate
+	// 			float normalDistToWall = cos(relativeTheta) * meanDist;
+	// 			float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
+	// 			mPose.y = wall->getY() + sideOfWall * centerDistToWall;
+	// 		}
 	}
 	
 	
@@ -120,6 +156,28 @@ void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& me
 	// TODO left estimation
 
 	
+}
+
+float Map::getWallAngle(const Pose& pose, WallSegment* wall) {
+	// determine theta of the wall (orienation we are heading to)
+	float wallTheta = 0.0f;
+	if (wall->getType() == WallSegment::VERTICAL) {
+		
+ 		if (pose.x <= wall->getX()) {
+			wallTheta = M_PI / 2.0f;
+// 				sideOfWall = -1.0f;
+		} else {
+			wallTheta = 3.0f / 2.0f * M_PI;
+		}
+	} else {
+		if (pose.y <= wall->getY()) {
+			wallTheta = M_PI;
+			// sideOfWall = -1.0f;
+		} else {
+			wallTheta = 0.0f;
+		}
+	}
+	return wallTheta;
 }
 
 float Map::moveAngleToInterval02PI(float theta) {

@@ -345,11 +345,12 @@ void Mapper::mapping() {
 	mset.rightFront = mMeasurements[RIGHT_FRONT];
 	
 	amee::Pose newPose;
-	// mMap.localize(mPose, mset, newPose);
+	mMap.localize(mPose, mset, newPose);
 	//mPose = newPose;
-	// if (mRightNextToWall && !mRotating) {
-	// 	mPose.theta = newPose.theta;	
-	// }
+	if (mRightNextToWall && !mRotating) {
+		// mPose.theta = newPose.theta;	
+		mPose = newPose;
+	}
 	
 	// std::cout << "old theta " << mPose.theta << " new one: " << newPose.theta << std::endl;
 
