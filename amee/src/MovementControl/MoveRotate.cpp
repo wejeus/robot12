@@ -31,21 +31,30 @@ bool MoveRotate::isRunning() const {
     return mIsRotating;
 }
 
+bool startedRotation = false;
 void MoveRotate::doControl(const SensorData& data) {
-    float MAX_ROTATION_SPEED = 0.1;
+    float MAX_ROTATION_SPEED = 0.2;
     float MIN_ROTATION_SPEED = 0.06;
 
     mCurrentRelativeAngle = data.odometry.angle - mStartingAngle;
-    // std::cout << mCurrentRelativeAngle << std::endl;
-    // std::cout << data.odometry << std::endl;
-    // std::cout << "target=" << mTargetAngle << std::endl;
-    if (fabs(mCurrentRelativeAngle - mTargetAngle) > 0.8) {
+    std::cout << "relative angle" << mCurrentRelativeAngle << std::endl;
+    std::cout << "odometry angle" << data.odometry.angle << std::endl;
+    std::cout << "target=" << mTargetAngle << std::endl;
+    if (fabs(mCurrentRelativeAngle - mTargetAngle) > 0.2) {
         float K_p = 1.0/200.0; // starts to slow down 20 degrees before final angle
         float angleError = mTargetAngle - mCurrentRelativeAngle;
 
         // lower speed as we come closer to "degreesToTravel"
         float rotationSpeed = K_p * angleError;
         float speedSign = rotationSpeed > 0.0f ? 1.0 : -1.0f;
+        if ((fabs(mCurrentRelativeAngle) < 300.0f) && !startedRotation) {
+            rotationSpeed = speedSign * (mCurrentRelativeAngle + 1.0f) * MIN_ROTATION_SPEED; // make a smooth acceleration
+            std::cout << "ACC LIMITER" << std::endl;
+        } else {
+            std::cout << "NO ACC LIMITER" << std::endl;
+            startedRotation = true;
+        }
+
 
         if (fabs(rotationSpeed) > MAX_ROTATION_SPEED) {
             // saturate speed to ROTATION_SPEED if too high
@@ -59,7 +68,8 @@ void MoveRotate::doControl(const SensorData& data) {
         
     } else {
         // Rotation done! Reset current angle movement
-        // std::cout << "TARGET ANGLE REACHED" << std::endl;
+        std::cout << "TARGET ANGLE REACHED" << std::endl;
+        std::cout << "ROTATED: " << mCurrentRelativeAngle << std::endl;
         mIsRotating = false;
         publishSpeeds(0.0f, 0.0f);
     }
