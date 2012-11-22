@@ -25,6 +25,8 @@ namespace amee{
 		float mIsRotating;
 		float mCurrentRelativeAngle;
 		float mStartingAngle;
+		bool mStartedRotation;
+
 
 		void publishSpeeds(float left, float right);
 

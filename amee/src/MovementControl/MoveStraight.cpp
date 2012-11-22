@@ -38,12 +38,17 @@ void MoveStraight::init(const SensorData &data, float distance, float vel) {
 
 bool MoveStraight::isRunning() const {return mRunning;}
 
+const float ACC_PHASE = 0.1f;
 void MoveStraight::doControl(const SensorData &data){
 	 // std::cout << "sd: " << mStartingDistance << " t:" << mTargetDistance << " cd:" << data.odometry.distance << std::endl;
 
 	if (mGoingDistance) {
 		float travelledDistance = data.odometry.distance - mStartingDistance;
+        float speedSign = mVelocity > 0.0f ? 1.0 : -1.0f;
 		// std::cout << "travelled " << travelledDistance << std::endl;
+		if (fabs(travelledDistance) < ACC_PHASE) {
+			mVelocity = speedSign * fabs(travelledDistance + speedSign) / ACC_PHASE * mVelocity; // make a smooth acceleration
+		}
 		if (fabs(mTargetDistance - travelledDistance) <= 0.008f) {
 			// std::cout << "MoveStraight: Distance reached!!!" << std::endl;
 			mRunning = false;
