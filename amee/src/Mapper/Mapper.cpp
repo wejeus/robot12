@@ -41,25 +41,37 @@ void Mapper::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
 	
 	Odometry lastOdometry = mOdometry;
 	mOdometry.distance = msg->distance;
-	mOdometry.x = msg->x;
-	mOdometry.y = msg->y;
+	// mOdometry.x = msg->x;
+	// mOdometry.y = msg->y;
 	mOdometry.angle = msg->angle;
 	mOdometry.angle = mOdometry.angle * M_PI / 180.0f; // transform to radians 
 	mOdometry.timestamp = msg->timestamp;
 	mOdometry.leftWheelDistance = msg->leftWheelDistance;
 	mOdometry.rightWheelDistance = msg->rightWheelDistance;
 	//std::cout << "Odometry " << mOdometry.x << " " << mOdometry.y << " " << mOdometry.angle << std::endl;
+	// set pose.theta based on angular change
+	float theta = mPose.theta + mOdometry.angle - lastOdometry.angle;
+	theta -= floor(theta / (2.0f * M_PI)) * 2.0f * M_PI; // move theta to [0,2PI]
 
+	// Calc x & y with theta
+	float leftDistance = mOdometry.leftWheelDistance - lastOdometry.leftWheelDistance;
+	float rightDistance = mOdometry.rightWheelDistance - lastOdometry.rightWheelDistance;
+	float distance = (leftDistance + rightDistance) / 2.0f;
+	float odo_x = mPose.x;
+	float odo_y = mPose.y;
+
+	odo_x += cos(theta) * distance;
+	odo_y += sin(theta) * distance;
 
 	/******* KALMAN: calculate odometry measurement here *********/
-	mMeasurement1.x = mOdometry.x;
-	mMeasurement1.y = mOdometry.y;
-	mMeasurement1.theta = mOdometry.angle;
+	mMeasurement1.x = odo_x;
+	mMeasurement1.y = odo_y;
+	mMeasurement1.theta = theta;
 
 	/******* KALMAN: get measurement from mapper *********/
-	mMeasurement2.x = mOdometry.x;
-	mMeasurement2.y = mOdometry.y;
-	mMeasurement2.theta = mOdometry.angle;
+	mMeasurement2.x = odo_x;
+	mMeasurement2.y = odo_y;
+	mMeasurement2.theta = theta;
 
 	/******* KALMAN: give it to Kalman filter *********/
 	ekf.estimate(mControlSignal, mMeasurement1, mMeasurement2);
@@ -393,12 +405,12 @@ void Mapper::mapping() {
 				}
 
 				// now reset theta accordingly
-				mPose.theta = wallTheta + relativeTheta;
+				// mPose.theta = wallTheta + relativeTheta;
 
 				// now we want to reset the x coordinate
 				float normalDistToWall = cos(relativeTheta) * meanDist;
 				float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
-				mPose.x = wall->getX() + sideOfWall * centerDistToWall;
+				// mPose.x = wall->getX() + sideOfWall * centerDistToWall;
 			} else {
 				// std::cout << "wall y " << wall->getY() << " pose y " << mPose.y << std::endl;
 				float sideOfWall = 1.0f;
@@ -410,12 +422,12 @@ void Mapper::mapping() {
 				}
 
 				// now reset theta accordingly
-				mPose.theta = wallTheta + relativeTheta;
+				// mPose.theta = wallTheta + relativeTheta;
 
 				// now we want to reset the y coordinate
 				float normalDistToWall = cos(relativeTheta) * meanDist;
 				float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
-				mPose.y = wall->getY() + sideOfWall * centerDistToWall;
+				// mPose.y = wall->getY() + sideOfWall * centerDistToWall;
 			}
 
 			// std::cout << "New pose: x:" << mPose.x << " y:" << mPose.y << " theta: " << mPose.theta << std::endl;
