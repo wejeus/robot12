@@ -89,16 +89,9 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 		}
 		float distances[NUM_PORTS];
 		for (int i = 0; i < NUM_PORTS; ++i) {
-			// if (mLastReadings[i] == mSensorCalibrations[i].c) {
-			// 	distances[i] = 1000.0f; // TODO set to limits::max
-			// } else {
-				//distances[i] = log(mSensorCalibrations[i].alpha / (mLastReadings[i] - mSensorCalibrations[i].c)) / mSensorCalibrations[i].lambda;
-				//std::cout << mLastReadings[i] << " ";
-				distances[i] = 1.0f / (mSensorCalibrations[i].m * mLastReadings[i] + mSensorCalibrations[i].b) - mSensorCalibrations[i].k;
-				// distances[i] = distances[i] >= 0.0f ? distances[i] : 0.0f;
-				//int lastDigit = (int)(distances[i] * 1000.0f) % 10;
-				//distances[i] = lastDigit > 4 ? ceil(distances[i] * 100.0f) / 100.0f : floor(distances[i] * 100.0f) / 100.0f;
-			// } 
+
+			distances[i] = 1.0f / (mSensorCalibrations[i].m * mLastReadings[i] + mSensorCalibrations[i].b) - mSensorCalibrations[i].k;
+
 		}
 		//std::cout << std::endl;
 
@@ -114,8 +107,10 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 		distanceMsg.leftFront = limit(distances[LEFT_FRONT]);
 		distanceMsg.wheelLeft = limit(distances[WHEEL_LEFT]);
 
-		distanceMsg.obstacleInFront = ((mLastReadings[LEFT_FRONT_WALL_DETECTOR] >= 280)  && (mLastReadings[LEFT_FRONT_WALL_DETECTOR] <= 600))
-								   || ((mLastReadings[RIGHT_FRONT_WALL_DETECTOR] >= 210) && (mLastReadings[RIGHT_FRONT_WALL_DETECTOR] <= 600));
+		distanceMsg.obstacleInFront = ((mLastReadings[LEFT_FRONT_WALL_DETECTOR] >= 290)  && (mLastReadings[LEFT_FRONT_WALL_DETECTOR] <= 560))
+								   || ((mLastReadings[RIGHT_FRONT_WALL_DETECTOR] >= 265) && (mLastReadings[RIGHT_FRONT_WALL_DETECTOR] <= 550));
+
+
 		//TODO publish all the other correct distances
 		
 		// std::cout << "timestamp: " << distanceMsg.timestamp << std::endl;
@@ -126,10 +121,10 @@ void IRSensorReader::receiveRawData(const adc_val::ConstPtr &msg) {
 		// std::cout << "rightFront: " << mLastReadings[RIGHT_FRONT] << std::endl;
 		// std::cout << "wheelRight: " << mLastReadings[WHEEL_RIGHT] << std::endl;
 		// std::cout << "frontShort: " << mLastReadings[FRONT_SHORTRANGE] << std::endl;
-		 std::cout << "frontLeftWallDetactor: " << mLastReadings[LEFT_FRONT_WALL_DETECTOR] << std::endl;
-		 std::cout << "frontRightWallDetactor: " << mLastReadings[RIGHT_FRONT_WALL_DETECTOR] << std::endl;
 
-		
+		 // std::cout << "frontLeftWallDetactor: " << mLastReadings[LEFT_FRONT_WALL_DETECTOR] << std::endl;
+		 // std::cout << "frontRightWallDetactor: " << mLastReadings[RIGHT_FRONT_WALL_DETECTOR] << std::endl;
+
 		
 		distance_pub.publish(distanceMsg);
 

@@ -10,13 +10,16 @@ namespace amee{
 
 Node::Node(){}
 
-Node::Node(float _x, float _y, NodeID _id):mX(_x),mY(_y),mId(_id){}
+Node::Node(amee::Pose p, NodeID _id) {
+	mPose = p;
+	mId = _id;
+}
 
 Node::Node(const Node& ref){
 //	cout << "in Node copy constructor" << endl;
 	mId = ref.getID();
-	mX = ref.x();
-	mY = ref.y();
+	mPose = ref.pose();
+	mNODE_STATE = ref.mNODE_STATE;
 
 	std::vector<NodeID> v = ref.getNeighbours();
 	mNeighbours.clear();
@@ -69,38 +72,54 @@ float Node::getDist(const NodeID id) const{
 
 
 
-inline float Node::x() const { return mX; }
+inline float Node::x() const { return mPose.x; }
 
-inline float Node::y() const { return mY; }
+inline float Node::y() const { return mPose.y; }
+
+inline float Node::theta() const { return mPose.theta; }
+
+inline amee::Pose Node::pose() const { return mPose; }
 
 NodeID Node::getID() const { return mId; }
 
-const size_t Node::numEdges() const { return mNeighbours.size(); }
+int Node::numEdges() const { return mNeighbours.size(); }
 
-const int Node::getType() const { return mNODE_STATE; }
+int Node::getType() const { return mNODE_STATE; }
 
 
-inline void Node::x(const float x){ mX = x; }
+inline void Node::x(const float x){ mPose.x = x; }
 
-inline void Node::y(const float y){ mY = y; }
+inline void Node::y(const float y){ mPose.y = y; }
+
+inline void Node::theta(const float theta) { mPose.theta = theta; }
 
 inline void Node::id(const NodeID id){ mId = id; }
 
-void Node::setType(const int t) { mNODE_STATE |= t; }
-void Node::removeType(const int t) { mNODE_STATE &= ~(1<<(t-1)); }
+void Node::setType(const int t) { mNODE_STATE = t; }
+
+void Node::toMsg(amee::NodeMsg& msg) const {
+	msg.pose = mPose;
+	msg.nodeID = mId;
+	msg.type = mNODE_STATE;
+	msg.edges.resize(mNeighbours.size());
+	for (unsigned int i = 0; i < mNeighbours.size(); ++i) {
+		msg.edges[i] = mNeighbours[i];
+		// std::cout << "edge from " << mId << " to:" << mNeighbours[i] << std::endl;
+	}
+}
 
 
 /**
  * Two way connection
  * Makes both nodes to be each others neighbour
  */ 
-void Node::connectNeighbours(Node& other){
-	addNeighbour(other.getID());
-	other.addNeighbour(mId);
-
-	float dist = EuclidDist(mX, other.x(), mY, other.y());
+void Node::connectNeighbours(Node* other){
+	addNeighbour(other->getID());
+	other->addNeighbour(mId);
+	
+	float dist = EuclidDist(mPose.x, other->x(), mPose.y, other->y());
 	setDist(other, dist);
-	other.setDist(*this, dist);
+	other->setDist(this, dist);
 }
 
 inline float Node::EuclidDist(const float& x1, const float& x2, const float& y1, const float& y2){
@@ -118,8 +137,8 @@ void Node::addNeighbour(const NodeID& id){
 		mNeighbours.push_back(id);
 }
 
-void Node::setDist(Node& other, const float& dist){
-	mNeighb_dists[other.getID()] = dist;
+void Node::setDist(Node* other, const float& dist){
+	mNeighb_dists[other->getID()] = dist;
 }
 
 };//namespace amee

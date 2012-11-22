@@ -95,6 +95,14 @@ bool HorizontalWallSegment::isSmall() {
 	return (length/(float)mNumberOfPoints < SMALL_THRESHOLD) && !(length > SMALL_LENGTH);
 }
 
+float HorizontalWallSegment::getX() {
+	return (mFrom.x + mTo.x) / 2.0f;
+}
+
+float HorizontalWallSegment::getY() {
+	return mFrom.y;
+}
+
 float HorizontalWallSegment::distanceTo(const Map::Point& pos) {
 	if (pos.x < mFrom.x || pos.x > mTo.x) {
 		return pos.y - mFrom.y;
