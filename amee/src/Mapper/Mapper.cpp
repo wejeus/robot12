@@ -161,6 +161,7 @@ void Mapper::calculateMeasurements() {
 		mMeasurements[RIGHT_BACK].sensorRelativePos = p;
 		mMeasurements[RIGHT_BACK].sensorPos.rotate(mPose.theta);
 		mMeasurements[RIGHT_BACK].sensorPos = mMeasurements[RIGHT_BACK].sensorPos + mPose;
+		mMeasurements[RIGHT_BACK].dist = mDistances.rightBack;
 
 		// add distance vector (positive y is left of the robot, negative y right)
 		p.y += -mDistances.rightBack;
@@ -184,7 +185,7 @@ void Mapper::calculateMeasurements() {
 		mMeasurements[RIGHT_FRONT].sensorPos = p;
 		mMeasurements[RIGHT_FRONT].sensorPos.rotate(mPose.theta);
 		mMeasurements[RIGHT_FRONT].sensorPos = mMeasurements[RIGHT_FRONT].sensorPos + mPose;
-
+		mMeasurements[RIGHT_FRONT].dist = mDistances.rightFront;
 		// add distance vector (positive y is left of the robot, negative y right)
 		p.y += -mDistances.rightFront;
 
@@ -206,7 +207,7 @@ void Mapper::calculateMeasurements() {
 		mMeasurements[LEFT_FRONT].sensorPos = p;
 		mMeasurements[LEFT_FRONT].sensorPos.rotate(mPose.theta);
 		mMeasurements[LEFT_FRONT].sensorPos = mMeasurements[LEFT_FRONT].sensorPos + mPose;
-
+		mMeasurements[LEFT_FRONT].dist = mDistances.leftFront;
 		// add distance vector (positive y is left of the robot, negative y right)
 		p.y += mDistances.leftFront;
 
@@ -229,6 +230,7 @@ void Mapper::calculateMeasurements() {
 		mMeasurements[LEFT_BACK].sensorPos = p;
 		mMeasurements[LEFT_BACK].sensorPos.rotate(mPose.theta);
 		mMeasurements[LEFT_BACK].sensorPos = mMeasurements[LEFT_BACK].sensorPos + mPose;
+		mMeasurements[LEFT_BACK].dist = mDistances.leftBack;
 
 		// add distance vector (positive y is left of the robot, negative y right)
 		p.y += mDistances.leftBack;
@@ -292,10 +294,10 @@ void Mapper::visualize() {
 }
 
 void Mapper::cleanMap() {
-	if (mCleanTimer == 8) {
+	if (mCleanTimer == 5) {
 		mCleanTimer = 0;
 		Map::Point pos(mPose.x, mPose.y);
-		mMap.reduceNumWalls(pos, 0.4f);
+		mMap.reduceNumWalls(pos, 0.6f);
 	}
 	++mCleanTimer;
 }
@@ -340,7 +342,7 @@ void Mapper::mapping() {
 	amee::Pose newPose;
 	mMap.localize(mPose, mset, newPose);
 	//mPose = newPose;
-	// mPose.theta = newPose.theta;
+	mPose.theta = newPose.theta;
 
 	
 	// rotate odometry coordinate system so that it is parallel to the map's system

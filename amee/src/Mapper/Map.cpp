@@ -83,7 +83,7 @@ void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& me
 		leftBackWall = matchLB != NULL;	
 	}
 	
-	if (rightFrontWall && rightBackWall && (matchRB == matchRF)) { // measurements on the right side belong to a wall
+	if (rightFrontWall && rightBackWall && (matchRB == matchRF)) { // measurements on the right side belong to the same wall
 		Pose rightEstimate;
 		float angleMeasurements = getAngle(rightFront - rightBack);
 
@@ -91,6 +91,8 @@ void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& me
 		float relativeTheta = atan(diffDist / Mapper::IR_BASE_RIGHT); 
 
 		rightEstimate.theta = angleMeasurements + relativeTheta;
+
+		std::cout << "Angle measurements: " << angleMeasurements << " relativeTheta " << relativeTheta << std::endl; 
 
 		Point correctedSensorFront = rightFront + (measurements.rightFront.sensorPos - rightFront).normalized() * measurements.rightFront.dist;
 	    Point correctedSensorBack = rightBack + (measurements.rightBack.sensorPos - rightBack).normalized() * measurements.rightBack.dist;
@@ -109,6 +111,7 @@ void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& me
 	    outPose.x = rightEstimate.x;
 	    outPose.y = rightEstimate.y;
 	    outPose.theta = rightEstimate.theta;
+	    outPose.theta -= floor(outPose.theta / (2.0f * M_PI)) * 2.0f * M_PI; // move theta to [0,2PI]
 	    std::cout << "est. pose in map: x:" << outPose.x << " y:" << outPose.y << " theta: " << outPose.theta << std::endl; 
 	}
 	
