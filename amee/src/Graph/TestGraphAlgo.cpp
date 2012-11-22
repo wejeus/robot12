@@ -1,85 +1,57 @@
 #include <iostream>
 #include "PathFinderAlgo.h"
 #include "Graph.h"
-#include "Node.h"
+#include "amee/NodeMsg.h"
+#include "amee/Pose.h"
 
 using namespace std;
 using namespace amee;
 
 static const float LL = 999999999.9f;
 static const size_t SIZE = 6;
-/*float dists[SIZE][SIZE] = {{ 0.0f, 7.0f, 9.0f,LL,LL,14.0f},
-                           { 7.0f, 0.0f, 10.0f,15.0f,LL,LL},
-                           { 9.0f,10.0f, 0.0f,11.0f,LL, 2.0f},
-                           {LL,15.0f,11.0f, 0.0f, 6.0f,LL},
-                           {LL,LL,LL, 6.0f, 0.0f, 9.0f},
-                           {14.0f,LL, 2.0f,LL, 9.0f, 0.0f}};
-*/
 
 int main(int argc, char ** argv){
 
 	cout << "creating graph" << endl;
 	Graph g;
 
-	cout << "creating nodes" << endl;
+	cout << "Adding nodes to the graph " << endl;
 
-	Node * nList = new Node[SIZE];
+	float correct_dists[] = {0.0f, 7.0f, 10.3078f, 17.0346f, 20.6218f, 13.3417f};
+	int correct_path[]  = {0, 0, 0, 2, 5, 0};
 
-	float x_list[] = {0.0f, 7.0f,  2.5f,  7.0f,  5.0f,  3.0f};	
+	float x_list[] = {0.0f, 7.0f,  2.5f,  7.0f,  5.0f,  3.0f};
 	float y_list[] = {0.0f, 0.0f, 10.0f, 15.0f, 20.0f, 13.0f};
+	float theta_list[] = {0.0f, 7.0f,  2.5f,  7.0f,  5.0f,  3.0f};
+	int type_list[] = {1, 0, 0, 2, 1, 0};
 	
 	for(size_t i=0; i<SIZE; ++i){
-		nList[i] = Node(x_list[i], y_list[i], i);
+		Pose pose;
+		pose.x = x_list[i];
+		pose.y = y_list[i];
+		pose.theta = theta_list[i];
+		g.addNode(pose, type_list[i]);
 	}
 
-	
+	//adding edges
+	g.addEdges(0,1);
+	g.addEdges(0,2);
+	g.addEdges(0,5);
 
-	nList[0].connectNeighbours(nList[1]);
-	nList[0].connectNeighbours(nList[2]);
-	nList[0].connectNeighbours(nList[5]);
+	g.addEdges(1,2);
+	g.addEdges(1,3);
 
-	nList[1].connectNeighbours(nList[2]);
-	nList[1].connectNeighbours(nList[3]);
+	g.addEdges(2,3);
+	g.addEdges(2,5);
 
-	nList[2].connectNeighbours(nList[3]);
-	nList[2].connectNeighbours(nList[5]);
+	g.addEdges(3,4);
 
-	nList[3].connectNeighbours(nList[4]);
-
-	nList[4].connectNeighbours(nList[5]);
-
-	
-	vector<NodeID>::const_iterator it;
-	for(size_t i=0; i<SIZE; ++i){
-		vector<NodeID> v = nList[i].getNeighbours();
-		for(it = v.begin(); it != v.end(); ++it){
-			cout << "Dist: " << i << " to " << (*it) << " == " << nList[i].getDist((*it)) << endl;
-//			cout << "And : " << (*it) << " to " << i << " == " << nList[(*it)].getDist(i) << endl;
-//			cout << endl;
-		}
-		cout << "##############################" << endl;
-		
-	}
-
-
-	cout << "\n\nSetting type of 0 to NODE_NEXT_TO_WALL and NODE_TAG" << endl;
-	nList[0].setType(Node::NODE_NEXT_TO_WALL | Node::NODE_TAG);
-	cout << nList[0].getType() << " == " << (Node::NODE_NEXT_TO_WALL | Node::NODE_TAG) << "?" << endl;
-	cout << "Removing the NODE_NEXT_TO_WALL" << endl;
-	nList[0].removeType(Node::NODE_NEXT_TO_WALL);
-	cout << nList[0].getType() << " == " << Node::NODE_TAG << "?"<< endl;
-
-
-	cout << "adding the nodes to the graph" << endl;
-	for(size_t i=0; i<SIZE; ++i){
-		g.addNode(&nList[i]);
-	}
-
+	g.addEdges(4,5);
 
 
 	float pathD[SIZE];
-	NodeID path[SIZE];
-	NodeID source = 0;
+	int path[SIZE];
+	int source = 0;
 
 	cout << "creating the pathfinder" << endl;
 	PathFinderAlgo pf;
@@ -90,6 +62,7 @@ int main(int argc, char ** argv){
 	cout << "here are the distances from source(" << source << ") to each node: " << endl;
 	for(size_t i=0; i<SIZE; ++i){
 		cout << source << " => " << i << ":\t"<< pathD[i] << endl;
+		assert(fabs(pathD[i] - correct_dists[i]) < 0.0001f);
 	}
 	cout << endl;
 
@@ -97,15 +70,26 @@ int main(int argc, char ** argv){
 	cout << "Path to each node starting from source is: " << endl;
 	for(size_t i=0; i<SIZE; ++i){
 		cout << "from " << path[i] << " to " << i << endl;
+		assert(path[i] == correct_path[i]);
 	}
 	cout << endl;
 
-	cout << "cleaning up" << endl;
-/*	for(size_t i=0; i<SIZE; ++i){
-		delete [] dists[i];
+
+
+	//this is how u do for getting the shortest path of positions from a sourceID to a destinationID
+	source = 0;
+	int dest = 4;
+	vector<Pose> vPath = pf.findShortestPath(g, source, dest);
+	cout << endl;
+	cout << "Here comes the path from " << source << " to " << dest << ":" << endl;
+	for(size_t i=0; i<vPath.size(); ++i){
+		cout << "(" << vPath[i].x << ", " << vPath[i].y << ")";
+
+		if(i+1 < vPath.size()) cout << " => ";
 	}
-	delete [] dists;*/
-	delete [] nList;
+
+	cout << endl;
+
 
 	return 0;
 }
