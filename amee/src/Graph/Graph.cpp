@@ -32,11 +32,11 @@ Graph& Graph::operator=(const Graph& ref){
 
 size_t Graph::size() const { return mNodes.size(); }
 
-void Graph::addNode(const Node& n){ mNodes.push_back(new Node(n)); }
+// void Graph::addNode(const Node& n){ mNodes.push_back(new Node(n)); }
 
-const Node * Graph::getNode(const NodeID id) const { return mNodes[id]; }
+// const Node * Graph::getNode(const NodeID id) const { return mNodes[id]; }
 
-const std::vector<Node*>& Graph::getNodes() const { return mNodes; }
+// const std::vector<Node*>& Graph::getNodes() const { return mNodes; }
 
 const amee::GraphMsg& Graph::getGraphMsg() {
 	unsigned int size = mNodes.size();
