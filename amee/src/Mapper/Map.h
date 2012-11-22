@@ -75,14 +75,16 @@ class Map {
 
 		struct WallMatching
 		{
-			float t;
+			float t; // describes how close the intersection is to the robot t = 0 - inside robot; t = 1 - at the measurementPos
 			WallSegment* wall;
 		};
 
 		struct Measurement {
-			bool valid;
-			amee::Map::Point pos;
-			amee::Map::Point sensorPos;
+			bool valid;// stores if measurement is valid or not (within a certain range)
+			Point pos; // measurements position in world coordinates
+			Point sensorPos; // sensors position in world coordinates
+			float dist; // actual measurement
+			Point sensorRelativePos; // sensors position relative to robot center
 		};
 
 		struct MeasurementSet {
@@ -101,10 +103,10 @@ class Map {
 
 		// Adds the given measurement to a wall if possible. If no wall was found and createWall is true, a new wall is initialized 
 		// with the given measurement. If createWall is false, the measurement is dropped.
-		void addMeasurement(const amee::Mapper::Measurement& m, int newWallType);
+		void addMeasurement(const Measurement& m, int newWallType);
 		
 		// Localizes the robot based on the given pose and measurements in the map. If localizing is not successfull outPose = inPose
-		void localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& measurements, amee::Pose& outPose);
+		void localize(const amee::Pose& inPose, const MeasurementSet& measurements, amee::Pose& outPose);
 		void print();
 		void getVisualization(MapVisualization& vis);
 		/** Tries to reduce the number of walls by unifying walls that are close to the given pos (if the seem to be one wall)
@@ -116,8 +118,8 @@ class Map {
 	
 	private:
 		std::list<WallSegment*> mWalls;
-		WallSegment* findBestMatch(amee::Mapper::Measurement& m, Point& intersection);
-
+		WallSegment* findBestMatch(const Measurement& m, Point& intersection);
+		float getAngle(const Point& dir);
 	};
 }
 #endif

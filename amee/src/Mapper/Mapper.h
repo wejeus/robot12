@@ -28,6 +28,9 @@ class Mapper {
 		void setGraphPublisher(ros::Publisher pub);
 
 		enum MappingState {Pause, Mapping, Localizing};
+
+		static const float IR_BASE_RIGHT = 0.104;
+		static const float ROBOT_RADIUS = 0.12f;
 	
 	private:
 		ros::Publisher vis_pub;
@@ -55,8 +58,6 @@ class Mapper {
 		static const int RIGHT_BACK = 0;
 		static const int LEFT_FRONT = 2;
 		static const int LEFT_BACK = 3;
-
-		static const float IR_BASE_RIGHT = 0.104;
 
 		std::vector<Map::Measurement> mMeasurements;
 		std::vector<Map::Point> mTagPositions;

@@ -3,6 +3,7 @@
 #include "WallSegment.h"
 #include "HorizontalWallSegment.h"
 #include "VerticalWallSegment.h"
+#include "Mapper.h"
 
 using namespace amee;
 
@@ -50,23 +51,91 @@ void Map::reduceNumWalls(const Point& pos, float distance) {
 	// Localizes the robot based on the given pose and measurements in the map. If localizing is not successfull outPose = inPose
 void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& measurements, amee::Pose& outPose) {
 	//TODO
+	outPose = inPose;
 	Point leftBack, leftFront, rightBack, rightFront;
+	bool rightFrontWall = false;
+	bool rightBackWall = false;
+	bool leftFrontWall = false;
+	bool leftBackWall = false;
+	WallSegment* matchRF;
+	WallSegment* matchRB;
+	WallSegment* matchLF;
+	WallSegment* matchLB;
 
-	WallSegment* bestMatch = findBestMatch(measurements.rightFront, rightFront);
-	bool rightFrontWall = bestMatch != NULL;
-	bestMatch = findBestMatch(measurements.rightBack, rightBack);
-	bool rightBackWall = bestMatch != NULL;
-	bestMatch = findBestMatch(measurements.leftFront, leftFront);
-	bool leftFrontWall = bestMatch != NULL;
-	bestMatch = findBestMatch(measurements.leftBack, leftBack);
-	bool leftBackWall = bestMatch != NULL;
+
+	if (measurements.rightFront.valid) {
+		matchRF = findBestMatch(measurements.rightFront, rightFront);
+		rightFrontWall = matchRF != NULL;	
+	}
 	
-	// TODO
+	if (measurements.rightBack.valid) {
+		matchRB = findBestMatch(measurements.rightBack, rightBack);
+		rightBackWall = matchRB != NULL;	
+	}
+	
+	if (measurements.leftFront.valid) {
+		matchLF = findBestMatch(measurements.leftFront, leftFront);
+		leftFrontWall = matchLF != NULL;	
+	}
+	
+	if (measurements.leftBack.valid) {
+		matchLB = findBestMatch(measurements.leftBack, leftBack);
+		leftBackWall = matchLB != NULL;	
+	}
+	
+	if (rightFrontWall && rightBackWall && (matchRB == matchRF)) { // measurements on the right side belong to a wall
+		Pose rightEstimate;
+		float angleMeasurements = getAngle(rightFront - rightBack);
+
+		float diffDist = measurements.rightFront.dist - measurements.rightBack.dist;
+		float relativeTheta = atan(diffDist / Mapper::IR_BASE_RIGHT); 
+
+		rightEstimate.theta = angleMeasurements + relativeTheta;
+
+		Point correctedSensorFront = rightFront + (measurements.rightFront.sensorPos - rightFront).normalized() * measurements.rightFront.dist;
+	    Point correctedSensorBack = rightBack + (measurements.rightBack.sensorPos - rightBack).normalized() * measurements.rightBack.dist;
+
+	    Point frontRelativeToPose = measurements.rightFront.sensorRelativePos;
+	    frontRelativeToPose.rotate(rightEstimate.theta);
+	    Point frontBasedEstimation = correctedSensorFront - frontRelativeToPose;
+
+	    Point backRelativeToPose = measurements.rightBack.sensorRelativePos;
+	    backRelativeToPose.rotate(rightEstimate.theta);
+	    Point backBasedEstimation = correctedSensorBack - backRelativeToPose;
+
+	    rightEstimate.x = 0.5f * frontBasedEstimation.x + 0.5 * backBasedEstimation.x; // we trust both estimations the same
+	    rightEstimate.y = 0.5f * frontBasedEstimation.y + 0.5 * backBasedEstimation.y;
+
+	    outPose.x = rightEstimate.x;
+	    outPose.y = rightEstimate.y;
+	    outPose.theta = rightEstimate.theta;
+	    std::cout << "est. pose in map: x:" << outPose.x << " y:" << outPose.y << " theta: " << outPose.theta << std::endl; 
+	}
+	
+	
+	
+	// TODO left estimation
 
 	
 }
 
-WallSegment* Map::findBestMatch(amee::Mapper::Measurement& m, Point& intersection) {
+float Map::getAngle(const Point& dir) {
+	if (dir.x == 0.0f) {
+		if (dir.y > 0.0f) {
+			return M_PI / 2.0f;
+		}
+		return 3.0f / 2.0f * M_PI;
+	}
+	if (dir.y == 0.0f) {
+		if (dir.x > 0.0f) {
+			return 0.0f;
+		}
+		return M_PI;
+	}
+	return atan(dir.y / dir.x);
+}
+
+WallSegment* Map::findBestMatch(const Measurement& m, Point& intersection) {
 	
 	WallMatching bestMatch;
 	bestMatch.t = 2.0f;
@@ -80,19 +149,18 @@ WallSegment* Map::findBestMatch(amee::Mapper::Measurement& m, Point& intersectio
 		if (match && t < bestMatch.t) {
 			bestMatch.t = t;
 			bestMatch.wall = wall;
-			m.pos = intersection;
 		}
 	}
 	return bestMatch.wall;	
 }
 
-void Map::addMeasurement(amee::Mapper::Measurement& m, int newWallType) {
+void Map::addMeasurement(const Measurement& m, int newWallType) {
 	Point intersection;
 	WallSegment* match = findBestMatch(m, intersection);
 
 	if (match != NULL) {
 		match->mapMeasurement(m.sensorPos, m.pos, intersection);
-	} else if(newWallType != WallSegment::NONE)) {
+	} else if(newWallType != WallSegment::NONE) {
 		if (newWallType == WallSegment::HORIZONTAL) {
 			WallSegment* wall = new HorizontalWallSegment(m.pos);
 			mWalls.push_back(wall);	

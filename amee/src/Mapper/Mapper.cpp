@@ -130,7 +130,7 @@ void Mapper::init() {
 		mPose.y = 0.0f;
 		mPose.theta = 0.0f;
 		mInitialized = true;
-		Measurement base;
+		Map::Measurement base;
 		base.valid = false;
 		base.pos.x = 0.0f;
 		base.pos.y = 0.0f;
@@ -147,13 +147,20 @@ void Mapper::init() {
 
 void Mapper::calculateMeasurements() {
 	// calculate a position for each sensor reading
-
+	float halfBase = IR_BASE_RIGHT / 2.0f;
+	float robotR = ROBOT_RADIUS;
 	// right back
 	if (isValidDistance(mDistances.rightBack)) {
 		// right back position of 0
 		Map::Point p;
-		p.x = -0.052f;
-		p.y = -0.12f;
+		p.x = -halfBase;
+		p.y = -robotR;
+
+		// set sensor position in global coordinates
+		mMeasurements[RIGHT_BACK].sensorPos = p;
+		mMeasurements[RIGHT_BACK].sensorRelativePos = p;
+		mMeasurements[RIGHT_BACK].sensorPos.rotate(mPose.theta);
+		mMeasurements[RIGHT_BACK].sensorPos = mMeasurements[RIGHT_BACK].sensorPos + mPose;
 
 		// add distance vector (positive y is left of the robot, negative y right)
 		p.y += -mDistances.rightBack;
@@ -169,8 +176,14 @@ void Mapper::calculateMeasurements() {
 	if (isValidDistance(mDistances.rightFront)) {
 		// right front position of 0
 		Map::Point p;
-		p.x = 0.052f;
-		p.y = -0.12f;
+		p.x = halfBase;
+		p.y = -robotR;
+
+		// set sensor position in global coordinates
+		mMeasurements[RIGHT_FRONT].sensorRelativePos = p;
+		mMeasurements[RIGHT_FRONT].sensorPos = p;
+		mMeasurements[RIGHT_FRONT].sensorPos.rotate(mPose.theta);
+		mMeasurements[RIGHT_FRONT].sensorPos = mMeasurements[RIGHT_FRONT].sensorPos + mPose;
 
 		// add distance vector (positive y is left of the robot, negative y right)
 		p.y += -mDistances.rightFront;
@@ -185,8 +198,14 @@ void Mapper::calculateMeasurements() {
 	if (isValidDistance(mDistances.leftFront)) {
 		// left front position of 0
 		Map::Point p;
-		p.x = 0.052f;
-		p.y = 0.12f;
+		p.x = halfBase;
+		p.y = robotR;
+
+		// set sensor position in global coordinates
+		mMeasurements[LEFT_FRONT].sensorRelativePos = p;
+		mMeasurements[LEFT_FRONT].sensorPos = p;
+		mMeasurements[LEFT_FRONT].sensorPos.rotate(mPose.theta);
+		mMeasurements[LEFT_FRONT].sensorPos = mMeasurements[LEFT_FRONT].sensorPos + mPose;
 
 		// add distance vector (positive y is left of the robot, negative y right)
 		p.y += mDistances.leftFront;
@@ -202,8 +221,14 @@ void Mapper::calculateMeasurements() {
 	if (isValidDistance(mDistances.leftBack)) {
 		// left back position of 0
 		Map::Point p;
-		p.x = -0.052f;
-		p.y = 0.12f;
+		p.x = -halfBase;
+		p.y = robotR;
+
+		// set sensor position in global coordinates
+		mMeasurements[LEFT_BACK].sensorRelativePos = p;
+		mMeasurements[LEFT_BACK].sensorPos = p;
+		mMeasurements[LEFT_BACK].sensorPos.rotate(mPose.theta);
+		mMeasurements[LEFT_BACK].sensorPos = mMeasurements[LEFT_BACK].sensorPos + mPose;
 
 		// add distance vector (positive y is left of the robot, negative y right)
 		p.y += mDistances.leftBack;
@@ -306,42 +331,43 @@ void Mapper::mapping() {
 	// // set origin
 	// mCurrentPos.x = mPose.x - mStartPos.x;
 	// mCurrentPos.y = mPose.y - mStartPos.y;
+	Map::MeasurementSet mset;
+	mset.leftBack = mMeasurements[LEFT_BACK];
+	mset.leftFront = mMeasurements[LEFT_FRONT];
+	mset.rightBack = mMeasurements[RIGHT_BACK];
+	mset.rightFront = mMeasurements[RIGHT_FRONT];
+	
+	amee::Pose newPose;
+	mMap.localize(mPose, mset, newPose);
+	//mPose = newPose;
+	// mPose.theta = newPose.theta;
+
 	
 	// rotate odometry coordinate system so that it is parallel to the map's system
 	//mCurrentPos.rotate(-mStartAngle); 
 	// mCurrentAngle = mPose.theta;// - mStartAngle;
-	// std::cout << "Current position in maze: " << mPose.x << ", " << mPose.y << std::endl;
-	// std::cout << "Current angle in maze: " << mPose.theta * (180.0f / M_PI) << std::endl;
+	 std::cout << "Current pose in maze: " << mPose.x << ", " << mPose.y << ", " << mPose.theta << std::endl;
+	 // std::cout << "Current angle in maze: " << mPose.theta * (180.0f / M_PI) << std::endl;
 
 	int leftType = 0;
 	int rightType = 0;
 	followedWallDirection(leftType, rightType); // gets the type for new walls (Vertical, Horizontal or none)
 
-	WallSegment* walls[mMeasurements.size()];
-
 	if (mMeasurements[RIGHT_BACK].valid) {
-		// walls[RIGHT_BACK] = mMap.addMeasurement(mMeasurements[RIGHT_BACK].pos, rightType);
-	} else {
-		walls[RIGHT_BACK] = NULL;
-	}
+		mMap.addMeasurement(mMeasurements[RIGHT_BACK], rightType);
+	} 
 
 	if (mMeasurements[RIGHT_FRONT].valid) {
-		// walls[RIGHT_FRONT] = mMap.addMeasurement(mMeasurements[RIGHT_FRONT].pos, rightType);
-	} else {
-		walls[RIGHT_FRONT] = NULL;
+		mMap.addMeasurement(mMeasurements[RIGHT_FRONT], rightType);
 	}
 
 	if (mMeasurements[LEFT_BACK].valid) {
-		// walls[LEFT_BACK] = mMap.addMeasurement(mMeasurements[LEFT_BACK].pos, leftType);
-	} else {
-		walls[LEFT_BACK] = NULL;
-	}
+		mMap.addMeasurement(mMeasurements[LEFT_BACK], leftType);
+	} 
 
 	if (mMeasurements[LEFT_FRONT].valid) {
-		// walls[LEFT_FRONT] = mMap.addMeasurement(mMeasurements[LEFT_FRONT].pos, leftType);
-	} else {
-		walls[LEFT_FRONT] = NULL;
-	}
+		mMap.addMeasurement(mMeasurements[LEFT_FRONT], leftType);
+	} 
 
 	// for (unsigned int i = 0; i < mMeasurements.size(); ++i) {
 	// 	Measurement m = mMeasurements[i];
@@ -353,60 +379,60 @@ void Mapper::mapping() {
 	// 	}
 	// }
 
-	if((walls[RIGHT_BACK] == walls[RIGHT_FRONT]) && (walls[RIGHT_BACK] != NULL) && mRightNextToWall && mLeftNextToWall) {// && mMappingState == Mapping) {
-			// both measurements have been associated with the same wall
-			// TODO change position
-			WallSegment* wall = walls[RIGHT_BACK];
+	// if((walls[RIGHT_BACK] == walls[RIGHT_FRONT]) && (walls[RIGHT_BACK] != NULL) && mRightNextToWall && mLeftNextToWall) {// && mMappingState == Mapping) {
+	// 		// both measurements have been associated with the same wall
+	// 		// TODO change position
+	// 		WallSegment* wall = walls[RIGHT_BACK];
 			
-			// determine relative theta to the wall
-			float diffDist = mDistances.rightFront - mDistances.rightBack;
-			float meanDist = (mDistances.rightFront + mDistances.rightBack) / 2.0f;
-			float relativeTheta = atan(diffDist / IR_BASE_RIGHT);
-			// std::cout << "Old pose: x:" << mPose.x << " y:" << mPose.y << " theta: " << mPose.theta << std::endl;
-			// determine theta of the wall (orienation we are heading to)
-			float wallTheta = 0.0f;
-			if (wall->getType() == WallSegment::VERTICAL) {
+	// 		// determine relative theta to the wall
+	// 		float diffDist = mDistances.rightFront - mDistances.rightBack;
+	// 		float meanDist = (mDistances.rightFront + mDistances.rightBack) / 2.0f;
+	// 		float relativeTheta = atan(diffDist / IR_BASE_RIGHT);
+	// 		// std::cout << "Old pose: x:" << mPose.x << " y:" << mPose.y << " theta: " << mPose.theta << std::endl;
+	// 		// determine theta of the wall (orienation we are heading to)
+	// 		float wallTheta = 0.0f;
+	// 		if (wall->getType() == WallSegment::VERTICAL) {
 				
-				// std::cout << "wall x " << wall->getX() << " pose x " << mPose.x << std::endl;
-				float sideOfWall = 1.0f;
-				if (mPose.x <= wall->getX()) {
-					wallTheta = M_PI / 2.0f;
-					sideOfWall = -1.0f;
-				} else {
-					wallTheta = 3.0f / 2.0f * M_PI;
-				}
+	// 			// std::cout << "wall x " << wall->getX() << " pose x " << mPose.x << std::endl;
+	// 			float sideOfWall = 1.0f;
+	// 			if (mPose.x <= wall->getX()) {
+	// 				wallTheta = M_PI / 2.0f;
+	// 				sideOfWall = -1.0f;
+	// 			} else {
+	// 				wallTheta = 3.0f / 2.0f * M_PI;
+	// 			}
 
-				// now reset theta accordingly
-				mPose.theta = wallTheta + relativeTheta;
+	// 			// now reset theta accordingly
+	// 			mPose.theta = wallTheta + relativeTheta;
 
-				// now we want to reset the x coordinate
-				float normalDistToWall = cos(relativeTheta) * meanDist;
-				float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
-				mPose.x = wall->getX() + sideOfWall * centerDistToWall;
-			} else {
-				// std::cout << "wall y " << wall->getY() << " pose y " << mPose.y << std::endl;
-				float sideOfWall = 1.0f;
-				if (mPose.y <= wall->getY()) {
-					wallTheta = M_PI;
-					sideOfWall = -1.0f;
-				} else {
-					wallTheta = 0.0f;
-				}
+	// 			// now we want to reset the x coordinate
+	// 			float normalDistToWall = cos(relativeTheta) * meanDist;
+	// 			float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
+	// 			mPose.x = wall->getX() + sideOfWall * centerDistToWall;
+	// 		} else {
+	// 			// std::cout << "wall y " << wall->getY() << " pose y " << mPose.y << std::endl;
+	// 			float sideOfWall = 1.0f;
+	// 			if (mPose.y <= wall->getY()) {
+	// 				wallTheta = M_PI;
+	// 				sideOfWall = -1.0f;
+	// 			} else {
+	// 				wallTheta = 0.0f;
+	// 			}
 
-				// now reset theta accordingly
-				mPose.theta = wallTheta + relativeTheta;
+	// 			// now reset theta accordingly
+	// 			mPose.theta = wallTheta + relativeTheta;
 
-				// now we want to reset the y coordinate
-				float normalDistToWall = cos(relativeTheta) * meanDist;
-				float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
-				mPose.y = wall->getY() + sideOfWall * centerDistToWall;
-			}
+	// 			// now we want to reset the y coordinate
+	// 			float normalDistToWall = cos(relativeTheta) * meanDist;
+	// 			float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
+	// 			mPose.y = wall->getY() + sideOfWall * centerDistToWall;
+	// 		}
 
 			// std::cout << "New pose: x:" << mPose.x << " y:" << mPose.y << " theta: " << mPose.theta << std::endl;
 
 			// std::cout << "Wall theta " << wallTheta * (180.0f / M_PI) << ", relativeTheta: " << relativeTheta * (180.0f / M_PI)
 			// << " sum: " << (wallTheta + relativeTheta) * (180.0f / M_PI) << std::endl;
-	}
+		// }
 
 	cleanMap();
 	// mMap.print();
@@ -505,20 +531,21 @@ void testWallSegment() {
 
 	p.x = 10.0f;
 	p.y = 2.0f;
-	std::cout << "Point " << p.x << " " << p.y << " belongs to wall: " << wall->belongsToWall(sensor,p, intersection) << std::endl;
+	float t;
+	std::cout << "Point " << p.x << " " << p.y << " belongs to wall: " << wall->belongsToWall(sensor,p, intersection,t) << std::endl;
 
 	p.x = 0.86f;
 	p.y = -0.04f;
-	std::cout << "Point " << p.x << " " << p.y << " belongs to wall: " << wall->belongsToWall(sensor,p, intersection) << std::endl;
+	std::cout << "Point " << p.x << " " << p.y << " belongs to wall: " << wall->belongsToWall(sensor,p, intersection,t) << std::endl;
 
 
 	p.x = 0.86f;
 	p.y = 0.04f;
-	std::cout << "Point " << p.x << " " << p.y << " belongs to wall: " << wall->belongsToWall(sensor,p, intersection) << std::endl;	
+	std::cout << "Point " << p.x << " " << p.y << " belongs to wall: " << wall->belongsToWall(sensor,p, intersection,t) << std::endl;	
 	
 	p.x = 0.76f;
 	p.y = -0.02f;
-	std::cout << "Point " << p.x << " " << p.y << " belongs to wall: " << wall->belongsToWall(sensor,p, intersection) << std::endl;
+	std::cout << "Point " << p.x << " " << p.y << " belongs to wall: " << wall->belongsToWall(sensor,p, intersection, t) << std::endl;
 
 	delete wall;
 }

@@ -17,7 +17,7 @@ class WallSegment {
 		// intersection = fromA + t * (toA - fromA)
 		// and 
 		// intersection = fromB + s * (toB - fromB)
-		bool intersect(const Map::Point& fromA, const Map::Point& toA, const Map::Point& fromB, const Map::Point& toB, float& t, float& s) {
+		bool intersect(const Map::Point& fromA, const Map::Point& toA, const Map::Point& fromB, const Map::Point& toB, Map::Point& intersection, float& t, float& s) {
 			Map::Point dirA = toA - fromA;
 			Map::Point dirB = toB - fromB;
 			float det = dirB.y * dirA.x - dirB.x * dirA.y; 
@@ -25,6 +25,7 @@ class WallSegment {
 			Map::Point p = fromA - fromB;
 			s = 1.0f/det * (dirA.y * (-1.0f * p.x) + dirA.x * p.y);
 			t =  1.0f/det * (dirB.y * (-1.0f * p.x) + dirB.x * p.y);
+			intersection = fromB + dirB * s; 
 			return ((0.0f <= t) && (t <= 1.0f) && (0.0f <= s) && (s <= 1.0f));
 		}
 	
@@ -62,19 +63,18 @@ class WallSegment {
 		*/
 		bool belongsToWall(const Map::Point& sensor, const Map::Point& measurement, Map::Point& intersection, float& t) {
 			Map::Point dir = (measurement - sensor).normalized();
-			Map::Point errorMeasurement = measurement + dir * 0.04f;// set as constant, but linker doesn't allow that oO
+			Map::Point errorMeasurement = measurement + dir * 0.02f;// set as constant, but linker doesn't allow that oO
 			if (getType() == HORIZONTAL) {
 				dir.x = 1.0f;
 				dir.y = 0.0f;
 			} else {
 				dir.x = 0.0f;
-				dir.y = -1.0f;
+				dir.y = 1.0f;
 			}
 			Map::Point errorWallFrom = mFrom - dir * 0.04f;
 			Map::Point errorWallTo = mTo + dir * 0.04f;
 			float s;
-			bool associate = intersect(sensor, errorMeasurement, errorWallFrom, errorWallTo, t, s);
-			intersection = mFrom + dir * s;
+			bool associate = intersect(sensor, errorMeasurement, errorWallFrom, errorWallTo, intersection, t, s);
 			return associate;
 		}
 
