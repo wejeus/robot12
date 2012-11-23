@@ -46,7 +46,7 @@ def refresh(msg):
     (x, y, theta, nodeID, edges) = node
     start = transform(x,y)
     for nId in edges:
-      if (nId > nodeID):
+      if (nId > nodeID & nId >= 0 & nId < len(nodes)):
         endNode = nodes[nId]
         end = transform(endNode[0], endNode[1])
         pygame.draw.line(window,(100,0,0),start,end) 

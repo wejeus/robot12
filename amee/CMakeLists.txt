@@ -54,14 +54,14 @@ rosbuild_add_executable(Mapper src/Mapper/Mapper.cpp src/Mapper/Map.cpp src/Mapp
 #target_link_libraries(TagDetector opencv_core opencv_highgui opencv_imgproc opencv_video opencv_nonfree opencv_objdetect opencv_ml opencv_contrib)
 
 #rosbuild_add_executable(NodeKiller src/NodeKiller/NodeKiller.cpp)
-rosbuild_add_executable(Mapper src/Mapper/Mapper.cpp src/Mapper/Map.cpp src/Mapper/HorizontalWallSegment.cpp src/Mapper/VerticalWallSegment.cpp src/Graph/Graph.cpp src/Graph/Node.cpp src/Amee.cpp)
-#rosbuild_add_executable(TagDetector src/Camera/TagDetector.cpp)
-#target_link_libraries(TagDetector opencv_core opencv_highgui opencv_imgproc opencv_video opencv_nonfree opencv_objdetect opencv_ml opencv_contrib)
+rosbuild_add_executable(Mapper src/Mapper/Mapper.cpp src/Mapper/Map.cpp src/Mapper/HorizontalWallSegment.cpp src/Mapper/VerticalWallSegment.cpp src/Graph/Graph.cpp src/Amee.cpp)
+#rosbuild_add_executable(TestGraph src/Graph/TestGraphAlgo.cpp src/Graph/Graph.cpp src/Graph/PathFinderAlgo.cpp) #This is for debugging the Graph and PathFinderAlgo
+rosbuild_add_executable(TagDetector src/Camera/TagDetector.cpp)
+target_link_libraries(TagDetector opencv_core opencv_highgui opencv_imgproc opencv_video opencv_nonfree opencv_objdetect opencv_ml opencv_contrib)
 #rosbuild_add_executable(Recorder src/Camera/Recorder.cpp)
 #target_link_libraries(Recorder opencv_core opencv_highgui opencv_imgproc opencv_video opencv_nonfree opencv_objdetect opencv_ml opencv_contrib)
 
 #rosbuild_add_executable(SensorSync src/SensorSync/SensorSync.cpp)
-#target_link_libraries(TagDetector cv)
 
 #rosbuild_add_executable(CameraNode src/Camera/CameraNode.cpp)
 #target_link_libraries(CameraNode v4l2)

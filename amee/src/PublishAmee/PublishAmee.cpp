@@ -1,6 +1,7 @@
 #include "PublishAmee.h"
 
 using namespace amee;
+using namespace roboard_drivers;
 
 namespace amee{
 

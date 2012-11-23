@@ -32,11 +32,13 @@ class Mapper {
 		void setGraphPublisher(ros::Publisher pub);
 
 		enum MappingState {Pause, Mapping, Localizing};
-
+		
 		amee::Velocity sumControls;
 		int numControls;
 		amee::Velocity avgControls;
-	
+		
+		static const float IR_BASE_RIGHT = 0.104;
+		static const float ROBOT_RADIUS = 0.12f;
 	private:
 		ros::Publisher vis_pub;
 		ros::Publisher graph_pub;
@@ -51,6 +53,8 @@ class Mapper {
 		amee::Odometry mOdometry;
 		amee::Map mMap;
 		bool mInitialized;
+
+		bool mRotating;
 	
 		amee::Graph mGraph;
 		int mNodeId;
@@ -64,19 +68,12 @@ class Mapper {
 		// amee::Map::Point mCurrentPos; // current position in map coordinates
 		// float mCurrentAngle; // current angle in map coordinates
 
-		struct Measurement {
-			bool valid;
-			amee::Map::Point pos;
-		};
-
 		static const int RIGHT_FRONT = 1;
 		static const int RIGHT_BACK = 0;
 		static const int LEFT_FRONT = 2;
 		static const int LEFT_BACK = 3;
 
-		static const float IR_BASE_RIGHT = 0.104;
-
-		std::vector<Measurement> mMeasurements;
+		std::vector<Map::Measurement> mMeasurements;
 		std::vector<Map::Point> mTagPositions;
 
 		MapVisualization mVis;
