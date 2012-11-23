@@ -105,7 +105,7 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 		case amee::MoveFollowWall::HANDLE_EVIL_WALLS_IN:
 		case amee::MoveFollowWall::ALIGN_TO_FRONT_WALL_IN:
 		case amee::MoveFollowWall::T_INTERSECTION_HANDLING_IN:
-		case amee::MoveFollowWall::MOVE_TAIL_IN:
+		// case amee::MoveFollowWall::MOVE_TAIL_IN:
 		// case amee::MoveFollowWall::LOOK_FOR_BEGINNING_OF_WALL_IN:
 			mRotating = false;
 			mMappingState = Mapping;
