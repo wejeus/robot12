@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <cmath>
 
+//WARNING: see the headerfile
+
 using namespace amee;
 using namespace std;
 
