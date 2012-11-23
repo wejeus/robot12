@@ -11,6 +11,8 @@
 #include "Eigen/Eigen"
 //#include "roboard_drivers/Encoder"
 
+using namespace Eigen;
+
 void Localize::init() 
 {
 	controlSignal.left    = 0;

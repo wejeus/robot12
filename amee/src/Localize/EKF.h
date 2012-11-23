@@ -8,7 +8,7 @@
 #include "Eigen/Eigen"
 #include "roboard_drivers/Encoder.h"
 
-using namespace Eigen;
+//using namespace Eigen;
 
 namespace amee {
 
@@ -26,47 +26,47 @@ namespace amee {
 	public:
 
 		// EKF variablesx
-		Matrix<float,nos,1> mu;
-		Matrix<float,nos,1> mu_t_1;
-		Matrix<float,nos,1> mu_bar;
-		//Matrix<float,nos,1> mu_bar_t_1;
+		Eigen::Matrix<float,nos,1> mu;
+		Eigen::Matrix<float,nos,1> mu_t_1;
+		Eigen::Matrix<float,nos,1> mu_bar;
+		//Eigen::Matrix<float,nos,1> mu_bar_t_1;
 
-		Matrix<float,nos,nos> sigma;
-		Matrix<float,nos,nos> sigma_bar;
-		Matrix<float,nos,nos> sigma_t_1;
+		Eigen::Matrix<float,nos,nos> sigma;
+		Eigen::Matrix<float,nos,nos> sigma_bar;
+		Eigen::Matrix<float,nos,nos> sigma_t_1;
 
-		Matrix<float,noc,1> u;
-		Matrix<float,noc,1> u_t_1;
+		Eigen::Matrix<float,noc,1> u;
+		Eigen::Matrix<float,noc,1> u_t_1;
 
-		Matrix<float,nom,1> z;
-		Matrix<float,nom,1> z_hat;
-		Matrix<float,nom,1> z_t_1;
+		Eigen::Matrix<float,nom,1> z;
+		Eigen::Matrix<float,nom,1> z_hat;
+		Eigen::Matrix<float,nom,1> z_t_1;
 		
-		Matrix<float,nos,nos> G; // jacobian of g (motion model)
-		Matrix<float,nom,nos> H; // Jacobian of h ()
+		Eigen::Matrix<float,nos,nos> G; // jacobian of g (motion model)
+		Eigen::Matrix<float,nom,nos> H; // Jacobian of h ()
 
-		Matrix<float,nos,nom> K; // Kalman gain
+		Eigen::Matrix<float,nos,nom> K; // Kalman gain
 
-		Matrix<float,nos,nos> R; // Process noice
-		Matrix<float,nom,nom> Q; // Measurement noice
+		Eigen::Matrix<float,nos,nos> R; // Process noice
+		Eigen::Matrix<float,nom,nom> Q; // Measurement noice
 
-		Matrix<float,nos,nos> I;
+		Eigen::Matrix<float,nos,nos> I;
 
 
 		void init();
 
-		void setStartPose(Matrix<float,nos,1> mu, Matrix<float,nos,nos> sigma);
+		void setStartPose(Eigen::Matrix<float,nos,1> mu, Eigen::Matrix<float,nos,nos> sigma);
 
-		void setR(Matrix<float,nos,1> processNoise);
-		void setQ(Matrix<float,nom,1> measurementNoise);
+		void setR(Eigen::Matrix<float,nos,1> processNoise);
+		void setQ(Eigen::Matrix<float,nom,1> measurementNoise);
 
-		void setG(Matrix<float,nos,nos> gJacobian);
-		void setH(Matrix<float,nom,nos> hJacobian);
+		void setG(Eigen::Matrix<float,nos,nos> gJacobian);
+		void setH(Eigen::Matrix<float,nom,nos> hJacobian);
 
-		Matrix<float,nos,1> g(Matrix<float,noc,1> u, Matrix<float,nos,1> mu_t_1);
-		Matrix<float,nom,1> h(Matrix<float,nos,1> mu_bar, Matrix<float,nos,1> mu_t_1, Matrix<float,nom,1> z_t_1);
+		Eigen::Matrix<float,nos,1> g(Eigen::Matrix<float,noc,1> u, Eigen::Matrix<float,nos,1> mu_t_1);
+		Eigen::Matrix<float,nom,1> h(Eigen::Matrix<float,nos,1> mu_bar, Eigen::Matrix<float,nos,1> mu_t_1, Eigen::Matrix<float,nom,1> z_t_1);
 
-		Matrix<float,nom,nos> hJac(Matrix<float,nos,1> mu_bar, Matrix<float,nos,1> mu_t_1);
+		Eigen::Matrix<float,nom,nos> hJac(Eigen::Matrix<float,nos,1> mu_bar, Eigen::Matrix<float,nos,1> mu_t_1);
 		
 		void estimate(amee::Velocity controlSignal, amee::Pose measurement1, amee::Pose measuremnent2);
 		void setMeasurement1(amee::Pose measurement1);
@@ -85,7 +85,7 @@ namespace amee {
 
 		// used in motion model (g-function)
 		double lastTime;
-		Matrix<float,nos,1> movement;	
+		Eigen::Matrix<float,nos,1> movement;	
 
 	};
 }
