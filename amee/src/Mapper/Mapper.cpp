@@ -4,6 +4,8 @@
 #include "../MovementControl/MoveFollowWall.h"
 #include "WallSegment.h"
 #include "../Localize/EKF.h"
+#include "roboard_drivers/Motor.h"
+
 
 using namespace amee;
 
@@ -39,7 +41,10 @@ void Mapper::receive_tag(const amee::Tag::ConstPtr& msg) {
 
 void Mapper::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
 	
+	// save last odometry
 	Odometry lastOdometry = mOdometry;
+	
+	// Get odometry message
 	mOdometry.distance = msg->distance;
 	// mOdometry.x = msg->x;
 	// mOdometry.y = msg->y;
@@ -49,7 +54,8 @@ void Mapper::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
 	mOdometry.leftWheelDistance = msg->leftWheelDistance;
 	mOdometry.rightWheelDistance = msg->rightWheelDistance;
 	//std::cout << "Odometry " << mOdometry.x << " " << mOdometry.y << " " << mOdometry.angle << std::endl;
-	// set pose.theta based on angular change
+	
+	// Set pose.theta based on angular change and the corrected mPose.theta
 	float theta = mPose.theta + mOdometry.angle - lastOdometry.angle;
 	theta -= floor(theta / (2.0f * M_PI)) * 2.0f * M_PI; // move theta to [0,2PI]
 
@@ -57,11 +63,17 @@ void Mapper::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
 	float leftDistance = mOdometry.leftWheelDistance - lastOdometry.leftWheelDistance;
 	float rightDistance = mOdometry.rightWheelDistance - lastOdometry.rightWheelDistance;
 	float distance = (leftDistance + rightDistance) / 2.0f;
+
+	// do following 6 rows on 2 rows?
 	float odo_x = mPose.x;
 	float odo_y = mPose.y;
 
 	odo_x += cos(theta) * distance;
 	odo_y += sin(theta) * distance;
+
+	mPose.x = odo_x;
+	mPose.y = odo_y;	
+	mPose.theta = theta;
 
 	/******* KALMAN: calculate odometry measurement here *********/
 	mMeasurement1.x = odo_x;
@@ -74,7 +86,11 @@ void Mapper::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
 	mMeasurement2.theta = theta;
 
 	/******* KALMAN: give it to Kalman filter *********/
-	ekf.estimate(mControlSignal, mMeasurement1, mMeasurement2);
+	//ekf.estimate(mControlSignal, mMeasurement1, mMeasurement2);
+	ekf.estimate(avgControls, mMeasurement1, mMeasurement2);
+	numControls = 0;
+	sumControls.left = 0.0f;
+	sumControls.right = 0.0f;
 
 	/******* KALMAN: reset mPose with the new pose from the Kalman filter *********/
 	mPose = ekf.getPose();
@@ -133,9 +149,18 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 	}
 }
 
+//void Mapper::receive_control(const roboard_drivers::Motor::ConstPtr& msg) {
 void Mapper::receive_control(const amee::Velocity::ConstPtr& msg) {
 	mControlSignal.left = msg->left;
 	mControlSignal.right = msg->right;
+
+	sumControls.left  += mControlSignal.left;
+	sumControls.right += mControlSignal.right;
+	numControls += 1;
+	avgControls.left  = sumControls.left / (float)numControls;
+	avgControls.right = sumControls.right / (float)numControls;
+
+	//std::cout << "control signal callback: " << mControlSignal << std::endl;
 }
 
 void Mapper::addNode(int type) {
@@ -169,6 +194,11 @@ void Mapper::init() {
 
 		/******* KALMAN: initialize here *********/
 		ekf.init();
+		avgControls.left = 0.0f;
+		avgControls.right = 0.0f;
+		sumControls.left = 0.0f;
+		sumControls.right = 0.0f;
+		numControls = 0;
 	}
 	
 }
@@ -307,7 +337,7 @@ void Mapper::doMapping() {
 	if (mInitialized) {
 
 		calculateMeasurements();
-		checkIfNextToWall(); 
+		checkIfNextToWall();
 
 		switch(mMappingState) {
 			case Pause:
@@ -405,7 +435,7 @@ void Mapper::mapping() {
 				}
 
 				// now reset theta accordingly
-				// mPose.theta = wallTheta + relativeTheta;
+				mPose.theta = wallTheta + relativeTheta;
 
 				// now we want to reset the x coordinate
 				float normalDistToWall = cos(relativeTheta) * meanDist;
@@ -422,7 +452,7 @@ void Mapper::mapping() {
 				}
 
 				// now reset theta accordingly
-				// mPose.theta = wallTheta + relativeTheta;
+				mPose.theta = wallTheta + relativeTheta;
 
 				// now we want to reset the y coordinate
 				float normalDistToWall = cos(relativeTheta) * meanDist;
@@ -532,7 +562,8 @@ int main(int argc, char **argv)
 	ros::Subscriber odo_sub = n.subscribe("/amee/motor_control/odometry", 100, &Mapper::receiveOdometry, &mapper);
 	ros::Subscriber state_sub = n.subscribe("/amee/follow_wall_states",10, &Mapper::receive_FollowWallState, &mapper);
 	ros::Subscriber tag_sub = n.subscribe("/amee/tag",10, &Mapper::receive_tag, &mapper);
-	ros::Subscriber control_sub = n.subscribe("/amee/motor_control/set_wheel_velocities",10, &Mapper::receive_control, &mapper);
+	ros::Subscriber control_sub = n.subscribe("/amee/motor_control/set_wheel_velocities",10, &Mapper::receive_control, &mapper); // for kalman
+	//ros::Subscriber control_sub = n.subscribe("/serial/motor_speed",10, &Mapper::receive_control, &mapper); // for kalman
 
   	ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);
   	ros::Publisher graph_pub = n.advertise<amee::GraphMsg>("/amee/map/graph",10);

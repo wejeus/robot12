@@ -82,6 +82,11 @@ namespace amee {
 		amee::Pose mPose;	
 		amee::Pose mMeasurement1;
 		amee::Pose mMeasurement2;
+
+		// used in motion model (g-function)
+		double lastTime;
+		Matrix<float,nos,1> movement;	
+
 	};
 }
 #endif

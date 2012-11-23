@@ -96,45 +96,63 @@ amee::Pose EKF::getPose() {
 	return mPose;
 }
 
-Matrix<float,nos,1> EKF::g(Matrix<float,noc,1> u, Matrix<float,nos,1> mu_t_1) { // velocity motion model
+/* -- Velocity motion model --
+ * Inputs:
+ * mu_t_1 : Matrix(nos,1) : meters, meters, degrees               (-inf to inf), (-inf to inf), (0 to 360)
+ * u      : Matrix(noc,1) :	pwm velocity left, pwm velocity right (-1.0 to 1.0), (-1.0 to 1.0)
+ */
+Matrix<float,nos,1> EKF::g(Matrix<float,noc,1> u, Matrix<float,nos,1> mu_t_1) {
 
-	// inputs
-	// u:      velocity right/left (m/s) (pwm????????)
-	// mu_t_1: prev. state x,y,theta (m, m, degrees)
+	// Get time now in milliseconds
+	struct timeval time;
+	gettimeofday(&time, NULL);
+	double currTime = time.tv_sec+double(time.tv_usec)/1000000.0;
 
-	Matrix<float,nos,1> movement;
+	// Convert u from pwm to m/s
+	// set_wheel_velocities are in m/s!!!
+	//u = u * REVOLUTION_PER_SEC_LEFT * 2.0f*M_PI*WHEEL_RADIUS;
 
-	float dt     = 0.025f; // TODO: take from timestamps 
-	float v      = (u(0) + u(1)) / 2.0f;
-	float omega  = (u(0) - u(1)) / WHEEL_BASE;
-	float radius = v/omega;
+	// Help variables
+	float dt     = 0.03f; // TODO: take from timestamps 
+	//double dt   = currTime - lastTime;
+	float v     = (u(0) + u(1)) / 2.0f;		  // m/s
+	float omega = (u(0) - u(1)) / WHEEL_BASE; // rad/s
+	//float radius = v/omega;						// m
 
-	if(omega <= 0.001f) {
-		radius = 1.0f; // when omega is 0 the radius becomes inf, set it to something big instead (it will cancel out anyways)
-		omega = 0.0f;
-	}
+	// Fix division bu 0 for omega = 0
+	// if(omega <= 0.001f) {
+	// 	radius = 1.0f; // when omega is 0 the radius becomes inf, set it to something big instead (it will cancel out anyways)
+	// 	omega = 0.0f;
+	// }
 
-	float thetaR = mu_t_1(2) * M_PI/180.0f; // theta in radians (cos and sine takes in radians)
-	float omegaR = omega * M_PI/180.0f;
+	// Convert to radians
+	float thetaR = mu_t_1(2);// * M_PI/180.0f; // theta in radians (cos and sine takes in radians)
+	//float omegaR = omega; //omega * M_PI/180.0f;
 
 	// Velocity motion model. From probabilistic  robotics p. 127
-	movement(0) = -radius * sin(thetaR) + radius * sin(thetaR + omegaR*dt);
-	movement(1) =  radius * cos(thetaR) - radius * cos(thetaR + omegaR*dt);
-	movement(2) =  omega*dt * 180.0f/M_PI;
+	// movement(0) = -radius * sin(thetaR) + radius * sin(thetaR + omegaR*dt);
+	// movement(1) =  radius * cos(thetaR) - radius * cos(thetaR + omegaR*dt);
+	// movement(2) =  omega*dt * 180.0f/M_PI;
+
+	movement(0) = v*dt * cos(thetaR);
+	movement(1) = v*dt * sin(thetaR);
+	//movement(2) = omega*dt * 180.0f/M_PI;
+	movement(2) = tan(omega*dt);// * 180.0f/M_PI;
 
 	mu_bar = mu_t_1 + movement;
 
 	// Debug output
-	std::cout << "v: " << v << std::endl;
-	std::cout << "omega: " << omega << std::endl;
-	std::cout << "radius: " << radius << std::endl;
-	std::cout << "thetaR: " << thetaR << std::endl;
-	std::cout << "omegaR: " << omegaR << std::endl;
+	// std::cout << "v: " << v << std::endl;
+	// //std::cout << "omega: " << omega << std::endl;
+	// //std::cout << "radius: " << radius << std::endl;
+	// std::cout << "thetaR: " << thetaR << std::endl;
+	// //std::cout << "omegaR: " << omegaR << std::endl;
 
-	std::cout << "movement(0): " << movement(0) << std::endl;
-	std::cout << "movement(1): " << movement(1) << std::endl;
-	std::cout << "movement(2): " << movement(2) << std::endl;
+	// std::cout << "movement(0): " << movement(0) << std::endl;
+	// std::cout << "movement(1): " << movement(1) << std::endl;
+	// std::cout << "movement(2): " << movement(2) << std::endl;
 
+	lastTime = currTime;
 	return mu_bar;
 }
 
@@ -206,11 +224,16 @@ Matrix<float,nos,1> EKF::g(Matrix<float,noc,1> u, Matrix<float,nos,1> mu_t_1) { 
 // 	return H;
 // }
 
-// rewrite to work with general matrix sizes!!!
+
+/* Inputs:
+ * measurement    : Pose      : meters & degrees (-inf to inf) & (0 to 360)
+ * control signal : Velocity  :	pwm velocities (-1.0 to 1.0)
+ */
 void EKF::estimate(amee::Velocity controlSignal, amee::Pose measurement1, amee::Pose measurement2)
+// rewrite to work with general matrix sizes!!!
 {
 
-	std::cout << "---- New iteration ----" << std::endl;
+	//std::cout << "---- New iteration ----" << std::endl;
 	// TEST printout
 //	std::cout << "- Control signal: " << controlSignal.left << "   " << controlSignal.right << std::endl;
 //	std::cout << "- Measurement: " << measurement.left << "   " << measurement.right << std::endl;
@@ -223,9 +246,7 @@ void EKF::estimate(amee::Velocity controlSignal, amee::Pose measurement1, amee::
 	u(0) = controlSignal.left;
 	u(1) = controlSignal.right;
 
-	// Measurement (movement from last measurement)
-	// z(0) = measurement.left;
-	// z(1) = measurement.right;	
+	// Measurement (movement from last measurement)	
 	z(0) = measurement1.x;
 	z(1) = measurement1.y;
 	z(2) = measurement1.theta;
@@ -233,7 +254,7 @@ void EKF::estimate(amee::Velocity controlSignal, amee::Pose measurement1, amee::
 	z(4) = measurement2.y;
 	z(5) = measurement2.theta;
 	
-	std::cout << "- Functions print out " << std::endl;
+	//std::cout << "- Functions print out " << std::endl;
 
 	// --- EKF algorithm ---
 	// Predict state
@@ -261,32 +282,31 @@ void EKF::estimate(amee::Velocity controlSignal, amee::Pose measurement1, amee::
 	mu_t_1    = mu;
 	z_t_1     = z;
 
-	std::cout << std::endl << "- Algorithm print out " << std::endl;
-
-
 	// Debug output
-	std::cout << "u: " << controlSignal.left << "   " << controlSignal.right << std::endl;
+	// std::cout << std::endl << "- Algorithm print out " << std::endl;
 
-	std::cout << "mu_t_1(0): " << mu_t_1(0) << "   " << mu_t_1(1) << "   " << mu_t_1(2) << std::endl;	
-	std::cout << "mu_bar(0): " << mu_bar(0) << "   " << mu_bar(1) << "   " << mu_bar(2) << std::endl;	
+	// std::cout << "u: " << controlSignal.left << "   " << controlSignal.right << std::endl;
 
-	std::cout << "sigma_bar(0,0): " << sigma_bar(0,0) << "   " << sigma_bar(1,1) << "   " << sigma_bar(2,2) << std::endl;
-	std::cout << "sigma_t_1(0,0): " << sigma_t_1(0,0) << "   " << sigma_t_1(1,1) << "   " << sigma_t_1(2,2) << std::endl;
+	// std::cout << "mu_t_1(0): " << mu_t_1(0) << "   " << mu_t_1(1) << "   " << mu_t_1(2) << std::endl;	
+	// std::cout << "mu_bar(0): " << mu_bar(0) << "   " << mu_bar(1) << "   " << mu_bar(2) << std::endl;	
 
-	std::cout << "H: " << H(0,0) << "  " << H(0,1) << "  " << H(0,2) << std::endl;
-	std::cout << "H: " << H(1,0) << "  " << H(1,1) << "  " << H(1,2) << std::endl;
+	// std::cout << "sigma_bar(0,0): " << sigma_bar(0,0) << "   " << sigma_bar(1,1) << "   " << sigma_bar(2,2) << std::endl;
+	// std::cout << "sigma_t_1(0,0): " << sigma_t_1(0,0) << "   " << sigma_t_1(1,1) << "   " << sigma_t_1(2,2) << std::endl;
 
-	std::cout << "K: " << K(0,0) << "  " << K(0,1) << std::endl;
-	std::cout << "K: " << K(1,0) << "  " << K(1,1) << std::endl;
-	std::cout << "K: " << K(2,0) << "  " << K(2,1) << std::endl;
+	// std::cout << "H: " << H(0,0) << "  " << H(0,1) << "  " << H(0,2) << std::endl;
+	// std::cout << "H: " << H(1,0) << "  " << H(1,1) << "  " << H(1,2) << std::endl;
+
+	// std::cout << "K: " << K(0,0) << "  " << K(0,1) << std::endl;
+	// std::cout << "K: " << K(1,0) << "  " << K(1,1) << std::endl;
+	// std::cout << "K: " << K(2,0) << "  " << K(2,1) << std::endl;
 
 //	std::cout << "z: " << measurement.left << "   " << measurement.right << std::endl;
-	std::cout << "z_hat: " << z_hat(0) << "    " << z_hat(1) << std::endl;
+	// std::cout << "z_hat: " << z_hat(0) << "    " << z_hat(1) << std::endl;
 
-	std::cout << "mu: " << mu_t_1(0) << "   " << mu_t_1(1) << "   " << mu_t_1(2) << std::endl;
-	std::cout << "sigma: " << sigma(0,0) << "   " << sigma(1,1) << "   " << sigma(2,2) << "   " << std::endl;
+	// std::cout << "mu: " << mu_t_1(0) << "   " << mu_t_1(1) << "   " << mu_t_1(2) << std::endl;
+	// std::cout << "sigma: " << sigma(0,0) << "   " << sigma(1,1) << "   " << sigma(2,2) << "   " << std::endl;
 
-	// --- Copy data to pose types ---
+	// --- Copy data to Pose types ---
 	mPose.x = mu(0);
 	mPose.y = mu(1);
 	mPose.theta = mu(2);

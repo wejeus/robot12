@@ -11,6 +11,7 @@
 #include "amee/MapVisualization.h"
 #include "../Graph/Graph.h"
 #include "../Localize/EKF.h"
+#include "roboard_drivers/Motor.h"
 
 namespace amee {
 
@@ -23,6 +24,7 @@ class Mapper {
 		void receiveOdometry(const amee::Odometry::ConstPtr &msg);
 		void receive_tag(const amee::Tag::ConstPtr &msg);
 		void receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg);
+		//void receive_control(const roboard_drivers::Motor::ConstPtr& msg);
 		void receive_control(const amee::Velocity::ConstPtr& msg);
 		void doMapping();
 		void init();
@@ -30,6 +32,10 @@ class Mapper {
 		void setGraphPublisher(ros::Publisher pub);
 
 		enum MappingState {Pause, Mapping, Localizing};
+
+		amee::Velocity sumControls;
+		int numControls;
+		amee::Velocity avgControls;
 	
 	private:
 		ros::Publisher vis_pub;
