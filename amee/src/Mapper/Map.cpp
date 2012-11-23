@@ -65,11 +65,11 @@ void Map::reduceNumWalls(const Point& pos, float distance) {
 				iterHor = prevHorizontal;
 				delete wall;
 			}
-		} else if (wall->isSmall()) {
-			iterHor = mHorizontalWalls.erase(iterHor);
-			--iterHor; // decrease iterHor so that we don't skip a wall
-			delete wall;
-		}	
+		}// else if (wall->isSmall()) {
+		// 	iterHor = mHorizontalWalls.erase(iterHor);
+		// 	--iterHor; // decrease iterHor so that we don't skip a wall
+		// 	delete wall;
+		// }	
 		prevHorizontal = iterHor;
 	}
 
@@ -87,17 +87,17 @@ void Map::reduceNumWalls(const Point& pos, float distance) {
 				iterVer = prevVertical;
 				delete wall;
 			}
-		} else if (wall->isSmall()) {
-			iterVer = mVerticalWalls.erase(iterVer);
-			--iterVer; // decrease iterHor so that we don't skip a wall
-			delete wall;
-		}	
+		} //else if (wall->isSmall()) {
+		// 	iterVer = mVerticalWalls.erase(iterVer);
+		// 	--iterVer; // decrease iterHor so that we don't skip a wall
+		// 	delete wall;
+		// }	
 		prevVertical = iterVer;
 	}
 }
 		
 	// Localizes the robot based on the given pose and measurements in the map. If localizing is not successfull outPose = inPose
-void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& measurements, amee::Pose& outPose) {
+void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& measurements, amee::Pose& outPose, bool left, bool right) {
 	//TODO
 	outPose = inPose;
 	Point leftBack, leftFront, rightBack, rightFront;
@@ -134,7 +134,7 @@ void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& me
 	}
 	
 	Pose rightEstimate = inPose;
-	if (rightFrontWall && rightBackWall && (matchRB == matchRF)) { // measurements on the right side belong to the same wall
+	if (rightFrontWall && rightBackWall && (matchRB == matchRF) && right) { // measurements on the right side belong to the same wall
 		
 		rightPoseEstimated = true;
 
@@ -166,7 +166,7 @@ void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& me
 	}
 
 	Pose leftEstimate = inPose;
-	if (leftFrontWall && leftBackWall && (matchLB == matchLF)) { // measurements on the left side belong to the same wall
+	if (leftFrontWall && leftBackWall && (matchLB == matchLF) && left) { // measurements on the left side belong to the same wall
 		
 		leftPoseEstimated = true;
 

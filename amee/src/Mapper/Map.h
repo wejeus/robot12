@@ -108,13 +108,15 @@ class Map {
 		void addMeasurement(const Measurement& m, int newWallType);
 		
 		// Localizes the robot based on the given pose and measurements in the map. If localizing is not successfull outPose = inPose
-		void localize(const amee::Pose& inPose, const MeasurementSet& measurements, amee::Pose& outPose);
+		void localize(const amee::Pose& inPose, const MeasurementSet& measurements, amee::Pose& outPose, bool left, bool right);
 		void print();
 		void getVisualization(MapVisualization& vis);
 		/** Tries to reduce the number of walls by unifying walls that are close to the given pos (if the seem to be one wall)
 			and removes small walls that are far from the given pos. 
 		*/
 		void reduceNumWalls(const Point& pos, float distance);
+
+		bool isPathCollisionFree(const Point& start, const Point& end, float radius);
 		Map();
 		~Map();
 	

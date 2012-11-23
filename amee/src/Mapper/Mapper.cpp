@@ -329,34 +329,21 @@ void Mapper::doMapping() {
 }
 
 void Mapper::mapping() {
-	// if (!mInitialized) {
-	// 	return;
-	// }
-	// // set origin
-	// mCurrentPos.x = mPose.x - mStartPos.x;
-	// mCurrentPos.y = mPose.y - mStartPos.y;
-	Map::MeasurementSet mset;
-	mset.leftBack = mMeasurements[LEFT_BACK];
-	mset.leftFront = mMeasurements[LEFT_FRONT];
-	mset.rightBack = mMeasurements[RIGHT_BACK];
-	mset.rightFront = mMeasurements[RIGHT_FRONT];
-	
-	amee::Pose newPose;
-	mMap.localize(mPose, mset, newPose);
-	//mPose = newPose;
-	if (mRightNextToWall && !mRotating) { // TODO fixme
-		// mPose.theta = newPose.theta;	
+
+	if (!mRotating) {
+		Map::MeasurementSet mset;
+		mset.leftBack = mMeasurements[LEFT_BACK];
+		mset.leftFront = mMeasurements[LEFT_FRONT];
+		mset.rightBack = mMeasurements[RIGHT_BACK];
+		mset.rightFront = mMeasurements[RIGHT_FRONT];
+		amee::Pose newPose;
+		float irDiff = fabs(mset.rightBack.dist - mset.rightFront.dist);
+		bool rightOk = mRightNextToWall && (irDiff < 0.015f);
+		irDiff = fabs(mset.leftBack.dist - mset.leftFront.dist);
+		bool leftOk = mLeftNextToWall && (irDiff < 0.015f);
+		mMap.localize(mPose, mset, newPose, leftOk, rightOk);
 		mPose = newPose;
 	}
-	
-	// std::cout << "old theta " << mPose.theta << " new one: " << newPose.theta << std::endl;
-
-	
-	// rotate odometry coordinate system so that it is parallel to the map's system
-	//mCurrentPos.rotate(-mStartAngle); 
-	// mCurrentAngle = mPose.theta;// - mStartAngle;
-	 // std::cout << "Current pose in maze: " << mPose.x << ", " << mPose.y << ", " << mPose.theta << std::endl;
-	 // std::cout << "Current angle in maze: " << mPose.theta * (180.0f / M_PI) << std::endl;
 
 	int leftType = 0;
 	int rightType = 0;
@@ -378,73 +365,8 @@ void Mapper::mapping() {
 		mMap.addMeasurement(mMeasurements[LEFT_FRONT], leftType);
 	} 
 
-	// for (unsigned int i = 0; i < mMeasurements.size(); ++i) {
-	// 	Measurement m = mMeasurements[i];
-	// 	// std::cout << i <<": is valid? " << m.valid << " x " << m.pos.x << " y " << m.pos.y << std::endl;
-	// 	if (m.valid) {
-	// 		walls[i] = mMap.addMeasurement(m.pos, newType);
-	// 	} else {
-	// 		walls[i] = NULL;
-	// 	}
-	// }
-
-	// if((walls[RIGHT_BACK] == walls[RIGHT_FRONT]) && (walls[RIGHT_BACK] != NULL) && mRightNextToWall && mLeftNextToWall) {// && mMappingState == Mapping) {
-	// 		// both measurements have been associated with the same wall
-	// 		// TODO change position
-	// 		WallSegment* wall = walls[RIGHT_BACK];
-			
-	// 		// determine relative theta to the wall
-	// 		float diffDist = mDistances.rightFront - mDistances.rightBack;
-	// 		float meanDist = (mDistances.rightFront + mDistances.rightBack) / 2.0f;
-	// 		float relativeTheta = atan(diffDist / IR_BASE_RIGHT);
-	// 		// std::cout << "Old pose: x:" << mPose.x << " y:" << mPose.y << " theta: " << mPose.theta << std::endl;
-	// 		// determine theta of the wall (orienation we are heading to)
-	// 		float wallTheta = 0.0f;
-	// 		if (wall->getType() == WallSegment::VERTICAL) {
-				
-	// 			// std::cout << "wall x " << wall->getX() << " pose x " << mPose.x << std::endl;
-	// 			float sideOfWall = 1.0f;
-	// 			if (mPose.x <= wall->getX()) {
-	// 				wallTheta = M_PI / 2.0f;
-	// 				sideOfWall = -1.0f;
-	// 			} else {
-	// 				wallTheta = 3.0f / 2.0f * M_PI;
-	// 			}
-
-	// 			// now reset theta accordingly
-	// 			mPose.theta = wallTheta + relativeTheta;
-
-	// 			// now we want to reset the x coordinate
-	// 			float normalDistToWall = cos(relativeTheta) * meanDist;
-	// 			float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
-	// 			mPose.x = wall->getX() + sideOfWall * centerDistToWall;
-	// 		} else {
-	// 			// std::cout << "wall y " << wall->getY() << " pose y " << mPose.y << std::endl;
-	// 			float sideOfWall = 1.0f;
-	// 			if (mPose.y <= wall->getY()) {
-	// 				wallTheta = M_PI;
-	// 				sideOfWall = -1.0f;
-	// 			} else {
-	// 				wallTheta = 0.0f;
-	// 			}
-
-	// 			// now reset theta accordingly
-	// 			mPose.theta = wallTheta + relativeTheta;
-
-	// 			// now we want to reset the y coordinate
-	// 			float normalDistToWall = cos(relativeTheta) * meanDist;
-	// 			float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
-	// 			mPose.y = wall->getY() + sideOfWall * centerDistToWall;
-	// 		}
-
-			// std::cout << "New pose: x:" << mPose.x << " y:" << mPose.y << " theta: " << mPose.theta << std::endl;
-
-			// std::cout << "Wall theta " << wallTheta * (180.0f / M_PI) << ", relativeTheta: " << relativeTheta * (180.0f / M_PI)
-			// << " sum: " << (wallTheta + relativeTheta) * (180.0f / M_PI) << std::endl;
-		// }
-
 	cleanMap();
-	// mMap.print();
+	mMap.print();
 }
 
 void Mapper::followedWallDirection(int& left, int& right) {
