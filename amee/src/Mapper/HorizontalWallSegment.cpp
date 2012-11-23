@@ -71,6 +71,14 @@ bool HorizontalWallSegment::mergeWall(WallSegment* wall) {
 	return true;
 }
 
+bool HorizontalWallSegment::leftOf(HorizontalWallSegment* wall) {
+	return mFrom.x < wall->mFrom.x;
+}
+
+bool HorizontalWallSegment::belowOf(HorizontalWallSegment* wall) {
+	return mFrom.y < wall->mFrom.y;
+}
+
 bool HorizontalWallSegment::addMeasurement(const Map::Point& p) {
 	// if (isInRange(p)) {
 		++mNumberOfPoints;
@@ -92,7 +100,8 @@ int HorizontalWallSegment::getType() {
 
 bool HorizontalWallSegment::isSmall() {
 	float length = mTo.x - mFrom.x;
-	return (length/(float)mNumberOfPoints < SMALL_THRESHOLD) && !(length > SMALL_LENGTH);
+	// return (length/(float)mNumberOfPoints < SMALL_THRESHOLD) && !(length > SMALL_LENGTH);
+	return length <= SMALL_LENGTH;
 }
 
 float HorizontalWallSegment::getX() {

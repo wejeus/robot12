@@ -64,6 +64,7 @@ class WallSegment {
 		bool belongsToWall(const Map::Point& sensor, const Map::Point& measurement, Map::Point& intersection, float& t) {
 			Map::Point dir = (measurement - sensor).normalized();
 			Map::Point errorMeasurement = measurement + dir * 0.03f;// set as constant, but linker doesn't allow that oO
+			Map::Point errorSensor = sensor - dir * 0.11f; // this is in the middle of the robot. This is to even detect a wall if we have a huge error in our position estimation. 
 			if (getType() == HORIZONTAL) {
 				dir.x = 1.0f;
 				dir.y = 0.0f;
@@ -74,7 +75,7 @@ class WallSegment {
 			Map::Point errorWallFrom = mFrom - dir * 0.03f;
 			Map::Point errorWallTo = mTo + dir * 0.03f;
 			float s;
-			bool associate = intersect(sensor, errorMeasurement, errorWallFrom, errorWallTo, intersection, t, s);
+			bool associate = intersect(errorSensor, errorMeasurement, errorWallFrom, errorWallTo, intersection, t, s);
 			return associate;
 		}
 

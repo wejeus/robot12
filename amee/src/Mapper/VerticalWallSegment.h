@@ -20,6 +20,8 @@ class VerticalWallSegment : public WallSegment{
 		virtual int getType();
 		virtual bool isSmall();
 		virtual bool mergeWall(WallSegment* wall);
+		bool belowOf(VerticalWallSegment* wall);
+		bool leftOf(VerticalWallSegment* wall);
 	private:
 		unsigned int mNumberOfPoints;
 		float mXAcc;

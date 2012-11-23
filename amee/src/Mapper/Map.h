@@ -9,6 +9,8 @@
 namespace amee {
 
 class WallSegment;
+class HorizontalWallSegment;
+class VerticalWallSegment;
 
 class Map {
 
@@ -117,11 +119,13 @@ class Map {
 		~Map();
 	
 	private:
-		std::list<WallSegment*> mWalls;
+		std::list<HorizontalWallSegment*> mHorizontalWalls;
+		std::list<VerticalWallSegment*> mVerticalWalls;
 		WallSegment* findBestMatch(const Measurement& m, Point& intersection);
-		float getAngle(const Point& dir);
 		float moveAngleToInterval02PI(float theta);
-		float getWallAngle(const Pose& pose, WallSegment* wall);
+		float getWallAngle(const Pose& pose, WallSegment* wall, bool left);
+		void insertHorizontal(HorizontalWallSegment* wall);
+		void insertVertical(VerticalWallSegment* wall);
 	};
 }
 #endif

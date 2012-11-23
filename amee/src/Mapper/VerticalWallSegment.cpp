@@ -71,9 +71,18 @@ bool VerticalWallSegment::mergeWall(WallSegment* wall) {
 
 }
 
+bool VerticalWallSegment::leftOf(VerticalWallSegment* wall) {
+	return mFrom.x < wall->mFrom.x;
+}
+
+bool VerticalWallSegment::belowOf(VerticalWallSegment* wall) {
+	return mFrom.y < wall->mFrom.y;
+}
+
 bool VerticalWallSegment::isSmall() {
 	float length = mTo.y - mFrom.y;
-	return (length/(float)mNumberOfPoints < SMALL_THRESHOLD) && !(length > SMALL_LENGTH);
+	// return (length/(float)mNumberOfPoints < SMALL_THRESHOLD) && !(length > SMALL_LENGTH);
+	return length <= SMALL_LENGTH;
 }
 
 bool VerticalWallSegment::addMeasurement(const Map::Point& p) {

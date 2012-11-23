@@ -454,6 +454,9 @@ void Mapper::followedWallDirection(int& left, int& right) {
 	float theta = mPose.theta;
 	left = WallSegment::NONE;
 	right = WallSegment::NONE;
+	if (mRotating) { // maybe remove again
+		return;
+	}
 	if (mMappingState == Mapping) {
 		if ((fabs(theta) <= M_PI/5.0f) || (fabs(theta - M_PI) <= M_PI/5.0f)) {
 			if (mRightNextToWall) {
