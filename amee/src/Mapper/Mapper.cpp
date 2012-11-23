@@ -80,17 +80,17 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 			break;
 		case amee::MoveFollowWall::ALIGN_TO_WALL_OUT:
 			init(); //  only does sth if not initialized
-			type = amee::Node::NODE_NEXT_TO_WALL;
+			type = amee::Graph::NODE_NEXT_TO_WALL;
 			addNode(type);
 			mRotating = false;
 			mMappingState = Mapping;
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_OUT:
-			if(mInitialized) addNode(amee::Node::NODE_NEXT_TO_WALL);
+			if(mInitialized) addNode(amee::Graph::NODE_NEXT_TO_WALL);
 			// mMappingState = Pause;
 			break;
 		case amee::MoveFollowWall::ROTATE_LEFT_IN:
-			type = amee::Node::NODE_ROTATE_LEFT;
+			type = amee::Graph::NODE_ROTATE_LEFT;
 			mRotating = true;
 			if (mInitialized) addNode(type);
 			mMappingState = Mapping;
@@ -98,7 +98,7 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 		case amee::MoveFollowWall::ROTATE_RIGHT_IN:
 			mRotating = true;
 			mMappingState = Mapping;
-			type = amee::Node::NODE_ROTATE_RIGHT;
+			type = amee::Graph::NODE_ROTATE_RIGHT;
 			if (mInitialized) addNode(type);
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_IN:
@@ -116,14 +116,11 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 }
 
 void Mapper::addNode(int type) {
-	amee::Node n(mPose,mNodeId);
-	n.setType(type);
-	mGraph.addNode(n);
+	mNodeId = mGraph.addNode(mPose, type);
 	if (mLastNodeId != -1) {
-		mGraph.connectNodes(mNodeId, mLastNodeId);
+		mGraph.addEdges(mNodeId, mLastNodeId);
 	} 
 	mLastNodeId = mNodeId;
-	mNodeId++;
 }
 
 void Mapper::init() {
@@ -292,7 +289,7 @@ void Mapper::visualize() {
 
 		vis_pub.publish(mVis);
 
-		graph_pub.publish(mGraph.getGraphMsg());
+		graph_pub.publish(mGraph.getMessage());
 
 	}
 	++mVisualizeTimer;
@@ -347,7 +344,7 @@ void Mapper::mapping() {
 	amee::Pose newPose;
 	mMap.localize(mPose, mset, newPose);
 	//mPose = newPose;
-	if (mRightNextToWall && !mRotating) {
+	if (mRightNextToWall && !mRotating) { // TODO fixme
 		// mPose.theta = newPose.theta;	
 		mPose = newPose;
 	}
