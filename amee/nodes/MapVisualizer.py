@@ -46,7 +46,7 @@ def refresh(msg):
     (x, y, theta, nodeID, edges) = node
     start = transform(x,y)
     for nId in edges:
-      if (nId > nodeID & nId >= 0 & nId < len(nodes)):
+      if (nId > nodeID and nId >= 0 and nId < len(nodes)):
         endNode = nodes[nId]
         end = transform(endNode[0], endNode[1])
         pygame.draw.line(window,(100,0,0),start,end) 
@@ -70,7 +70,12 @@ def findScaleAndOffset(msg):
   maxY = max(maxY,msg.robotPose.y)
   minX = min(minX,msg.robotPose.x)
   minY = min(minY,msg.robotPose.y)
-  scale = (resolution[0] / abs(maxX - minX), resolution[1] / abs(maxY - minY))
+  xLength = abs(maxX - minX)
+  yLength = abs(maxY - minY)
+  if (xLength == 0 or yLength == 0):
+    scale = (1,1)
+  else:
+    scale = (resolution[0] / xLength, resolution[1] / yLength)
   if (scale[0] * 0.12 > 1/4 * resolution[0]): #the robot is half of the screen!
     scale = (resolution[0] / 4, resolution[1] / 4)
   offset = (abs(minX * scale[0]) + border[0], abs(minY * scale[1]) + border[1])
