@@ -95,6 +95,10 @@ void Map::reduceNumWalls(const Point& pos, float distance) {
 		prevVertical = iterVer;
 	}
 }
+
+bool Map::isPathCollisionFree(const Point& start, const Point& end, float radius) {
+	
+}
 		
 	// Localizes the robot based on the given pose and measurements in the map. If localizing is not successfull outPose = inPose
 void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& measurements, amee::Pose& outPose, bool left, bool right) {
@@ -207,11 +211,7 @@ void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& me
 		outPose = rightEstimate;
 	}
 
-    outPose.theta =  moveAngleToInterval02PI(outPose.theta);// move theta to [0,2PI]
-	
-	// TODO left estimation
-
-	
+    outPose.theta =  moveAngleToInterval02PI(outPose.theta);// move theta to [0,2PI]	
 }
 
 float Map::getWallAngle(const Pose& pose, WallSegment* wall, bool left) {
