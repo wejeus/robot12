@@ -117,9 +117,9 @@ float HorizontalWallSegment::distanceTo(const Map::Point& pos) {
 	if ((pos.x <= mTo.x) && (pos.x >= mFrom.x)) {
 		return fabs(pos.y - mFrom.y);
 	} else if (pos.x < mFrom.x) {
-		return sqrt((pos.x - mFrom.x) * (pos.x - mFrom.x) + (pos.y - mFrom.y) + (pos.y - mFrom.y));
+		return sqrt((pos.x - mFrom.x) * (pos.x - mFrom.x) + (pos.y - mFrom.y) * (pos.y - mFrom.y));
 	}
-	return sqrt((pos.x - mTo.x) * (pos.x - mTo.x) + (pos.y - mTo.y) + (pos.y - mTo.y));
+	return sqrt((pos.x - mTo.x) * (pos.x - mTo.x) + (pos.y - mTo.y) * (pos.y - mTo.y));
 }
 
 bool HorizontalWallSegment::isInRange(const Map::Point& pos) {

@@ -117,9 +117,9 @@ float VerticalWallSegment::distanceTo(const Map::Point& pos) {
 	if ((pos.y >= mFrom.y) && (pos.y <= mTo.y)) {
 		return fabs(pos.x - mFrom.x);
 	} else if (pos.y < mFrom.y) {
-		return sqrt((pos.x - mFrom.x) * (pos.x - mFrom.x) + (pos.y - mFrom.y) + (pos.y - mFrom.y));
+		return sqrt((pos.x - mFrom.x) * (pos.x - mFrom.x) + (pos.y - mFrom.y) * (pos.y - mFrom.y));
 	}
-	return sqrt((pos.x - mTo.x) * (pos.x - mTo.x) + (pos.y - mTo.y) + (pos.y - mTo.y));
+	return sqrt((pos.x - mTo.x) * (pos.x - mTo.x) + (pos.y - mTo.y) * (pos.y - mTo.y));
 }
 
 bool VerticalWallSegment::isInRange(const Map::Point& pos) {
