@@ -1,4 +1,5 @@
 #include "HorizontalWallSegment.h"
+#include <cmath>
 
 using namespace amee;
 
@@ -60,8 +61,8 @@ bool HorizontalWallSegment::mergeWall(WallSegment* wall) {
 	// if we reached this point, we want to merge the walls.
 
 	// this is done by setting this wall to the new merged wall, the other wall can be deleted (not here).
-	mFrom = lowerFrom;
-	mTo = upperTo;
+	mFrom.x = std::min(lowerFrom.x, upperFrom.x);
+	mTo.x = std::max(lowerTo.x, upperTo.x);
 
 	mYAcc += vWall->mYAcc;
 	mNumberOfPoints += vWall->mNumberOfPoints;
@@ -71,8 +72,16 @@ bool HorizontalWallSegment::mergeWall(WallSegment* wall) {
 	return true;
 }
 
+bool HorizontalWallSegment::leftOf(HorizontalWallSegment* wall) {
+	return mFrom.x < wall->mFrom.x;
+}
+
+bool HorizontalWallSegment::belowOf(HorizontalWallSegment* wall) {
+	return mFrom.y < wall->mFrom.y;
+}
+
 bool HorizontalWallSegment::addMeasurement(const Map::Point& p) {
-	if (isInRange(p)) {
+	// if (isInRange(p)) {
 		++mNumberOfPoints;
 		
 		mFrom.x = mFrom.x < p.x ? mFrom.x : p.x;
@@ -82,8 +91,8 @@ bool HorizontalWallSegment::addMeasurement(const Map::Point& p) {
 		mFrom.y = mYAcc / mNumberOfPoints;
 		mTo.y = mFrom.y; 
 		return true;
-	} 
-	return false;
+	// } 
+	// return false;
 }
 
 int HorizontalWallSegment::getType() {
@@ -92,7 +101,8 @@ int HorizontalWallSegment::getType() {
 
 bool HorizontalWallSegment::isSmall() {
 	float length = mTo.x - mFrom.x;
-	return (length/(float)mNumberOfPoints < SMALL_THRESHOLD) && !(length > SMALL_LENGTH);
+	// return (length/(float)mNumberOfPoints < SMALL_THRESHOLD) && !(length > SMALL_LENGTH);
+	return length <= SMALL_LENGTH;
 }
 
 float HorizontalWallSegment::getX() {
@@ -104,12 +114,12 @@ float HorizontalWallSegment::getY() {
 }
 
 float HorizontalWallSegment::distanceTo(const Map::Point& pos) {
-	if (pos.x < mFrom.x || pos.x > mTo.x) {
-		return pos.y - mFrom.y;
+	if ((pos.x <= mTo.x) && (pos.x >= mFrom.x)) {
+		return fabs(pos.y - mFrom.y);
 	} else if (pos.x < mFrom.x) {
-		return sqrt((pos.x - mFrom.x) * (pos.x - mFrom.x) + (pos.y - mFrom.y) + (pos.y - mFrom.y));
+		return sqrt((pos.x - mFrom.x) * (pos.x - mFrom.x) + (pos.y - mFrom.y) * (pos.y - mFrom.y));
 	}
-	return sqrt((pos.x - mTo.x) * (pos.x - mTo.x) + (pos.y - mTo.y) + (pos.y - mTo.y));
+	return sqrt((pos.x - mTo.x) * (pos.x - mTo.x) + (pos.y - mTo.y) * (pos.y - mTo.y));
 }
 
 bool HorizontalWallSegment::isInRange(const Map::Point& pos) {

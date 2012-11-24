@@ -14,9 +14,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-using namespace amee;
-using namespace roboard_drivers;
-
 namespace amee{
 
 	class PublishAmee{

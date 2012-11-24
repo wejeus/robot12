@@ -6,31 +6,40 @@
 #include "amee/FollowWallStates.h"
 #include "amee/Odometry.h"
 #include "amee/Tag.h"
+#include "amee/MapperCommand.h"
 #include "Map.h"
 #include <vector>
 #include "amee/MapVisualization.h"
 #include "../Graph/Graph.h"
+#include <list>
 
 namespace amee {
 
 class Mapper {
 
 	public:
-		Mapper(ros::Publisher pub);
+		Mapper();
 		~Mapper();
 		void receive_distances(const amee::IRDistances::ConstPtr &msg);
 		void receiveOdometry(const amee::Odometry::ConstPtr &msg);
 		void receive_tag(const amee::Tag::ConstPtr &msg);
 		void receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg);
+		void receive_MapperCommand(const amee::MapperCommand::ConstPtr &msg);
 		void doMapping();
 		void init();
+		void findEdges();
 		void setVisualizationPublisher(ros::Publisher pub);
 		void setGraphPublisher(ros::Publisher pub);
 
-		enum MappingState {Pause, NextToWall, Rotating};
+		enum MappingState {Pause, PauseMapping, Mapping, Localizing};
+
+		static const float IR_BASE_RIGHT = 0.104;
+		static const float ROBOT_RADIUS = 0.12f;
+		enum MapperCommandType {
+			MapCommand, PauseCommand, FindEdgesCommand, LocalizeCommand, FindEdgesToUnexploredCommand
+		};
 	
 	private:
-		ros::Publisher map_pub;
 		ros::Publisher vis_pub;
 		ros::Publisher graph_pub;
 
@@ -39,6 +48,11 @@ class Mapper {
 		amee::Odometry mOdometry;
 		amee::Map mMap;
 		bool mInitialized;
+
+		bool mRotating;
+
+		std::list<int> mNewNodes;
+		std::list<int> mOldNodes;
 	
 		amee::Graph mGraph;
 		int mNodeId;
@@ -52,30 +66,29 @@ class Mapper {
 		// amee::Map::Point mCurrentPos; // current position in map coordinates
 		// float mCurrentAngle; // current angle in map coordinates
 
-		struct Measurement {
-			bool valid;
-			amee::Map::Point pos;
-		};
-
 		static const int RIGHT_FRONT = 1;
 		static const int RIGHT_BACK = 0;
 		static const int LEFT_FRONT = 2;
 		static const int LEFT_BACK = 3;
 
-		static const float IR_BASE_RIGHT = 0.104;
-
-		std::vector<Measurement> mMeasurements;
+		std::vector<Map::Measurement> mMeasurements;
 		std::vector<Map::Point> mTagPositions;
 
 		MapVisualization mVis;
+
+		float mLeftWallStartDist;
+		float mRightWallStartDist;
+		bool mLeftNextToWall;
+		bool mRightNextToWall;
 
 		void calculateMeasurements();
 		bool isValidDistance(float dist);
 		void visualize();
 		void cleanMap();
-		int followedWallDirection();
+		void followedWallDirection(int& left, int& right);
 		void mapping();
 		void addNode(int type);
+		void checkIfNextToWall();
 	};
 }
 #endif

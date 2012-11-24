@@ -99,14 +99,15 @@ inline void Node::id(const NodeID id){ mId = id; }
 
 void Node::setType(const int t) { mNODE_STATE = t; }
 
-amee::NodeMsg Node::toMsg() const {
-	NodeMsg msg;
+void Node::toMsg(amee::NodeMsg& msg) const {
 	msg.pose = mPose;
 	msg.nodeID = mId;
+	msg.type = mNODE_STATE;
+	msg.edges.resize(mNeighbours.size());
 	for (unsigned int i = 0; i < mNeighbours.size(); ++i) {
 		msg.edges[i] = mNeighbours[i];
+		// std::cout << "edge from " << mId << " to:" << mNeighbours[i] << std::endl;
 	}
-	return msg;
 }
 
 
@@ -114,13 +115,13 @@ amee::NodeMsg Node::toMsg() const {
  * Two way connection
  * Makes both nodes to be each others neighbour
  */ 
-void Node::connectNeighbours(Node& other){
-	addNeighbour(other.getID());
-	other.addNeighbour(mId);
-
-	float dist = EuclidDist(mPose.x, other.x(), mPose.y, other.y());
+void Node::connectNeighbours(Node* other){
+	addNeighbour(other->getID());
+	other->addNeighbour(mId);
+	
+	float dist = EuclidDist(mPose.x, other->x(), mPose.y, other->y());
 	setDist(other, dist);
-	other.setDist(*this, dist);
+	other->setDist(this, dist);
 }
 
 inline float Node::EuclidDist(const float& x1, const float& x2, const float& y1, const float& y2){
@@ -138,8 +139,8 @@ void Node::addNeighbour(const NodeID& id){
 		mNeighbours.push_back(id);
 }
 
-void Node::setDist(Node& other, const float& dist){
-	mNeighb_dists[other.getID()] = dist;
+void Node::setDist(Node* other, const float& dist){
+	mNeighb_dists[other->getID()] = dist;
 }
 
 };//namespace amee

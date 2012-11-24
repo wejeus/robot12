@@ -43,7 +43,13 @@ def refresh(msg):
   drawAmee(msg.robotPose.x,msg.robotPose.y,msg.robotPose.theta)
 
   for node in nodes:
-    (x, y, theta) = node
+    (x, y, theta, nodeID, edges) = node
+    start = transform(x,y)
+    for nId in edges:
+      if (nId > nodeID & nId >= 0 & nId < len(nodes)):
+        endNode = nodes[nId]
+        end = transform(endNode[0], endNode[1])
+        pygame.draw.line(window,(100,0,0),start,end) 
     drawNode(x, y, theta)
 
   pygame.display.flip() 
@@ -94,9 +100,15 @@ def transform(x,y):
   return (int(scale[0] * x + offset[0]),resolution[1] - int(scale[1] * y + offset[1]))
 
 def onNodeMsgUpdate(msg):
+  global nodes
+  nodes = []
   for nodeMsg in msg.nodes:
-    node = (nodeMsg.pose.x, nodeMsg.pose.y, nodeMsg.pose.theta)
+    edges = []
+    for neighbor in nodeMsg.edges:
+      edges.append(neighbor)
+    node = (nodeMsg.pose.x, nodeMsg.pose.y, nodeMsg.pose.theta, nodeMsg.nodeID, edges)
     nodes.append(node)
+   
 
 
 if __name__ == '__main__':
