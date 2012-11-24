@@ -2,7 +2,7 @@
 
 import roslib; roslib.load_manifest('amee')
 import rospy, math, operator, sys
-from amee.msg import MapVisualization, WallVisualization, NodeMsg, GraphMsg
+from amee.msg import MapVisualization, WallVisualization, NodeMsg, GraphMsg, Pose
 #import and init pygame
 import pygame
 pygame.init() 
@@ -19,6 +19,7 @@ pygame.display.flip()
 
 #draw it to the screen
 nodes = []
+pose = (0,0,0)
 
 def refresh(msg):
   window.fill((0, 0, 0))
@@ -40,7 +41,7 @@ def refresh(msg):
     #print end[1]
   for tag in msg.tags:
     drawTag(tag.x,tag.y)  
-  drawAmee(msg.robotPose.x,msg.robotPose.y,msg.robotPose.theta)
+  drawAmee(pose[0],pose[1],pose[2])
 
   for node in nodes:
     (x, y, theta, nodeID, edges) = node
@@ -66,10 +67,10 @@ def findScaleAndOffset(msg):
     minY = min(minY,wall.startY)
     maxX = max(maxX,wall.endX)
     maxY = max(maxY,wall.endY)
-  maxX = max(maxX,msg.robotPose.x)
-  maxY = max(maxY,msg.robotPose.y)
-  minX = min(minX,msg.robotPose.x)
-  minY = min(minY,msg.robotPose.y)
+  maxX = max(maxX,pose[0])
+  maxY = max(maxY,pose[1])
+  minX = min(minX,pose[0])
+  minY = min(minY,pose[1])
   scale = (resolution[0] / abs(maxX - minX), resolution[1] / abs(maxY - minY))
   if (scale[0] * 0.12 > 1/4 * resolution[0]): #the robot is half of the screen!
     scale = (resolution[0] / 4, resolution[1] / 4)
@@ -108,7 +109,10 @@ def onNodeMsgUpdate(msg):
       edges.append(neighbor)
     node = (nodeMsg.pose.x, nodeMsg.pose.y, nodeMsg.pose.theta, nodeMsg.nodeID, edges)
     nodes.append(node)
-   
+
+def poseMsg(msg):
+  global pose
+  pose = (msg.x, msg.y, msg.theta)   
 
 
 if __name__ == '__main__':
@@ -119,6 +123,7 @@ if __name__ == '__main__':
         # The TOPIC we want to listen to
         rospy.Subscriber("/amee/map/visualization", MapVisualization, refresh)
         rospy.Subscriber("/amee/map/graph", GraphMsg, onNodeMsgUpdate)
+        rospy.Subscriber("/amee/pose", Pose, poseMsg)
 
         rospy.loginfo("Displaying map...")
 
