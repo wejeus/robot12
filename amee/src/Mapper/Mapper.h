@@ -30,6 +30,7 @@ class Mapper {
 		void findEdges();
 		void setVisualizationPublisher(ros::Publisher pub);
 		void setGraphPublisher(ros::Publisher pub);
+		void setPosePublisher(ros::Publisher pub);
 
 		enum MappingState {Pause, PauseMapping, Mapping, Localizing};
 
@@ -42,12 +43,14 @@ class Mapper {
 	private:
 		ros::Publisher vis_pub;
 		ros::Publisher graph_pub;
+		ros::Publisher pose_pub;
 
 		amee::IRDistances mDistances;
 		amee::Pose mPose;
 		amee::Odometry mOdometry;
 		amee::Map mMap;
 		bool mInitialized;
+		amee::Pose mLastTagPose;
 
 		bool mRotating;
 
@@ -87,6 +90,7 @@ class Mapper {
 		void cleanMap();
 		void followedWallDirection(int& left, int& right);
 		void mapping();
+		void localize();
 		void addNode(int type);
 		void checkIfNextToWall();
 	};

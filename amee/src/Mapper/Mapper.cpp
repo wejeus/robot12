@@ -31,10 +31,15 @@ void Mapper::receive_distances(const IRDistances::ConstPtr &msg)
 }
 
 void Mapper::receive_tag(const amee::Tag::ConstPtr& msg) {
-	Map::Point p;
-	p.x = mPose.x;
-	p.y = mPose.y;
-	mTagPositions.push_back(p);
+	// Map::Point p;
+	// p.x = mPose.x;
+	// p.y = mPose.y;
+	// mTagPositions.push_back(p);
+	if (sqrt((mPose.x - mLastTagPose.x) * (mPose.x - mLastTagPose.x) + (mPose.y - mLastTagPose.y) * (mPose.y - mLastTagPose.y)) > 0.04f) {
+		int type = amee::Graph::NODE_TAG;
+		addNode(type);
+		mLastTagPose = mPose;	
+	}
 }
 
 void Mapper::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
@@ -69,6 +74,7 @@ void Mapper::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
 
 	mPose.x += cos(mPose.theta) * distance;
 	mPose.y += sin(mPose.theta) * distance;
+	mPose.timestamp = mOdometry.timestamp;
 }
 
 void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg) {
@@ -294,15 +300,19 @@ void Mapper::setGraphPublisher(ros::Publisher pub) {
 	graph_pub = pub;
 }
 
+void Mapper::setPosePublisher(ros::Publisher pub) {
+	pose_pub = pub;
+}
+
 void Mapper::visualize() {
 	if (mVisualizeTimer == 8) {
 
 		mVisualizeTimer = 0;
 	
 		mMap.getVisualization(mVis);
-		mVis.robotPose.x = mPose.x;
-		mVis.robotPose.y = mPose.y;
-		mVis.robotPose.theta = mPose.theta;
+		// mVis.robotPose.x = mPose.x;
+		// mVis.robotPose.y = mPose.y;
+		// mVis.robotPose.theta = mPose.theta;
 
 		// for (unsigned int i = 0; i < mMeasurements.size(); ++i) {
 		// 	if (mMeasurements[i].valid) {
@@ -336,7 +346,7 @@ void Mapper::cleanMap() {
 	if (mCleanTimer == 5) {
 		mCleanTimer = 0;
 		Map::Point pos(mPose.x, mPose.y);
-		mMap.reduceNumWalls(pos, 0.6f);
+		mMap.reduceNumWalls(pos, 1.0f);
 	}
 	++mCleanTimer;
 }
@@ -352,14 +362,16 @@ void Mapper::doMapping() {
 				// std::cout << "Mapper state: Pause" << std::endl;
 				break;
 			case PauseMapping:
+				localize();
 				break;
 			case Mapping:
 				// std::cout << "Mapper state: Mapping, left wall:" << mLeftNextToWall << " right wall: " << mRightNextToWall << std::endl;
+				localize();
 				mapping();
 				break;
 			case Localizing:
 				// std::cout << "Mapper state: Localizing" << std::endl;
-				// TODO localize()
+				localize();
 				break;
 		}
 
@@ -367,8 +379,7 @@ void Mapper::doMapping() {
 	}
 }
 
-void Mapper::mapping() {
-
+void Mapper::localize() {
 	if (!mRotating) {
 		Map::MeasurementSet mset;
 		mset.leftBack = mMeasurements[LEFT_BACK];
@@ -384,6 +395,10 @@ void Mapper::mapping() {
 		mPose = newPose;
 	}
 
+	pose_pub.publish(mPose);
+}
+
+void Mapper::mapping() {
 	int leftType = 0;
 	int rightType = 0;
 	followedWallDirection(leftType, rightType); // gets the type for new walls (Vertical, Horizontal or none)
@@ -561,11 +576,13 @@ int main(int argc, char **argv)
 	ros::Subscriber tag_sub = n.subscribe("/amee/tag",10, &Mapper::receive_tag, &mapper);
 	ros::Subscriber command_sub = n.subscribe("/amee/map/mapper_commands",10, &Mapper::receive_MapperCommand, &mapper);
 
+	ros::Publisher pose_pub = n.advertise<amee::Pose>("/amee/pose",5);
   	ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);
   	ros::Publisher graph_pub = n.advertise<amee::GraphMsg>("/amee/map/graph",10);
 
     mapper.setVisualizationPublisher(marker_pub);
     mapper.setGraphPublisher(graph_pub);
+    mapper.setPosePublisher(pose_pub);
 
 	ros::Rate loop_rate(30); //30
 	
