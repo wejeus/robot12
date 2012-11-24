@@ -12,6 +12,7 @@ Mapper::Mapper() {
 	mMappingState = PauseMapping;
 	mNodeId = 0;
 	mLastNodeId = -1;
+	mExploringGrid = new ExploringGrid(40,0.10f);
 }
 
 Mapper::~Mapper() {
@@ -334,6 +335,8 @@ void Mapper::visualize() {
 			//mVis.tags.push_back(p);
 		}
 
+		mVis.gridVis = mExploringGrid->getVisualization();
+
 		vis_pub.publish(mVis);
 
 		graph_pub.publish(mGraph.getMessage());
@@ -399,6 +402,16 @@ void Mapper::localize() {
 }
 
 void Mapper::mapping() {
+
+	if (!mRotating) {
+		Map::MeasurementSet mset;
+		mset.leftBack = mMeasurements[LEFT_BACK];
+		mset.leftFront = mMeasurements[LEFT_FRONT];
+		mset.rightBack = mMeasurements[RIGHT_BACK];
+		mset.rightFront = mMeasurements[RIGHT_FRONT];
+		mExploringGrid->discover(mset);
+	}
+
 	int leftType = 0;
 	int rightType = 0;
 	followedWallDirection(leftType, rightType); // gets the type for new walls (Vertical, Horizontal or none)
