@@ -393,6 +393,7 @@ void Mapper::localize() {
 		bool leftOk = mLeftNextToWall && (irDiff < 0.015f);
 		mMap.localize(mPose, mset, newPose, leftOk, rightOk);
 		mPose = newPose;
+		calculateMeasurements(); // we have to recalculate these because mPose has changed
 	}
 
 	pose_pub.publish(mPose);
