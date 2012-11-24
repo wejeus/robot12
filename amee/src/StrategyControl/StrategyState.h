@@ -7,7 +7,9 @@ namespace amee{
 //	enum STATE{ MOVE_STOP, MOVE_STRAIGHT, MOVE_ROTATE, MOVE_COORDINATE, MOVE_FOLLOW_WALL, MOVE_LOST};
 
 	struct StrategyData {
-		float lol;
+		float x;
+		float y;
+		float theta;
 	};
 
 	class StrategyState{

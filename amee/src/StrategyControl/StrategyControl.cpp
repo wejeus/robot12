@@ -37,6 +37,7 @@ void StrategyControl::doControl() {
 
 void StrategyControl::receive_pose(const amee::Pose::ConstPtr &msg){
 	//receive pose
+	mStrategyData = { msg->x, msg->y, msg->theta };
 }
 
 void StrategyControl::receive_command(const amee::StrategyCommand::ConstPtr &msg) {

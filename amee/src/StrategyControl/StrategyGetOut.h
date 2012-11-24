@@ -5,7 +5,7 @@
 #include "ros/ros.h"
 
 namespace amee{
-	class StrategyGetOut : public StrategyState{
+	class StrategyGetOut : public StrategyState {
 	public:
 		StrategyGetOut(ros::Publisher &pub);
 		~StrategyGetOut();
@@ -13,9 +13,13 @@ namespace amee{
 		virtual void init(const StrategyData &data);
 		virtual bool isRunning() const;
 		virtual void doControl(const StrategyData &data);
+
 	private:
 		bool mRunning;
 		ros::Publisher mPub;
+
+		StrategyData mStrategyData;
+
 	}; //StrategyGetOut class
 
 }; //namespace amee
