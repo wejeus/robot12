@@ -10,9 +10,9 @@ namespace amee{
 		StrategyExplore(ros::Publisher &pub);
 		~StrategyExplore();
 
-		virtual void init(const SensorData &data);
+		virtual void init(const StrategyData &data);
 		virtual bool isRunning() const;
-		virtual void doControl(const SensorData &data);
+		virtual void doControl(const StrategyData &data);
 	private:
 		bool mRunning;
 		ros::Publisher mPub;

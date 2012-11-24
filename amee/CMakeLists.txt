@@ -41,7 +41,7 @@ rosbuild_add_executable(MotorControl src/MotorControl/MotorControl.cpp src/Amee.
 rosbuild_add_executable(IRSensorReader src/IRSensor/IRSensorReader.cpp src/Amee.cpp)
 
 #rosbuild_add_executable(SonarNode src/SonarControl/SonarControl.cpp)
-rosbuild_add_executable(StrategyControl src/StrategyControl/StrategyControl.cpp)
+rosbuild_add_executable(StrategyControl src/StrategyControl/StrategyControl.cpp src/StrategyControl/StrategyExplore.cpp src/StrategyControl/StrategyClassify.cpp src/StrategyControl/StrategyGetOut.cpp src/StrategyControl/StrategyGo2Tag.cpp)
 rosbuild_add_executable(MovementControl src/MovementControl/MovementControl.cpp src/MovementControl/MoveRotate.cpp src/MovementControl/MoveStraight.cpp src/MovementControl/MoveStop.cpp src/MovementControl/MoveFollowWall.cpp src/MovementControl/MoveAlignWall.cpp src/MovementControl/MoveCoordinate.cpp src/MovementControl/MoveAlignToFrontWall.cpp src/Amee.cpp)
 #rosbuild_add_executable(MeasureAmee src/MeasureAmee/MeasureAmee.cpp src/Amee.cpp)
 #rosbuild_add_executable(KeyHandler src/KeyHandler/key_handler.cpp)
@@ -51,7 +51,7 @@ rosbuild_add_executable(PublishAmee src/PublishAmee/PublishAmee.cpp)
 rosbuild_add_executable(IMUReader src/IMUSensor/IMUReader.cpp src/Amee.cpp)
 
 #rosbuild_add_executable(NodeKiller src/NodeKiller/NodeKiller.cpp)
-rosbuild_add_executable(Mapper src/Mapper/Mapper.cpp src/Mapper/Map.cpp src/Mapper/HorizontalWallSegment.cpp src/Mapper/VerticalWallSegment.cpp src/Graph/Graph.cpp src/Amee.cpp)
+#rosbuild_add_executable(Mapper src/Mapper/Mapper.cpp src/Mapper/Map.cpp src/Mapper/HorizontalWallSegment.cpp src/Mapper/VerticalWallSegment.cpp src/Graph/Graph.cpp src/Amee.cpp)
 #rosbuild_add_executable(TestGraph src/Graph/TestGraphAlgo.cpp src/Graph/Graph.cpp src/Graph/PathFinderAlgo.cpp) #This is for debugging the Graph and PathFinderAlgo
 #rosbuild_add_executable(TagDetector src/Camera/TagDetector.cpp)
 #target_link_libraries(TagDetector opencv_core opencv_highgui opencv_imgproc opencv_video opencv_nonfree opencv_objdetect opencv_ml opencv_contrib)

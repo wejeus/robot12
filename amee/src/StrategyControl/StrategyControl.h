@@ -1,10 +1,8 @@
 #ifndef STRATEGY_CONTROL_H
 #define STRATEGY_CONTROL_H
 
-#include "amee/IRDistances.h"
-#include "amee/Odometry.h"
+#include "amee/Pose.h"
 #include "amee/StrategyCommand.h"
-#include "roboard_drivers/sonar.h"
 #include "StrategyState.h"
 
 namespace amee {
@@ -16,13 +14,10 @@ class StrategyGetOut;
 class StrategyControl {
 
 	public:
-		StrategyControl(ros::Publisher& pub, ros::Publisher& statespub);
+		StrategyControl(ros::Publisher& pub);
 		~StrategyControl();
-		void receive_distances(const amee::IRDistances::ConstPtr &msg);
-		void receive_odometry(const amee::Odometry::ConstPtr &msg);
 		void receive_command(const amee::StrategyCommand::ConstPtr &msg);
-		void receive_sonar(const roboard_drivers::sonar::ConstPtr &msg);
-		void setSpeedPublisher(ros::Publisher& pub);
+		void receive_pose(const amee::Pose::ConstPtr &msg);
 		void doControl();
 		void init();
 
@@ -32,7 +27,7 @@ class StrategyControl {
 		static const int TYPE_STRATEGY_GET_OUT = 4;
 
 	private:
-		amee::SensorData mSensorData;
+		amee::StrategyData mStrategyData;
 
 		ros::Publisher speed_pub;
 

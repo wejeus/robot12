@@ -10,9 +10,9 @@ namespace amee{
 		StrategyGo2Tag(ros::Publisher &pub);
 		~StrategyGo2Tag();
 
-		virtual void init(const SensorData &data);
+		virtual void init(const StrategyData &data);
 		virtual bool isRunning() const;
-		virtual void doControl(const SensorData &data);
+		virtual void doControl(const StrategyData &data);
 	private:
 		bool mRunning;
 		ros::Publisher mPub;
