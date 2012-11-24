@@ -6,10 +6,12 @@
 #include "amee/FollowWallStates.h"
 #include "amee/Odometry.h"
 #include "amee/Tag.h"
+#include "amee/MapperCommand.h"
 #include "Map.h"
 #include <vector>
 #include "amee/MapVisualization.h"
 #include "../Graph/Graph.h"
+#include <list>
 
 namespace amee {
 
@@ -22,15 +24,20 @@ class Mapper {
 		void receiveOdometry(const amee::Odometry::ConstPtr &msg);
 		void receive_tag(const amee::Tag::ConstPtr &msg);
 		void receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg);
+		void receive_MapperCommand(const amee::MapperCommand::ConstPtr &msg);
 		void doMapping();
 		void init();
+		void findEdges();
 		void setVisualizationPublisher(ros::Publisher pub);
 		void setGraphPublisher(ros::Publisher pub);
 
-		enum MappingState {Pause, Mapping, Localizing};
+		enum MappingState {Pause, PauseMapping, Mapping, Localizing};
 
 		static const float IR_BASE_RIGHT = 0.104;
 		static const float ROBOT_RADIUS = 0.12f;
+		enum MapperCommandType {
+			MapCommand, PauseCommand, FindEdgesCommand, LocalizeCommand, FindEdgesToUnexploredCommand
+		};
 	
 	private:
 		ros::Publisher vis_pub;
@@ -43,6 +50,9 @@ class Mapper {
 		bool mInitialized;
 
 		bool mRotating;
+
+		std::list<int> mNewNodes;
+		std::list<int> mOldNodes;
 	
 		amee::Graph mGraph;
 		int mNodeId;

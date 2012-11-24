@@ -59,6 +59,10 @@ class WallSegment {
 
 		virtual bool isSmall() = 0; 
 
+		void print() {
+			std::cout << "from: (" << mFrom.x << ", " << mFrom.y << "), to: (" << mTo.x << ", " << mTo.y << ")" << std::endl;
+		}
+
 		/** 	
 		*/
 		bool belongsToWall(const Map::Point& sensor, const Map::Point& measurement, Map::Point& intersection, float& t) {

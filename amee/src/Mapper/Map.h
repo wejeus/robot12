@@ -26,6 +26,11 @@ class Map {
 				y = ty;
 			}
 
+			Point(amee::Pose pose) {
+				x = pose.x;
+				y = pose.y;
+			}
+
 			const Point operator+(const Pose& p) const {
 				Point r;
 				r.x = x + p.x;
@@ -116,7 +121,13 @@ class Map {
 		*/
 		void reduceNumWalls(const Point& pos, float distance);
 
-		bool isPathCollisionFree(const Point& start, const Point& end, float radius);
+		// Returns true if there is a linear collision free path between start and end. buffer describes an additional
+		// buffer distance the robot is supposed to have to any obstacle. robotRadius is the actual radius of the robot.
+		// Please note that buffer must be greater 0. Otherwise no path will be found.
+		bool isPathCollisionFree(const Point& start, const Point& end, float buffer, float robotRadius);
+
+		float getDistanceToClosestWall(const Point& p);
+
 		Map();
 		~Map();
 	

@@ -1,4 +1,5 @@
 #include "HorizontalWallSegment.h"
+#include <cmath>
 
 using namespace amee;
 
@@ -60,8 +61,8 @@ bool HorizontalWallSegment::mergeWall(WallSegment* wall) {
 	// if we reached this point, we want to merge the walls.
 
 	// this is done by setting this wall to the new merged wall, the other wall can be deleted (not here).
-	mFrom = lowerFrom;
-	mTo = upperTo;
+	mFrom.x = std::min(lowerFrom.x, upperFrom.x);
+	mTo.x = std::max(lowerTo.x, upperTo.x);
 
 	mYAcc += vWall->mYAcc;
 	mNumberOfPoints += vWall->mNumberOfPoints;
@@ -113,8 +114,8 @@ float HorizontalWallSegment::getY() {
 }
 
 float HorizontalWallSegment::distanceTo(const Map::Point& pos) {
-	if (pos.x < mFrom.x || pos.x > mTo.x) {
-		return pos.y - mFrom.y;
+	if ((pos.x <= mTo.x) && (pos.x >= mFrom.x)) {
+		return fabs(pos.y - mFrom.y);
 	} else if (pos.x < mFrom.x) {
 		return sqrt((pos.x - mFrom.x) * (pos.x - mFrom.x) + (pos.y - mFrom.y) + (pos.y - mFrom.y));
 	}

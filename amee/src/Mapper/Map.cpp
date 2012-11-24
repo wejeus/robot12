@@ -4,6 +4,7 @@
 #include "HorizontalWallSegment.h"
 #include "VerticalWallSegment.h"
 #include "Mapper.h"
+#include <limits>
 
 using namespace amee;
 
@@ -63,9 +64,14 @@ void Map::reduceNumWalls(const Point& pos, float distance) {
 				prevHorizontal = mHorizontalWalls.erase(iterHor);
 				--prevHorizontal;
 				iterHor = prevHorizontal;
+				// std::cout << "merged: ";
+				// (*prevHorizontal)->print();
+				// std::cout << "deleted: ";
+				// wall->print();
+				// std::cout << std::endl;
 				delete wall;
 			}
-		}// else if (wall->isSmall()) {
+		} //else if (wall->isSmall()) {
 		// 	iterHor = mHorizontalWalls.erase(iterHor);
 		// 	--iterHor; // decrease iterHor so that we don't skip a wall
 		// 	delete wall;
@@ -88,21 +94,50 @@ void Map::reduceNumWalls(const Point& pos, float distance) {
 				delete wall;
 			}
 		} //else if (wall->isSmall()) {
-		// 	iterVer = mVerticalWalls.erase(iterVer);
-		// 	--iterVer; // decrease iterHor so that we don't skip a wall
-		// 	delete wall;
+			// iterVer = mVerticalWalls.erase(iterVer);
+			// --iterVer; // decrease iterHor so that we don't skip a wall
+			// delete wall;
 		// }	
 		prevVertical = iterVer;
 	}
 }
 
-bool Map::isPathCollisionFree(const Point& start, const Point& end, float radius) {
-	
+bool Map::isPathCollisionFree(const Point& start, const Point& end, float buffer, float radius) {
+	float minBubbleR = radius + buffer;
+	Point dir = end - start;
+	float length = dir.length();
+	dir = dir.normalized();
+	bool collisionFound = false;
+	float checkedLength = 0.0f;
+	Point samplePoint = start;
+	while (!collisionFound && checkedLength <= length) {
+		float closestWallDist = getDistanceToClosestWall(samplePoint);
+		collisionFound = closestWallDist <= minBubbleR;
+		if (!collisionFound) {
+			checkedLength += sqrt(minBubbleR * minBubbleR + closestWallDist * closestWallDist - 2.0f * minBubbleR * closestWallDist
+			* cos(M_PI - asin(radius / closestWallDist) - asin(radius / minBubbleR)));
+			samplePoint = start + dir * checkedLength;	
+		}		
+	}
+	collisionFound |= getDistanceToClosestWall(end) <= minBubbleR;
+	return !collisionFound;
+}
+
+float Map::getDistanceToClosestWall(const Point& p) {
+	float minDist = std::numeric_limits<float>::max();
+	for (std::list<HorizontalWallSegment*>::const_iterator iter = mHorizontalWalls.begin(), end = mHorizontalWalls.end(); iter != end; iter++) {
+		float dist = (*iter)->distanceTo(p);
+		minDist = dist < minDist ? dist : minDist;
+	}
+	for (std::list<VerticalWallSegment*>::const_iterator iter = mVerticalWalls.begin(), end = mVerticalWalls.end(); iter != end; iter++) {
+		float dist = (*iter)->distanceTo(p);
+		minDist = dist < minDist ? dist : minDist;
+	}
+	return minDist;
 }
 		
 	// Localizes the robot based on the given pose and measurements in the map. If localizing is not successfull outPose = inPose
 void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& measurements, amee::Pose& outPose, bool left, bool right) {
-	//TODO
 	outPose = inPose;
 	Point leftBack, leftFront, rightBack, rightFront;
 	bool rightFrontWall = false;

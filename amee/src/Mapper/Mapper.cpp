@@ -9,7 +9,7 @@ using namespace amee;
 
 Mapper::Mapper() {
 	mInitialized = false;
-	mMappingState = Pause;
+	mMappingState = PauseMapping;
 	mNodeId = 0;
 	mLastNodeId = -1;
 }
@@ -73,6 +73,9 @@ void Mapper::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
 
 void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg) {
 	int type = 0;
+	if (mMappingState != PauseMapping && mMappingState != Mapping) {
+		return;
+	}
 	switch(msg->state) {
 		case amee::MoveFollowWall::INIT:
 			mLastNodeId = -1;
@@ -87,7 +90,6 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_OUT:
 			if(mInitialized) addNode(amee::Graph::NODE_NEXT_TO_WALL);
-			// mMappingState = Pause;
 			break;
 		case amee::MoveFollowWall::ROTATE_LEFT_IN:
 			type = amee::Graph::NODE_ROTATE_LEFT;
@@ -111,7 +113,7 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 			mMappingState = Mapping;
 			break;
 		default:
-			mMappingState = Pause;
+			mMappingState = PauseMapping;
 	}
 }
 
@@ -121,6 +123,39 @@ void Mapper::addNode(int type) {
 		mGraph.addEdges(mNodeId, mLastNodeId);
 	} 
 	mLastNodeId = mNodeId;
+	mNewNodes.push_back(mNodeId);
+}
+
+void Mapper::findEdges() {
+	// first connect old nodes with new nodes
+	for (std::list<int>::const_iterator i = mOldNodes.begin(), end = mOldNodes.end(); i != end; i++) {
+		NodeMsg* startNode = mGraph.getNode(*i);
+		Map::Point start(startNode->pose);
+		for (std::list<int>::const_iterator j = mNewNodes.begin(), end = mNewNodes.end(); j != end; j++) {
+			NodeMsg* endNode = mGraph.getNode(*j);
+			Map::Point end(endNode->pose);
+			if (mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
+				mGraph.addEdges(*i,*j);
+			}
+		}
+	}
+
+	// now connect new nodes with new nodes
+	for (std::list<int>::const_iterator i = mNewNodes.begin(), end = mNewNodes.end(); i != end; i++) {
+		NodeMsg* startNode = mGraph.getNode(*i);
+		Map::Point start(startNode->pose);
+		for (std::list<int>::const_iterator j = i, end = mNewNodes.end(); j != end; j++) {
+			NodeMsg* endNode = mGraph.getNode(*j);
+			Map::Point end(endNode->pose);
+			if (mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
+				mGraph.addEdges(*i,*j);
+			}
+		}
+	}
+
+	// now add the new nodes to the list of old nodes
+	mOldNodes.splice(mOldNodes.end(), mNewNodes);
+
 }
 
 void Mapper::init() {
@@ -137,9 +172,10 @@ void Mapper::init() {
 		base.pos.x = 0.0f;
 		base.pos.y = 0.0f;
 		mMeasurements.resize(4,base);
-		mMappingState = Pause;
+		mMappingState = PauseMapping;
 		mVisualizeTimer = 0;
 		mCleanTimer = 0;
+
 
 		/******* KALMAN: initialize here *********/
 
@@ -260,6 +296,7 @@ void Mapper::setGraphPublisher(ros::Publisher pub) {
 
 void Mapper::visualize() {
 	if (mVisualizeTimer == 8) {
+
 		mVisualizeTimer = 0;
 	
 		mMap.getVisualization(mVis);
@@ -314,6 +351,8 @@ void Mapper::doMapping() {
 			case Pause:
 				// std::cout << "Mapper state: Pause" << std::endl;
 				break;
+			case PauseMapping:
+				break;
 			case Mapping:
 				// std::cout << "Mapper state: Mapping, left wall:" << mLeftNextToWall << " right wall: " << mRightNextToWall << std::endl;
 				mapping();
@@ -366,7 +405,7 @@ void Mapper::mapping() {
 	} 
 
 	cleanMap();
-	mMap.print();
+	// mMap.print();
 }
 
 void Mapper::followedWallDirection(int& left, int& right) {
@@ -416,6 +455,28 @@ void Mapper::followedWallDirection(int& left, int& right) {
         wallLength = mOdometry.distance - mLeftWallStartDist;
         mLeftNextToWall = lB && (wallLength >= IR_BASE_RIGHT); // TODO check whether IR base left is equal to IR base right
     }
+
+void Mapper::receive_MapperCommand(const amee::MapperCommand::ConstPtr &msg) {
+	switch (msg->type) {
+		case PauseCommand:
+			mMappingState = Pause;
+			break;
+		case MapCommand:
+			mMappingState = PauseMapping;
+			break;
+		case FindEdgesCommand:
+			findEdges();
+			break;
+		case LocalizeCommand:
+			mMappingState = Localizing;
+			break;
+		case FindEdgesToUnexploredCommand:
+			//TODO
+			break;
+		default:
+			std::cout << "Unknown mapper command received." << std::endl;
+	}
+}
 
 
 void mapTest(ros::Publisher& vispub) {
@@ -498,6 +559,7 @@ int main(int argc, char **argv)
 	ros::Subscriber odo_sub = n.subscribe("/amee/motor_control/odometry", 100, &Mapper::receiveOdometry, &mapper);
 	ros::Subscriber state_sub = n.subscribe("/amee/follow_wall_states",10, &Mapper::receive_FollowWallState, &mapper);
 	ros::Subscriber tag_sub = n.subscribe("/amee/tag",10, &Mapper::receive_tag, &mapper);
+	ros::Subscriber command_sub = n.subscribe("/amee/map/mapper_commands",10, &Mapper::receive_MapperCommand, &mapper);
 
   	ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);
   	ros::Publisher graph_pub = n.advertise<amee::GraphMsg>("/amee/map/graph",10);
