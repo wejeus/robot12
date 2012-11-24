@@ -9,7 +9,7 @@ using namespace amee;
 
 Mapper::Mapper() {
 	mInitialized = false;
-	mMappingState = Pause;
+	mMappingState = PauseMapping;
 	mNodeId = 0;
 	mLastNodeId = -1;
 }
@@ -73,6 +73,9 @@ void Mapper::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
 
 void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg) {
 	int type = 0;
+	if (mMappingState != PauseMapping && mMappingState != Mapping) {
+		return;
+	}
 	switch(msg->state) {
 		case amee::MoveFollowWall::INIT:
 			mLastNodeId = -1;
@@ -87,7 +90,6 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_OUT:
 			if(mInitialized) addNode(amee::Graph::NODE_NEXT_TO_WALL);
-			// mMappingState = Pause;
 			break;
 		case amee::MoveFollowWall::ROTATE_LEFT_IN:
 			type = amee::Graph::NODE_ROTATE_LEFT;
@@ -111,7 +113,7 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 			mMappingState = Mapping;
 			break;
 		default:
-			mMappingState = Pause;
+			mMappingState = PauseMapping;
 	}
 }
 
@@ -121,6 +123,39 @@ void Mapper::addNode(int type) {
 		mGraph.addEdges(mNodeId, mLastNodeId);
 	} 
 	mLastNodeId = mNodeId;
+	mNewNodes.push_back(mNodeId);
+}
+
+void Mapper::findEdges() {
+	// first connect old nodes with new nodes
+	for (std::list<int>::const_iterator i = mOldNodes.begin(), end = mOldNodes.end(); i != end; i++) {
+		NodeMsg* startNode = mGraph.getNode(*i);
+		Map::Point start(startNode->pose);
+		for (std::list<int>::const_iterator j = mNewNodes.begin(), end = mNewNodes.end(); j != end; j++) {
+			NodeMsg* endNode = mGraph.getNode(*j);
+			Map::Point end(endNode->pose);
+			if (mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
+				mGraph.addEdges(*i,*j);
+			}
+		}
+	}
+
+	// now connect new nodes with new nodes
+	for (std::list<int>::const_iterator i = mNewNodes.begin(), end = mNewNodes.end(); i != end; i++) {
+		NodeMsg* startNode = mGraph.getNode(*i);
+		Map::Point start(startNode->pose);
+		for (std::list<int>::const_iterator j = i, end = mNewNodes.end(); j != end; j++) {
+			NodeMsg* endNode = mGraph.getNode(*j);
+			Map::Point end(endNode->pose);
+			if (mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
+				mGraph.addEdges(*i,*j);
+			}
+		}
+	}
+
+	// now add the new nodes to the list of old nodes
+	mOldNodes.splice(mOldNodes.end(), mNewNodes);
+
 }
 
 void Mapper::init() {
@@ -137,9 +172,10 @@ void Mapper::init() {
 		base.pos.x = 0.0f;
 		base.pos.y = 0.0f;
 		mMeasurements.resize(4,base);
-		mMappingState = Pause;
+		mMappingState = PauseMapping;
 		mVisualizeTimer = 0;
 		mCleanTimer = 0;
+
 
 		/******* KALMAN: initialize here *********/
 
@@ -260,6 +296,7 @@ void Mapper::setGraphPublisher(ros::Publisher pub) {
 
 void Mapper::visualize() {
 	if (mVisualizeTimer == 8) {
+
 		mVisualizeTimer = 0;
 	
 		mMap.getVisualization(mVis);
@@ -314,6 +351,8 @@ void Mapper::doMapping() {
 			case Pause:
 				// std::cout << "Mapper state: Pause" << std::endl;
 				break;
+			case PauseMapping:
+				break;
 			case Mapping:
 				// std::cout << "Mapper state: Mapping, left wall:" << mLeftNextToWall << " right wall: " << mRightNextToWall << std::endl;
 				mapping();
@@ -329,34 +368,21 @@ void Mapper::doMapping() {
 }
 
 void Mapper::mapping() {
-	// if (!mInitialized) {
-	// 	return;
-	// }
-	// // set origin
-	// mCurrentPos.x = mPose.x - mStartPos.x;
-	// mCurrentPos.y = mPose.y - mStartPos.y;
-	Map::MeasurementSet mset;
-	mset.leftBack = mMeasurements[LEFT_BACK];
-	mset.leftFront = mMeasurements[LEFT_FRONT];
-	mset.rightBack = mMeasurements[RIGHT_BACK];
-	mset.rightFront = mMeasurements[RIGHT_FRONT];
-	
-	amee::Pose newPose;
-	mMap.localize(mPose, mset, newPose);
-	//mPose = newPose;
-	if (mRightNextToWall && !mRotating) { // TODO fixme
-		// mPose.theta = newPose.theta;	
+
+	if (!mRotating) {
+		Map::MeasurementSet mset;
+		mset.leftBack = mMeasurements[LEFT_BACK];
+		mset.leftFront = mMeasurements[LEFT_FRONT];
+		mset.rightBack = mMeasurements[RIGHT_BACK];
+		mset.rightFront = mMeasurements[RIGHT_FRONT];
+		amee::Pose newPose;
+		float irDiff = fabs(mset.rightBack.dist - mset.rightFront.dist);
+		bool rightOk = mRightNextToWall && (irDiff < 0.015f);
+		irDiff = fabs(mset.leftBack.dist - mset.leftFront.dist);
+		bool leftOk = mLeftNextToWall && (irDiff < 0.015f);
+		mMap.localize(mPose, mset, newPose, leftOk, rightOk);
 		mPose = newPose;
 	}
-	
-	// std::cout << "old theta " << mPose.theta << " new one: " << newPose.theta << std::endl;
-
-	
-	// rotate odometry coordinate system so that it is parallel to the map's system
-	//mCurrentPos.rotate(-mStartAngle); 
-	// mCurrentAngle = mPose.theta;// - mStartAngle;
-	 // std::cout << "Current pose in maze: " << mPose.x << ", " << mPose.y << ", " << mPose.theta << std::endl;
-	 // std::cout << "Current angle in maze: " << mPose.theta * (180.0f / M_PI) << std::endl;
 
 	int leftType = 0;
 	int rightType = 0;
@@ -377,71 +403,6 @@ void Mapper::mapping() {
 	if (mMeasurements[LEFT_FRONT].valid) {
 		mMap.addMeasurement(mMeasurements[LEFT_FRONT], leftType);
 	} 
-
-	// for (unsigned int i = 0; i < mMeasurements.size(); ++i) {
-	// 	Measurement m = mMeasurements[i];
-	// 	// std::cout << i <<": is valid? " << m.valid << " x " << m.pos.x << " y " << m.pos.y << std::endl;
-	// 	if (m.valid) {
-	// 		walls[i] = mMap.addMeasurement(m.pos, newType);
-	// 	} else {
-	// 		walls[i] = NULL;
-	// 	}
-	// }
-
-	// if((walls[RIGHT_BACK] == walls[RIGHT_FRONT]) && (walls[RIGHT_BACK] != NULL) && mRightNextToWall && mLeftNextToWall) {// && mMappingState == Mapping) {
-	// 		// both measurements have been associated with the same wall
-	// 		// TODO change position
-	// 		WallSegment* wall = walls[RIGHT_BACK];
-			
-	// 		// determine relative theta to the wall
-	// 		float diffDist = mDistances.rightFront - mDistances.rightBack;
-	// 		float meanDist = (mDistances.rightFront + mDistances.rightBack) / 2.0f;
-	// 		float relativeTheta = atan(diffDist / IR_BASE_RIGHT);
-	// 		// std::cout << "Old pose: x:" << mPose.x << " y:" << mPose.y << " theta: " << mPose.theta << std::endl;
-	// 		// determine theta of the wall (orienation we are heading to)
-	// 		float wallTheta = 0.0f;
-	// 		if (wall->getType() == WallSegment::VERTICAL) {
-				
-	// 			// std::cout << "wall x " << wall->getX() << " pose x " << mPose.x << std::endl;
-	// 			float sideOfWall = 1.0f;
-	// 			if (mPose.x <= wall->getX()) {
-	// 				wallTheta = M_PI / 2.0f;
-	// 				sideOfWall = -1.0f;
-	// 			} else {
-	// 				wallTheta = 3.0f / 2.0f * M_PI;
-	// 			}
-
-	// 			// now reset theta accordingly
-	// 			mPose.theta = wallTheta + relativeTheta;
-
-	// 			// now we want to reset the x coordinate
-	// 			float normalDistToWall = cos(relativeTheta) * meanDist;
-	// 			float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
-	// 			mPose.x = wall->getX() + sideOfWall * centerDistToWall;
-	// 		} else {
-	// 			// std::cout << "wall y " << wall->getY() << " pose y " << mPose.y << std::endl;
-	// 			float sideOfWall = 1.0f;
-	// 			if (mPose.y <= wall->getY()) {
-	// 				wallTheta = M_PI;
-	// 				sideOfWall = -1.0f;
-	// 			} else {
-	// 				wallTheta = 0.0f;
-	// 			}
-
-	// 			// now reset theta accordingly
-	// 			mPose.theta = wallTheta + relativeTheta;
-
-	// 			// now we want to reset the y coordinate
-	// 			float normalDistToWall = cos(relativeTheta) * meanDist;
-	// 			float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
-	// 			mPose.y = wall->getY() + sideOfWall * centerDistToWall;
-	// 		}
-
-			// std::cout << "New pose: x:" << mPose.x << " y:" << mPose.y << " theta: " << mPose.theta << std::endl;
-
-			// std::cout << "Wall theta " << wallTheta * (180.0f / M_PI) << ", relativeTheta: " << relativeTheta * (180.0f / M_PI)
-			// << " sum: " << (wallTheta + relativeTheta) * (180.0f / M_PI) << std::endl;
-		// }
 
 	cleanMap();
 	// mMap.print();
@@ -494,6 +455,28 @@ void Mapper::followedWallDirection(int& left, int& right) {
         wallLength = mOdometry.distance - mLeftWallStartDist;
         mLeftNextToWall = lB && (wallLength >= IR_BASE_RIGHT); // TODO check whether IR base left is equal to IR base right
     }
+
+void Mapper::receive_MapperCommand(const amee::MapperCommand::ConstPtr &msg) {
+	switch (msg->type) {
+		case PauseCommand:
+			mMappingState = Pause;
+			break;
+		case MapCommand:
+			mMappingState = PauseMapping;
+			break;
+		case FindEdgesCommand:
+			findEdges();
+			break;
+		case LocalizeCommand:
+			mMappingState = Localizing;
+			break;
+		case FindEdgesToUnexploredCommand:
+			//TODO
+			break;
+		default:
+			std::cout << "Unknown mapper command received." << std::endl;
+	}
+}
 
 
 void mapTest(ros::Publisher& vispub) {
@@ -576,6 +559,7 @@ int main(int argc, char **argv)
 	ros::Subscriber odo_sub = n.subscribe("/amee/motor_control/odometry", 100, &Mapper::receiveOdometry, &mapper);
 	ros::Subscriber state_sub = n.subscribe("/amee/follow_wall_states",10, &Mapper::receive_FollowWallState, &mapper);
 	ros::Subscriber tag_sub = n.subscribe("/amee/tag",10, &Mapper::receive_tag, &mapper);
+	ros::Subscriber command_sub = n.subscribe("/amee/map/mapper_commands",10, &Mapper::receive_MapperCommand, &mapper);
 
   	ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);
   	ros::Publisher graph_pub = n.advertise<amee::GraphMsg>("/amee/map/graph",10);

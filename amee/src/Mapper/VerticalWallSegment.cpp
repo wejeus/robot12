@@ -1,4 +1,5 @@
 #include "VerticalWallSegment.h"
+#include <cmath>
 
 using namespace amee;
 
@@ -59,8 +60,8 @@ bool VerticalWallSegment::mergeWall(WallSegment* wall) {
 	// if we reached this point, we want to merge the walls.
 
 	// this is done by setting this wall to the new merged wall, the other wall can be deleted (not here).
-	mFrom = lowerFrom;
-	mTo = upperTo;
+	mFrom.y = std::min(lowerFrom.y, upperFrom.y);
+	mTo.y = std::max(lowerTo.y, upperTo.y);
 
 	mXAcc += vWall->mXAcc;
 	mNumberOfPoints += vWall->mNumberOfPoints;
@@ -113,12 +114,12 @@ float VerticalWallSegment::getY() {
 }
 
 float VerticalWallSegment::distanceTo(const Map::Point& pos) {
-	if (pos.y < mFrom.y || pos.y > mTo.y) {
-		return pos.x - mFrom.x;
+	if ((pos.y >= mFrom.y) && (pos.y <= mTo.y)) {
+		return fabs(pos.x - mFrom.x);
 	} else if (pos.y < mFrom.y) {
-		return sqrt((pos.x - mFrom.x) * (pos.x - mFrom.x) + (pos.y - mFrom.y) + (pos.y - mFrom.y));
+		return sqrt((pos.x - mFrom.x) * (pos.x - mFrom.x) + (pos.y - mFrom.y) * (pos.y - mFrom.y));
 	}
-	return sqrt((pos.x - mTo.x) * (pos.x - mTo.x) + (pos.y - mTo.y) + (pos.y - mTo.y));
+	return sqrt((pos.x - mTo.x) * (pos.x - mTo.x) + (pos.y - mTo.y) * (pos.y - mTo.y));
 }
 
 bool VerticalWallSegment::isInRange(const Map::Point& pos) {

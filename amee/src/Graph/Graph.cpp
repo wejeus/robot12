@@ -73,6 +73,10 @@ int Graph::addNode(const amee::Pose& p, int type){
 }
 
 void Graph::addEdges(int id1, int id2){
+
+	if (id1 == id2) {
+		return;
+	}
 	
 	//add id2 to node with id1
 	if(std::find(mNodes[id1]->edges.begin(), mNodes[id1]->edges.end(), id2) != mNodes[id1]->edges.end()){
