@@ -10,6 +10,7 @@
 #include "Map.h"
 #include <vector>
 #include "amee/MapVisualization.h"
+#include "ExploringGrid.h"
 #include "../Graph/Graph.h"
 #include <list>
 
@@ -60,6 +61,8 @@ class Mapper {
 		amee::Graph mGraph;
 		int mNodeId;
 		int mLastNodeId; // set to -1 if there is no last node
+
+		ExploringGrid* mExploringGrid;
 
 		int mVisualizeTimer;
 		int mCleanTimer;
