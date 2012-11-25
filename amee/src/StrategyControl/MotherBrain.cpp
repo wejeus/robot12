@@ -18,7 +18,7 @@ enum STATE {IDLE, RUN};
 PHASE mPhase = ONE;
 STATE mState = IDLE;
 
-void executePhaseOne();
+// void executePhaseOne();
 void executePhaseTwo();
 
 // // Should determine state (phaseOne or phaseTwo)
@@ -51,8 +51,17 @@ void executePhaseTwo();
 // 	}
 // }
 
-void executePhaseOne() {
-	// TODO
+void executePhaseOne(ros::NodeHandle node) {
+	PhaseOneControl phaseControl;
+
+    ros::Subscriber pose_sub = n.subscribe("/amee/pose", 5, &PhaseOneControl::receivePose, &phaseControl);
+    ros::Subscriber state_sub = n.subscribe("/amee/follow_wall_states",10, &PhaseOneControl::receive_FollowWallState, &mapper);
+    ros::Subscriber tag_sub = n.subscribe("/amee/tag",10, &Mapper::receive_tag, &mapper);
+    ros::Subscriber command_sub = n.subscribe("/amee/map/mapper_commands",10, &Mapper::receive_MapperCommand, &mapper);
+
+    ros::Publisher pose_pub = n.advertise<amee::Pose>("/amee/pose",5);
+    ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);
+    ros::Publisher graph_pub = n.advertise<amee::GraphMsg>("/amee/map/graph",10);
 }
 
 PhaseTwoControl *phaseTwoControl;
@@ -97,6 +106,7 @@ int main(int argc, char **argv) {
 
     if (mMission == EXPLORE) {
     	printf("Mission: Explore maze\n");
+        executePhaseOne(nodeHandle);
     	printf("Mission: Explore maze - Accomplished!\n");
     } else if (mMission == RESCUE) {
     	printf("Mission: Rescue tags\n");
@@ -111,15 +121,15 @@ int main(int argc, char **argv) {
 	// executePhaseTwo(nodeHandle); 
 	// cout << "done." << endl;
 
-	ros::Rate loop_rate(6);
-	while(ros::ok()) {
-        cout << "." << endl;
-        executePhaseTwo();
-		// go to sleep for a short while
-		loop_rate.sleep();
-		// call all callbacks
-		ros::spinOnce();
-	}
+	// ros::Rate loop_rate(6);
+	// while(ros::ok()) {
+ //        cout << "." << endl;
+ //        executePhaseTwo();
+	// 	// go to sleep for a short while
+	// 	loop_rate.sleep();
+	// 	// call all callbacks
+	// 	ros::spinOnce();
+	// }
 
 	return 0;
 }
