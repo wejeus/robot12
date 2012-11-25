@@ -9,11 +9,25 @@ using namespace amee;
 // float mXAcc;
 // Map::Point mDir;
 
+std::ostream& amee::operator<< (std::ostream &out, const VerticalWallSegment* seg) {
+	out << seg->mFrom.x << ' ' << seg->mFrom.y << ' ' << seg->mTo.x << ' ' << seg->mTo.y << ' ' << seg->mNumberOfPoints << ' ' << seg->mXAcc;
+	return out;
+}
+
 VerticalWallSegment::VerticalWallSegment(Map::Point pos) {
 	mFrom = pos;
 	mTo = pos;
 	mNumberOfPoints = 1;
 	mXAcc = pos.x;
+}
+
+VerticalWallSegment::VerticalWallSegment(std::istream& is) {
+	is >> mFrom.x;
+	is >> mFrom.y;
+	is >> mTo.x;
+	is >> mTo.y;
+	is >> mNumberOfPoints;
+	is >> mXAcc;
 }
 
 VerticalWallSegment::~VerticalWallSegment() {
@@ -122,8 +136,8 @@ float VerticalWallSegment::distanceTo(const Map::Point& pos) {
 	return sqrt((pos.x - mTo.x) * (pos.x - mTo.x) + (pos.y - mTo.y) * (pos.y - mTo.y));
 }
 
-bool VerticalWallSegment::isInRange(const Map::Point& pos) {
-	bool inYRange = (mFrom.y - PARALLEL_TOLERANCE <= pos.y) && (pos.y <= mTo.y + PARALLEL_TOLERANCE);
-	bool inXRange = (mFrom.x - WALL_THICKNESS / 2.0f - ORTHOGONAL_TOLERANCE <= pos.x) && (pos.x <= mFrom.x + WALL_THICKNESS / 2.0f + ORTHOGONAL_TOLERANCE);
-	return inXRange && inYRange;
-}
+// bool VerticalWallSegment::isInRange(const Map::Point& pos) {
+// 	bool inYRange = (mFrom.y - PARALLEL_TOLERANCE <= pos.y) && (pos.y <= mTo.y + PARALLEL_TOLERANCE);
+// 	bool inXRange = (mFrom.x - WALL_THICKNESS / 2.0f - ORTHOGONAL_TOLERANCE <= pos.x) && (pos.x <= mFrom.x + WALL_THICKNESS / 2.0f + ORTHOGONAL_TOLERANCE);
+// 	return inXRange && inYRange;
+// }

@@ -10,6 +10,7 @@
 #include "Map.h"
 #include <vector>
 #include "amee/MapVisualization.h"
+#include "ExploringGrid.h"
 #include "../Graph/Graph.h"
 #include <list>
 
@@ -31,6 +32,9 @@ class Mapper {
 		void setVisualizationPublisher(ros::Publisher pub);
 		void setGraphPublisher(ros::Publisher pub);
 		void setPosePublisher(ros::Publisher pub);
+		void saveMap();
+		void readMap();
+		void setToLocalize();
 
 		enum MappingState {Pause, PauseMapping, Mapping, Localizing};
 
@@ -53,6 +57,7 @@ class Mapper {
 		amee::Pose mLastTagPose;
 
 		bool mRotating;
+		bool mInPhase1;
 
 		std::list<int> mNewNodes;
 		std::list<int> mOldNodes;
@@ -60,6 +65,8 @@ class Mapper {
 		amee::Graph mGraph;
 		int mNodeId;
 		int mLastNodeId; // set to -1 if there is no last node
+
+		ExploringGrid* mExploringGrid;
 
 		int mVisualizeTimer;
 		int mCleanTimer;

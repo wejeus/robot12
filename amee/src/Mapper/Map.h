@@ -5,6 +5,7 @@
 #include "ros/ros.h"
 #include "amee/MapVisualization.h"
 #include "amee/Pose.h"
+#include <iostream>
 
 namespace amee {
 
@@ -13,6 +14,8 @@ class HorizontalWallSegment;
 class VerticalWallSegment;
 
 class Map {
+
+	friend std::ostream& operator<< (std::ostream &out, const Map& m);
 
 	public:
 		struct Point{
@@ -121,6 +124,9 @@ class Map {
 		*/
 		void reduceNumWalls(const Point& pos, float distance);
 
+		void readFromStream(std::istream& in);
+		void deleteWalls();
+
 		// Returns true if there is a linear collision free path between start and end. buffer describes an additional
 		// buffer distance the robot is supposed to have to any obstacle. robotRadius is the actual radius of the robot.
 		// Please note that buffer must be greater 0. Otherwise no path will be found.
@@ -130,6 +136,8 @@ class Map {
 
 		Map();
 		~Map();
+
+
 	
 	private:
 		std::list<HorizontalWallSegment*> mHorizontalWalls;

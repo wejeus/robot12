@@ -24,6 +24,7 @@ pose = (0,0,0)
 def refresh(msg):
   window.fill((0, 0, 0))
   findScaleAndOffset(msg)
+  drawExplorationGrid(msg.gridVis)
   #print "Refresh"
   for wall in msg.walls:
     color = (255,20,147)
@@ -71,9 +72,11 @@ def findScaleAndOffset(msg):
   maxY = max(maxY,pose[1])
   minX = min(minX,pose[0])
   minY = min(minY,pose[1])
-  scale = (resolution[0] / abs(maxX - minX), resolution[1] / abs(maxY - minY))
+  minScale = min(resolution[0] / abs(maxX - minX), resolution[1] / abs(maxY - minY))
+  scale = (minScale, minScale)
   if (scale[0] * 0.12 > 1/4 * resolution[0]): #the robot is half of the screen!
-    scale = (resolution[0] / 4, resolution[1] / 4)
+    minScale = min(resolution[0] / 4, resolution[1] / 4)
+    scale = (minScale, minScale)
   offset = (abs(minX * scale[0]) + border[0], abs(minY * scale[1]) + border[1])
   #print ("Scale: " + str(scale))
   #print ("Offset: "  + str(offset))
@@ -109,6 +112,21 @@ def onNodeMsgUpdate(msg):
       edges.append(neighbor)
     node = (nodeMsg.pose.x, nodeMsg.pose.y, nodeMsg.pose.theta, nodeMsg.nodeID, edges)
     nodes.append(node)
+
+def drawExplorationGrid(grid):
+  startPos = (grid.originX, grid.originY)
+  cellSizeX = scale[0] * grid.cellSize - 2
+  cellSizeY = scale[1] * grid.cellSize - 2
+  i = 0
+  for col in grid.exploringGrid:
+    j = 0
+    for cell in col.cells:
+      if (cell == 0):
+        pos = transform(startPos[0] + i * grid.cellSize, startPos[1] + j * grid.cellSize)
+        rect = pygame.Rect(pos[0], pos[1] - cellSizeY, cellSizeX, cellSizeY)
+        pygame.draw.rect(window, (144,144,144), rect, 1)
+      j = j + 1
+    i = i + 1
 
 def poseMsg(msg):
   global pose
