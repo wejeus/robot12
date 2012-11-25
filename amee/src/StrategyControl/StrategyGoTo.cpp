@@ -8,6 +8,7 @@ using namespace amee;
 StrategyGoTo::StrategyGoTo(ros::Publisher& pub) {
 	mPub = pub;
 	mRunning = false;
+	restartFollowingWall = true;
 }
 
 StrategyGoTo::~StrategyGoTo() {
@@ -28,12 +29,12 @@ void StrategyGoTo::init(const StrategyData &data, const amee::GraphMsg::ConstPtr
 	mGraph = graphMsg;
 
 	PathFinderAlgo pfa;
-	std::vector<Pose> v = pfa.findShortestPath(mGraph, mStrategyData.x, mStrategyData.y, 0);
+	std::vector<NodeMsg> v = pfa.findShortestPath(mGraph, mStrategyData.x, mStrategyData.y, 0);
 	if(v.empty())
 		std::cout << "PathFinderAlgo returnd empty path list!" << std::endl;
 
 	mPath.empty();
-	for(std::vector<Pose>::iterator it = v.begin(); it != v.end(); ++it) {
+	for(std::vector<NodeMsg>::iterator it = v.begin(); it != v.end(); ++it) {
 		mPath.push(*it);
 	}
 
@@ -50,12 +51,12 @@ void StrategyGoTo::init(const StrategyData &data, const amee::GraphMsg::ConstPtr
 
 
 	PathFinderAlgo pfa;
-	std::vector<Pose> v = pfa.findShortestPath(mGraph, mStrategyData.x, mStrategyData.y, 0);
+	std::vector<NodeMsg> v = pfa.findShortestPath(mGraph, mStrategyData.x, mStrategyData.y, 0);
 	if(v.empty())
 		std::cout << "PathFinderAlgo returnd empty path list!" << std::endl;
 
 	mPath.empty();
-	for(std::vector<Pose>::iterator it = v.begin(); it != v.end(); ++it) {
+	for(std::vector<NodeMsg>::iterator it = v.begin(); it != v.end(); ++it) {
 		mPath.push(*it);
 	}
 
@@ -75,18 +76,31 @@ void StrategyGoTo::doControl(const StrategyData& data) {
 		mRunning = false;
 	}else{
 
-		Pose curP = mPath.front();
+		NodeMsg curP = mPath.front();
 
 		//if current position is reach pop the one in the front
-		if(EuclidDist(curP, mStrategyData.x, mStrategyData.y) < EUCLIDEAN_POSITION_DISTANCE) {
+		if(EuclidDist(curP, mStrategyData.pose.x, mStrategyData.pose.y) < EUCLIDEAN_POSITION_DISTANCE) {
+			unsigned int mLastNodeID = curP.nodeID;
 			mPath.pop();
+			followWallPossible = (mPath.front().nodeID - mLastNodeID == 1); // checks if we can fillow a wall to get to the next
 			std::cout << "Going to the next node in the path..." << std::endl;
+			restartFollowingWall = true;
 		}
 		
 		MovementCommand mc;
-        mc.type = 3; mc.x = curP.x; mc.y = curP.y;
+		if(followWallPossible) {
+			if(restartFollowingWall) {
+	        	mc.type = 4; // moveFollowWall
+	        	restartFollowingWall = false;
+	        	mPub.publish(mc);	
+			}
+        } else {
+        	mc.type = 3; mc.x = curP.pose.x; mc.y = curP.pose.y; //moveCoordinate 
+        	// TODO: add obstacle avoidance!
 
-        mPub.publish(mc);
+        	mPub.publish(mc);
+        }
+
 	}
 
 }

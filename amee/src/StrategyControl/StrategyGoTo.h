@@ -24,6 +24,7 @@ namespace amee{
 
 	private:
 		bool mRunning;
+		bool restartFollowingWall;
 		ros::Publisher mPub;
 		amee::Graph mGraph;
 		std::queue<amee::Pose> mPath;
