@@ -43,6 +43,10 @@ class Graph{
 
 		amee::GraphMsg getMessage();
 
+		//for serialization
+		void saveToFile(const char * fileName) const;
+		// Graph& loadFromFile(const char * fileName);
+
 	private:
 		size_t mCurNodeID;
 		std::vector<NodeMsg*> mNodes;

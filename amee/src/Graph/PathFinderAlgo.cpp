@@ -36,7 +36,7 @@ typedef priority_queue<int, vector<int>, CompareNode> NodePQ;
  * This gives you a shortest path of from a starting node ID to an end ID in a graph.
  * The return value is a vector of Pose in ordered way.
  */
-std::vector<amee::Pose> PathFinderAlgo::findShortestPath(Graph& g, const int startId, const int endId){
+std::vector<amee::NodeMsg> PathFinderAlgo::findShortestPath(Graph& g, const int startId, const int endId){
 	size_t size = g.size();
 	float pathD[size];
 	int path[size];
@@ -44,11 +44,11 @@ std::vector<amee::Pose> PathFinderAlgo::findShortestPath(Graph& g, const int sta
 	Dijkstra(g, startId, pathD, path);
 
 	int curDest = endId;
-	vector<Pose> v;
+	vector<NodeMsg> v;
 
 	while(curDest != startId){
 		// cout << "from " << path[curDest] << " to " << curDest << endl;
-		v.push_back(g.getNode(curDest)->pose);
+		v.push_back(*(g.getNode(curDest)));
 		curDest = path[curDest];
 	}
 
@@ -57,8 +57,8 @@ std::vector<amee::Pose> PathFinderAlgo::findShortestPath(Graph& g, const int sta
 	return v;
 }
 
-std::vector<amee::Pose> PathFinderAlgo::findShortestPath(Graph& g, const float x, const float y, const int endId) {
-	std::vector<amee::Pose> v;
+std::vector<amee::NodeMsg> PathFinderAlgo::findShortestPath(Graph& g, const float x, const float y, const int endId) {
+	std::vector<amee::NodeMsg> v;
 
 	int curID = getIDfromPose(g, x, y);
 	if(curID == -1){
@@ -69,8 +69,8 @@ std::vector<amee::Pose> PathFinderAlgo::findShortestPath(Graph& g, const float x
 	return findShortestPath(g, curID, endId);
 }
 
-std::vector<amee::Pose> PathFinderAlgo::findShortestPath(Graph& g, const float x0, const float y0, const float x1, const float y1) {
-	std::vector<amee::Pose> v;
+std::vector<amee::NodeMsg> PathFinderAlgo::findShortestPath(Graph& g, const float x0, const float y0, const float x1, const float y1) {
+	std::vector<amee::NodeMsg> v;
 
 	int startID = getIDfromPose(g, x0, y0);
 	if(startID == -1) {
@@ -158,12 +158,13 @@ void PathFinderAlgo::Dijkstra(Graph& g, const int& source, float * pathD, int * 
 
 		visited[curID] = true;
 
-		if(fabs(pathD[curID] - mBIG_FLOAT) < 0.00001)
-			break;
+		// if(fabs(pathD[curID] - mBIG_FLOAT) < 0.00001) //Joshua says it works without this line
+		// 	break;
 		
 		v = &(g.getNode(curID)->edges);
 		for(it = v->begin(); it != v->end(); ++it){
-			float alt = pathD[curID] + EuclidDist(g.getNode(curID)->pose, g.getNode(*it)->pose);
+			float penalty = (abs(curID - (*it)) > 1) ? NODE_DISTANCE_PENALTY : 0;
+			float alt = pathD[curID] + EuclidDist(g.getNode(curID)->pose, g.getNode(*it)->pose) + penalty;
 
 			if(alt < pathD[(*it)]){
 				pathD[(*it)] = alt;

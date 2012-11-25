@@ -4,6 +4,7 @@
 #include "Graph.h"
 #include <vector>
 #include "amee/Pose.h"
+#include "amee/NodeMsg.h"
 
 namespace amee{
 
@@ -17,10 +18,11 @@ class PathFinderAlgo{
 		static const int mNODE_ID_UNDEFINED = -1;
 		static const float MAX_POSITION_DISTANCE = 0.1f;
 		static const float MAX_ANGLE_DISTANCE = 10.0f;
+		static const long NODE_DISTANCE_PENALTY = 0.10; //add this amount of meters in the Dijkstra
 
-		std::vector<amee::Pose> findShortestPath(Graph&, const int startId, const int endId);
-		std::vector<amee::Pose> findShortestPath(Graph&, const float x, const float y, const int endId);
-		std::vector<amee::Pose> findShortestPath(Graph&, const float x0, const float y0, const float x1, const float y1);
+		std::vector<amee::NodeMsg> findShortestPath(Graph&, const int startId, const int endId);
+		std::vector<amee::NodeMsg> findShortestPath(Graph&, const float x, const float y, const int endId);
+		std::vector<amee::NodeMsg> findShortestPath(Graph&, const float x0, const float y0, const float x1, const float y1);
 
 		void Dijkstra(Graph& g, const int&, float *, int *);
 
