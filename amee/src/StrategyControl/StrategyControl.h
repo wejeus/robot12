@@ -5,6 +5,7 @@
 #include "../Graph/Graph.h"
 #include "amee/GraphMsg.h"
 #include "amee/StrategyCommand.h"
+#include "amee/PhaseInfo.h"
 #include "StrategyState.h"
 
 namespace amee {
@@ -35,6 +36,7 @@ class StrategyControl {
 		amee::GraphMsg::ConstPtr mGraphMsg;
 
 		ros::Publisher speed_pub;
+		ros::Publisher mPhaseInfo;
 
 		amee::StrategyState* mCurrentState;
 

@@ -25,6 +25,7 @@ namespace amee{
 	private:
 		bool mRunning;
 		ros::Publisher mPub;
+		ros::Publisher mPhaseInfo;
 		amee::Graph mGraph;
 		std::queue<amee::Pose> mPath;
 

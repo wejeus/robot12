@@ -43,6 +43,7 @@ class Graph{
 
 		amee::GraphMsg getMessage();
 
+		std::vector<NodeMsg*> getNodes();
 	private:
 		size_t mCurNodeID;
 		std::vector<NodeMsg*> mNodes;

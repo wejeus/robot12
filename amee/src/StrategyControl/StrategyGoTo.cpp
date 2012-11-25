@@ -5,8 +5,9 @@
 
 using namespace amee;
 
-StrategyGoTo::StrategyGoTo(ros::Publisher& pub) {
+StrategyGoTo::StrategyGoTo(ros::Publisher& pub, ros::Publisher &phaseInfo) {
 	mPub = pub;
+	mPhaseInfo = phaseInfo;
 	mRunning = false;
 }
 
@@ -72,6 +73,7 @@ void StrategyGoTo::doControl(const StrategyData& data) {
 	//if there are still nodes in our path
 	if(mPath.empty()){
 		std::cout << "we have reached our final destination." << std::endl;
+		mPhaseInfo.publish();
 		mRunning = false;
 	}else{
 

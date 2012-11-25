@@ -1,15 +1,13 @@
-#include "ros/ros.h"
+#include "PhaseOneControl.h"
 
-#include "StrategyControl.h"
-#include "StrategyExplore.h"
-#include "StrategyClassify.h"
-#include "StrategyGoTo.h"
+using namespace amee;
 
-#include <iostream>
-#include <cmath>
+PhaseOneControl::PhaseOneControl() {
 
-#include "amee/StrategyCommand.h"
-#include "amee/MovementCommand.h"
-#include "amee/NodeMsg.h"
+}
 
-#include <std_msgs/Int32.h>
+PhaseOneControl::~PhaseOneControl() {}
+
+void PhaseOneControl::execute() {
+
+}

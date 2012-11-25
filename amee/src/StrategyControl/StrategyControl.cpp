@@ -20,7 +20,7 @@ using namespace amee;
 StrategyControl::StrategyControl(ros::Publisher& pub) {
 	mClassifyState = new StrategyClassify(pub);
 	mExploreState = new StrategyExplore(pub);
-	mGoToState = new StrategyGoTo(pub);
+	mGoToState = new StrategyGoTo(pub, mPhaseInfo);
 
 	mMapInitialized = false;
 	mCurrentState = NULL;
@@ -66,7 +66,7 @@ void StrategyControl::receive_command(const amee::StrategyCommand::ConstPtr &msg
 			}
 			std::cout << "STRATEGY GO TO" << std::endl;
 			mCurrentState = mGoToState;
-			mGoToState->init(mStrategyData, mGraphMsg, x, y);//TODO change this to add the end position, also add the init(mStrategyData, something else) to the StrategyGoTo class
+			mGoToState->init(mStrategyData, mPhaseInfo, mGraphMsg, x, y);//TODO change this to add the end position, also add the init(mStrategyData, something else) to the StrategyGoTo class
 		break;
 		case TYPE_STRATEGY_CLASSIFY:
 		 	std::cout << "STRATEGY CLASSIFY" << std::endl;
@@ -98,6 +98,8 @@ int main(int argc, char **argv)
 
 	// create the controller and initialize it
 	ros::Publisher pub = n.advertise<amee::MovementCommand>("/MovementControl/MovementCommand", 1);
+	mPhaseInfo = n.advertise<amee::PhaseInfo>("/StrategyControl/PhaseInfo", 100);
+	
 	//StrategyControl control(vel_pub, wall_pub);
 	StrategyControl control(pub);
 	
