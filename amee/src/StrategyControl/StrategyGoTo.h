@@ -5,6 +5,7 @@
 #include "../Graph/Graph.h"
 #include "../Graph/PathFinderAlgo.h"
 #include "amee/Pose.h"
+#include "amee/NodeMsg.h"
 #include "ros/ros.h"
 #include <queue>
 
@@ -24,10 +25,11 @@ namespace amee{
 
 	private:
 		bool mRunning;
-		bool restartFollowingWall;
+		bool mRestartFollowingWall;
+		bool mFollowWallPossible;
 		ros::Publisher mPub;
 		amee::Graph mGraph;
-		std::queue<amee::Pose> mPath;
+		std::queue<amee::NodeMsg> mPath;
 
 		StrategyData mStrategyData;
 

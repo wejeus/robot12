@@ -8,7 +8,8 @@ using namespace amee;
 StrategyGoTo::StrategyGoTo(ros::Publisher& pub) {
 	mPub = pub;
 	mRunning = false;
-	restartFollowingWall = true;
+	mRestartFollowingWall = true;
+	mFollowWallPossible = false;
 }
 
 StrategyGoTo::~StrategyGoTo() {
@@ -78,20 +79,21 @@ void StrategyGoTo::doControl(const StrategyData& data) {
 
 		NodeMsg curP = mPath.front();
 
+		
 		//if current position is reach pop the one in the front
-		if(EuclidDist(curP, mStrategyData.pose.x, mStrategyData.pose.y) < EUCLIDEAN_POSITION_DISTANCE) {
+		if(EuclidDist(curP.pose, mStrategyData.x, mStrategyData.y) < EUCLIDEAN_POSITION_DISTANCE) {
 			unsigned int mLastNodeID = curP.nodeID;
 			mPath.pop();
-			followWallPossible = (mPath.front().nodeID - mLastNodeID == 1); // checks if we can fillow a wall to get to the next
+			mFollowWallPossible = (mPath.front().nodeID - mLastNodeID == 1); // checks if we can fillow a wall to get to the next
 			std::cout << "Going to the next node in the path..." << std::endl;
-			restartFollowingWall = true;
+			mRestartFollowingWall = true;
 		}
 		
 		MovementCommand mc;
-		if(followWallPossible) {
-			if(restartFollowingWall) {
+		if(mFollowWallPossible) {
+			if(mRestartFollowingWall) {
 	        	mc.type = 4; // moveFollowWall
-	        	restartFollowingWall = false;
+	        	mRestartFollowingWall = false;
 	        	mPub.publish(mc);	
 			}
         } else {
