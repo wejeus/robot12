@@ -15,7 +15,7 @@ class StrategyGoTo;
 class StrategyControl {
 
 	public:
-		StrategyControl(ros::Publisher& pub);
+		StrategyControl(ros::Publisher& pub, ros::Publisher &phaseInfo);
 		~StrategyControl();
 		void receive_command(const amee::StrategyCommand::ConstPtr &msg);
 		void receive_pose(const amee::Pose::ConstPtr &msg);
@@ -35,6 +35,7 @@ class StrategyControl {
 		amee::GraphMsg::ConstPtr mGraphMsg;
 
 		ros::Publisher speed_pub;
+		// ros::Publisher mPhaseInfo;
 
 		amee::StrategyState* mCurrentState;
 

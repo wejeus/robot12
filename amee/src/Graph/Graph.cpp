@@ -178,5 +178,9 @@ amee::GraphMsg Graph::getMessage(){
 	return graphMsg;
 }
 
+std::vector<amee::NodeMsg*> Graph::getNodes() {
+	return mNodes;
+}
+
 };// namespace amee
 

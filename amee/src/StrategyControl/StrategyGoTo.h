@@ -5,13 +5,14 @@
 #include "../Graph/Graph.h"
 #include "../Graph/PathFinderAlgo.h"
 #include "amee/Pose.h"
+#include <std_msgs/Int32.h>
 #include "ros/ros.h"
 #include <queue>
 
 namespace amee{
 	class StrategyGoTo : public StrategyState {
 	public:
-		StrategyGoTo(ros::Publisher &pub);
+		StrategyGoTo(ros::Publisher &pub, ros::Publisher &phaseInfo);
 		~StrategyGoTo();
 
 		virtual void init(const StrategyData &data);
@@ -25,6 +26,7 @@ namespace amee{
 	private:
 		bool mRunning;
 		ros::Publisher mPub;
+		ros::Publisher mPhaseInfo;
 		amee::Graph mGraph;
 		std::queue<amee::Pose> mPath;
 

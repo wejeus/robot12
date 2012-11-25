@@ -17,10 +17,10 @@
 using namespace amee;
 
 
-StrategyControl::StrategyControl(ros::Publisher& pub) {
+StrategyControl::StrategyControl(ros::Publisher& pub, ros::Publisher &phaseInfo) {
 	mClassifyState = new StrategyClassify(pub);
 	mExploreState = new StrategyExplore(pub);
-	mGoToState = new StrategyGoTo(pub);
+	mGoToState = new StrategyGoTo(pub, phaseInfo);
 
 	mMapInitialized = false;
 	mCurrentState = NULL;
@@ -51,6 +51,7 @@ void StrategyControl::receive_graph(const amee::GraphMsg::ConstPtr &msg) {
 }
 
 void StrategyControl::receive_command(const amee::StrategyCommand::ConstPtr &msg) {
+	std::cout << "asdfjkasdfl;jasdfkl" << std::endl;
 	int type = msg->type;
 	float x = msg->x;
 	float y = msg->y;
@@ -98,8 +99,10 @@ int main(int argc, char **argv)
 
 	// create the controller and initialize it
 	ros::Publisher pub = n.advertise<amee::MovementCommand>("/MovementControl/MovementCommand", 1);
+	ros::Publisher phaseInfo = n.advertise<std_msgs::Int32>("/StrategyControl/PhaseInfo", 100);
+
 	//StrategyControl control(vel_pub, wall_pub);
-	StrategyControl control(pub);
+	StrategyControl control(pub, phaseInfo);
 	
 
 	ros::Subscriber dist_sub;
