@@ -27,7 +27,7 @@ class HorizontalWallSegment : public WallSegment{
 		unsigned int mNumberOfPoints;
 		float mYAcc;
 
-		bool isInRange(const Map::Point& pos);
+		// bool isInRange(const Map::Point& pos);
 
 	};
 }

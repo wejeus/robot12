@@ -125,6 +125,7 @@ class Map {
 		void reduceNumWalls(const Point& pos, float distance);
 
 		void readFromStream(std::istream& in);
+		void deleteWalls();
 
 		// Returns true if there is a linear collision free path between start and end. buffer describes an additional
 		// buffer distance the robot is supposed to have to any obstacle. robotRadius is the actual radius of the robot.

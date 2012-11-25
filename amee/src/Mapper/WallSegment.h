@@ -32,7 +32,7 @@ class WallSegment {
 
 	public:
 		static const float ORTHOGONAL_TOLERANCE = 0.02f;
-		static const float WALL_THICKNESS = 0.015f;
+		static const float HALF_WALL_THICKNESS = 0.01f;
 		static const float PARALLEL_TOLERANCE = 0.04f;
 		static const int HORIZONTAL = 0;
 		static const int VERTICAL = 1;

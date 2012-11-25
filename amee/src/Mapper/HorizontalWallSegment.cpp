@@ -136,8 +136,8 @@ float HorizontalWallSegment::distanceTo(const Map::Point& pos) {
 	return sqrt((pos.x - mTo.x) * (pos.x - mTo.x) + (pos.y - mTo.y) * (pos.y - mTo.y));
 }
 
-bool HorizontalWallSegment::isInRange(const Map::Point& pos) {
-	bool inXRange = (mFrom.x - PARALLEL_TOLERANCE <= pos.x) && (pos.x <= mTo.x + PARALLEL_TOLERANCE);
-	bool inYRange = (mFrom.y - WALL_THICKNESS / 2.0f - ORTHOGONAL_TOLERANCE <= pos.y) && (mFrom.y + WALL_THICKNESS / 2.0f + ORTHOGONAL_TOLERANCE >= pos.y);
-	return inXRange && inYRange;
-}
+// bool HorizontalWallSegment::isInRange(const Map::Point& pos) {
+// 	bool inXRange = (mFrom.x - PARALLEL_TOLERANCE <= pos.x) && (pos.x <= mTo.x + PARALLEL_TOLERANCE);
+// 	bool inYRange = (mFrom.y - WALL_THICKNESS / 2.0f - ORTHOGONAL_TOLERANCE <= pos.y) && (mFrom.y + WALL_THICKNESS / 2.0f + ORTHOGONAL_TOLERANCE >= pos.y);
+// 	return inXRange && inYRange;
+// }

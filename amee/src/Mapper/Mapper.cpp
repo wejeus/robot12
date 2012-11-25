@@ -220,10 +220,12 @@ void Mapper::calculateMeasurements() {
 	mMeasurements[RIGHT_BACK].sensorPos = mMeasurements[RIGHT_BACK].sensorPos + mPose;
 	if (isValidDistance(mDistances.rightBack)) {
 
-		mMeasurements[RIGHT_BACK].dist = mDistances.rightBack;
+		float dist = mDistances.rightBack + WallSegment::HALF_WALL_THICKNESS; // we estimate the wall center!
+
+		mMeasurements[RIGHT_BACK].dist = dist;
 
 		// add distance vector (positive y is left of the robot, negative y right)
-		p.y += -mDistances.rightBack;
+		p.y += -dist;
 
 		mMeasurements[RIGHT_BACK].valid = true;
 		p.rotate(mPose.theta);
@@ -243,10 +245,11 @@ void Mapper::calculateMeasurements() {
 	mMeasurements[RIGHT_FRONT].sensorPos.rotate(mPose.theta);
 	mMeasurements[RIGHT_FRONT].sensorPos = mMeasurements[RIGHT_FRONT].sensorPos + mPose;
 	if (isValidDistance(mDistances.rightFront)) {
+		float dist = mDistances.rightFront + WallSegment::HALF_WALL_THICKNESS; // we estimate the wall center!
 
-		mMeasurements[RIGHT_FRONT].dist = mDistances.rightFront;
+		mMeasurements[RIGHT_FRONT].dist = dist;
 		// add distance vector (positive y is left of the robot, negative y right)
-		p.y += -mDistances.rightFront;
+		p.y += -dist;
 
 		mMeasurements[RIGHT_FRONT].valid = true;
 		p.rotate(mPose.theta);
@@ -267,10 +270,10 @@ void Mapper::calculateMeasurements() {
 	mMeasurements[LEFT_FRONT].sensorPos = mMeasurements[LEFT_FRONT].sensorPos + mPose;
 	
 	if (isValidDistance(mDistances.leftFront)) {
-
-		mMeasurements[LEFT_FRONT].dist = mDistances.leftFront;
+		float dist = mDistances.leftFront + WallSegment::HALF_WALL_THICKNESS; // we estimate the wall center!
+		mMeasurements[LEFT_FRONT].dist = dist;
 		// add distance vector (positive y is left of the robot, negative y right)
-		p.y += mDistances.leftFront;
+		p.y += dist;
 
 		mMeasurements[LEFT_FRONT].valid = true;
 		p.rotate(mPose.theta);
@@ -291,11 +294,11 @@ void Mapper::calculateMeasurements() {
 	mMeasurements[LEFT_BACK].sensorPos = mMeasurements[LEFT_BACK].sensorPos + mPose;
 
 	if (isValidDistance(mDistances.leftBack)) {
-
-		mMeasurements[LEFT_BACK].dist = mDistances.leftBack;
+		float dist = mDistances.leftBack + WallSegment::HALF_WALL_THICKNESS; // we estimate the wall center!
+		mMeasurements[LEFT_BACK].dist = dist;
 
 		// add distance vector (positive y is left of the robot, negative y right)
-		p.y += mDistances.leftBack;
+		p.y += dist;
 
 		mMeasurements[LEFT_BACK].valid = true;
 		p.rotate(mPose.theta);

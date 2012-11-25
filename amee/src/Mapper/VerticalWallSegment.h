@@ -27,7 +27,7 @@ class VerticalWallSegment : public WallSegment{
 		unsigned int mNumberOfPoints;
 		float mXAcc;
 
-		bool isInRange(const Map::Point& pos);
+		// bool isInRange(const Map::Point& pos);
 
 	};
 }

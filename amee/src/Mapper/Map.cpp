@@ -21,14 +21,13 @@ std::ostream& amee::operator<< (std::ostream &out, const Map& m) {
 }
 
 void Map::readFromStream(std::istream& in) {
+	deleteWalls();
 	int num;
 	in >> num;
-	mHorizontalWalls.clear();
 	for (int i = 0; i < num; ++i) {
 		mHorizontalWalls.push_back(new HorizontalWallSegment(in));
 	}
 	in >> num;
-	mVerticalWalls.clear();
 	for (int i = 0; i < num; ++i) {
 		mVerticalWalls.push_back(new VerticalWallSegment(in));
 	}
@@ -39,12 +38,18 @@ Map::Map() {
 }
 
 Map::~Map() {
+	deleteWalls();
+}
+
+void Map::deleteWalls() {
 	for (std::list<VerticalWallSegment*>::const_iterator iter = mVerticalWalls.begin(), end = mVerticalWalls.end(); iter != end; ++iter) {
 		delete *iter;	
 	}
 	for (std::list<HorizontalWallSegment*>::const_iterator iter = mHorizontalWalls.begin(), end = mHorizontalWalls.end(); iter != end; ++iter) {
 		delete *iter;	
 	}
+	mVerticalWalls.clear();
+	mHorizontalWalls.clear();
 }
 
 void Map::insertHorizontal(HorizontalWallSegment* wall) {
@@ -173,6 +178,7 @@ void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& me
 	bool leftBackWall = false;
 	bool leftPoseEstimated = false;
 	bool rightPoseEstimated = false;
+	float robotR = Mapper::ROBOT_RADIUS;
 	WallSegment* matchRF;
 	WallSegment* matchRB;
 	WallSegment* matchLF;
@@ -180,6 +186,7 @@ void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& me
 
 
 	if (measurements.rightFront.valid) {
+		
 		matchRF = findBestMatch(measurements.rightFront, rightFront);
 		rightFrontWall = matchRF != NULL;	
 	}
@@ -212,21 +219,21 @@ void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& me
 		rightEstimate.theta = wallTheta + relativeTheta;
 
 		float meanDist = (measurements.rightFront.dist + measurements.rightBack.dist) / 2.0f;
-	
+		
  		if (matchRB->getType() == WallSegment::VERTICAL) {
 			float sideOfWall = inPose.x <= matchRB->getX() ? -1.0f : 1.0f;
 	
 			// now we want to reset the x coordinate
 			float normalDistToWall = cos(relativeTheta) * meanDist;
-			float robotR = Mapper::ROBOT_RADIUS;
-			float centerDistToWall = normalDistToWall + cos(relativeTheta) * robotR;
+			
+			float centerDistToWall = normalDistToWall + cos(relativeTheta) * robotR + WallSegment::HALF_WALL_THICKNESS;
 			rightEstimate.x = matchRB->getX() + sideOfWall * centerDistToWall;
 		} else {
 			float sideOfWall = inPose.y <= matchRB->getY() ? -1.0f : 1.0f;
 
 			// now we want to reset the y coordinate
 			float normalDistToWall = cos(relativeTheta) * meanDist;
-			float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
+			float centerDistToWall = normalDistToWall + cos(relativeTheta) * robotR + WallSegment::HALF_WALL_THICKNESS;
 			rightEstimate.y = matchRB->getY() + sideOfWall * centerDistToWall;
 		}
 	}
@@ -251,14 +258,14 @@ void Map::localize(const amee::Pose& inPose, const amee::Map::MeasurementSet& me
 			// now we want to reset the x coordinate
 			float normalDistToWall = cos(relativeTheta) * meanDist;
 			float robotR = Mapper::ROBOT_RADIUS;
-			float centerDistToWall = normalDistToWall + cos(relativeTheta) * robotR;
+			float centerDistToWall = normalDistToWall + cos(relativeTheta) * robotR + WallSegment::HALF_WALL_THICKNESS;
 			leftEstimate.x = matchLB->getX() + sideOfWall * centerDistToWall;
 		} else {
 			float sideOfWall = inPose.y <= matchLB->getY() ? -1.0f : 1.0f;
 
 			// now we want to reset the y coordinate
 			float normalDistToWall = cos(relativeTheta) * meanDist;
-			float centerDistToWall = normalDistToWall + cos(relativeTheta) * 0.12f;
+			float centerDistToWall = normalDistToWall + cos(relativeTheta) * robotR + WallSegment::HALF_WALL_THICKNESS;
 			leftEstimate.y = matchLB->getY() + sideOfWall * centerDistToWall;
 		}
 	}
