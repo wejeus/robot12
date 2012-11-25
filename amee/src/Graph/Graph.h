@@ -20,8 +20,10 @@ class Graph{
 
 		Graph();
 		Graph(const Graph&);
+		// Graph(const amee::GraphMsg::ConstPtr&);
 		~Graph();
 		Graph& operator=(const Graph&);
+		Graph& operator=(const amee::GraphMsg::ConstPtr&);
 
 		size_t size() const;
 		// void addNode(const Node& n);
@@ -44,6 +46,10 @@ class Graph{
 	private:
 		size_t mCurNodeID;
 		std::vector<NodeMsg*> mNodes;
+		std::vector<int> mTagNodes;
+		std::vector<int> mRotateLeftNodes;
+		std::vector<int> mRotateRightNodes;
+		std::vector<int> mNextToWallNodes;
 		//amee::GraphMsg mMsg;
 
 };//class Graph

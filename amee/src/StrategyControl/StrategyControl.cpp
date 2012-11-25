@@ -1,13 +1,18 @@
 #include "ros/ros.h"
+
 #include "StrategyControl.h"
 #include "StrategyExplore.h"
 #include "StrategyClassify.h"
 #include "StrategyGetOut.h"
 #include "StrategyGo2Tag.h"
+
 #include <iostream>
 #include <cmath>
+
 #include "amee/StrategyCommand.h"
 #include "amee/MovementCommand.h"
+#include "amee/NodeMsg.h"
+
 #include <std_msgs/Int32.h>
 
 using namespace amee;
@@ -35,9 +40,15 @@ void StrategyControl::doControl() {
 	}
 }
 
-void StrategyControl::receive_pose(const amee::Pose::ConstPtr &msg){
+void StrategyControl::receive_pose(const amee::Pose::ConstPtr &msg) {
 	//receive pose
-	mStrategyData = { msg->x, msg->y, msg->theta };
+	mStrategyData.x = msg->x;
+	mStrategyData.y = msg->y;
+	mStrategyData.theta = msg->theta;
+}
+
+void StrategyControl::receive_graph(const amee::GraphMsg::ConstPtr &msg) {
+	mGraphMsg = msg;
 }
 
 void StrategyControl::receive_command(const amee::StrategyCommand::ConstPtr &msg) {
@@ -96,9 +107,10 @@ int main(int argc, char **argv)
 	*/
 	ros::Subscriber command_sub = n.subscribe("/StrategyControl/StrategyCommand", 10, &StrategyControl::receive_command, &control);
 	ros::Subscriber pos_sub = n.subscribe("/amee/pose", 100, &StrategyControl::receive_pose, &control);
+	ros::Subscriber graph_sub = n.subscribe("/amee/map/graph", 1, &StrategyControl::receive_graph, &control);
 	
 
-	ros::Rate loop_rate(20);
+	ros::Rate loop_rate(6);
 
 	control.init();
 	

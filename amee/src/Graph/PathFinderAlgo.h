@@ -13,11 +13,17 @@ class PathFinderAlgo{
 		static const long mLONG_MAX = 2147483647;
 		static const float mBIG_FLOAT = 999999999999.9f;
 		static const int mBIG_INTEGER = 9999999;
+
 		static const int mNODE_ID_UNDEFINED = -1;
+		static const float MAX_POSITION_DISTANCE = 0.1f;
+		static const float MAX_ANGLE_DISTANCE = 10.0f;
 
 		std::vector<amee::Pose> findShortestPath(Graph&, const int startId, const int endId);
+		std::vector<amee::Pose> findShortestPath(Graph&, const float x, const float y, const int endId);
 
 		void Dijkstra(Graph& g, const int&, float *, int *);
+
+		int getIDfromPose(Graph& g, const float x, const float y) const; /* return -1 if no id is found...*/
 		
 	private:
 

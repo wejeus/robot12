@@ -2,6 +2,8 @@
 #define STRATEGY_CONTROL_H
 
 #include "amee/Pose.h"
+#include "../Graph/Graph.h"
+#include "amee/GraphMsg.h"
 #include "amee/StrategyCommand.h"
 #include "StrategyState.h"
 
@@ -18,6 +20,7 @@ class StrategyControl {
 		~StrategyControl();
 		void receive_command(const amee::StrategyCommand::ConstPtr &msg);
 		void receive_pose(const amee::Pose::ConstPtr &msg);
+		void receive_graph(const amee::GraphMsg::ConstPtr &msg);
 		void doControl();
 		void init();
 
@@ -28,6 +31,7 @@ class StrategyControl {
 
 	private:
 		amee::StrategyData mStrategyData;
+		amee::GraphMsg::ConstPtr mGraphMsg;
 
 		ros::Publisher speed_pub;
 
@@ -38,5 +42,6 @@ class StrategyControl {
 		amee::StrategyGo2Tag* mGo2TagState;
 		amee::StrategyGetOut* mGetOutState;
 };
-}
+
+};//namespace amee
 #endif

@@ -10,13 +10,44 @@ Graph::Graph(){
 
 Graph::Graph(const Graph& ref){
 	mCurNodeID = ref.mCurNodeID;
-	std::vector<NodeMsg*> v = ref.mNodes;//TODO: fix this part, should be copied or should it?
+	// std::vector<NodeMsg*> v = ref.mNodes;//TODO: fix this part, should be copied or should it?
 	mNodes.clear();
+	mNodes = ref.mNodes;
 
-	for(std::vector<NodeMsg*>::iterator it = v.begin(); it != v.end(); ++it){
-		mNodes.push_back(*it);
-	}	
+	mTagNodes.clear();
+	mTagNodes = ref.mTagNodes;
+
+	mRotateLeftNodes.clear();
+	mRotateLeftNodes = ref.mRotateLeftNodes;
+
+	mRotateRightNodes.clear();
+	mRotateRightNodes = ref.mRotateRightNodes;
+
+	mNextToWallNodes.clear();
+	mNextToWallNodes = ref.mNextToWallNodes;
 }
+
+// Graph::Graph(const amee::GraphMsg::ConstPtr& gMsg) {
+// 	mCurNodeID = gMsg->nodes.size();
+
+// 	mNodes.clear();
+// 	std::vector<NodeMsg> &v = gMsg->nodes;
+// 	for(std::vector<NodeMsg>::iterator it = v.begin(); it != v.end(); ++it){
+// 		mNodes.push_back(new NodeMsg(*it));
+// 	}
+
+// 	mTagNodes.clear();
+// 	mTagNodes = gMsg->tagNodes;
+
+// 	mRotateLeftNodes.clear();
+// 	mRotateLeftNodes = gMsg->rotateLeftNodes;
+
+// 	mRotateRightNodes.clear();
+// 	mRotateRightNodes = gMsg->rotateRightNodes;
+
+// 	mNextToWallNodes.clear();
+// 	mNextToWallNodes = gMsg->nextToWallNodes;
+// }
 
 Graph::~Graph(){
 	for (unsigned int i = 0; i < mNodes.size(); ++i) {
@@ -29,6 +60,31 @@ Graph& Graph::operator=(const Graph& ref){
 		this->~Graph();
 		new (this) Graph(ref);
 	}
+
+	return *this;
+}
+
+Graph& Graph::operator=(const amee::GraphMsg::ConstPtr& gMsg) {
+	mCurNodeID = gMsg->nodes.size();
+
+	mNodes.clear();
+	std::vector<NodeMsg> v = gMsg->nodes;
+	for(std::vector<NodeMsg>::iterator it = v.begin(); it != v.end(); ++it){
+		mNodes.push_back(new NodeMsg(*it));
+	}
+	// mNodes = gMsg.nodes;//TODO: fix this part, the pointer might not be valid after the gMsg is destroyed
+
+	mTagNodes.clear();
+	mTagNodes = gMsg->tagNodes;
+
+	mRotateLeftNodes.clear();
+	mRotateLeftNodes = gMsg->rotateLeftNodes;
+
+	mRotateRightNodes.clear();
+	mRotateRightNodes = gMsg->rotateRightNodes;
+
+	mNextToWallNodes.clear();
+	mNextToWallNodes = gMsg->nextToWallNodes;
 
 	return *this;
 }
@@ -67,8 +123,22 @@ int Graph::addNode(const amee::Pose& p, int type){
 
 	mNodes.push_back(nMsg_p);
 
+// NODE_NEXT_TO_WALL = 0,
+// 			NODE_ROTATE_LEFT = 1, 
+// 			NODE_ROTATE_RIGHT = 2, 
+// 			NODE_TAG = 3
+
 
 	int tmpCurNodeID = mCurNodeID++;
+
+
+	switch(type){
+		case NODE_NEXT_TO_WALL:		mNextToWallNodes.push_back(tmpCurNodeID);	break;
+		case NODE_ROTATE_LEFT:		mRotateLeftNodes.push_back(tmpCurNodeID);	break;
+		case NODE_ROTATE_RIGHT:		mRotateRightNodes.push_back(tmpCurNodeID);	break;
+		case NODE_TAG:				mTagNodes.push_back(tmpCurNodeID);			break;
+	}
+
 	return tmpCurNodeID;
 }
 
@@ -104,6 +174,13 @@ amee::GraphMsg Graph::getMessage(){
 	for (unsigned int i = 0; i < mNodes.size(); ++i) {
 		graphMsg.nodes[i] = (*mNodes[i]);
 	}
+
+	graphMsg.tagNodes = mTagNodes;
+	graphMsg.rotateRightNodes = mRotateRightNodes;
+	graphMsg.rotateLeftNodes = mRotateLeftNodes;
+	graphMsg.nextToWallNodes = mNextToWallNodes;
+
+
 	return graphMsg;
 }
 

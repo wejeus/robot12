@@ -57,6 +57,17 @@ vector<Pose> PathFinderAlgo::findShortestPath(Graph& g, const int startId, const
 	return v;
 }
 
+vector<Pose> PathFinderAlgo::findShortestPath(Graph& g, const float x, const float y, const int endId) {
+	int curID = getIDfromPose(g, x, y);
+	vector<Pose> v;
+	if( curID == -1){
+		std::cout << "couldn't find curID in findShortestPath(Graph, float, float, int)" << std::endl;
+		return v;
+	}
+
+	return findShortestPath(g, curID, endId);
+}
+
 
 /**
  * Calculates the distances from a source to all nodes in the graph.
@@ -142,6 +153,28 @@ void PathFinderAlgo::Dijkstra(Graph& g, const int& source, float * pathD, int * 
 			}
 		}
 	}
+}
+
+int PathFinderAlgo::getIDfromPose(Graph& g, const float x, const float y) const {
+	int best_id_found = -1;
+	float best_dist_found = mBIG_FLOAT;
+
+	const std::vector<NodeMsg*> gNodes = g.getNodes();
+	std::vector<NodeMsg*>::const_iterator it;
+
+	float tmpX, tmpY, tmpDist;
+	for(it=gNodes.begin(); it != gNodes.end(); ++it) {
+		tmpX = (*it)->pose.x;
+		tmpY = (*it)->pose.y;
+
+		tmpDist = EuclidDist(tmpX, x, tmpY, y);
+		if(tmpDist < MAX_POSITION_DISTANCE && tmpDist < best_dist_found){
+			best_dist_found = tmpDist;
+			best_id_found = (*it)->nodeID;
+		}
+	}
+
+	return best_id_found;
 }
 
 
