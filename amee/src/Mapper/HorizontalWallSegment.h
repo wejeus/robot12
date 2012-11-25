@@ -7,9 +7,10 @@
 namespace amee {
 
 class HorizontalWallSegment : public WallSegment{
-
+	friend std::ostream& operator<< (std::ostream &out, const HorizontalWallSegment* seg);
 	public:
 		HorizontalWallSegment(Map::Point pos);
+		HorizontalWallSegment(std::istream& is);
 		virtual ~HorizontalWallSegment();
 		/* Adds the given point to this wall if it's close enough. If it was close enough it returns true, otherwise false.	*/
 		virtual bool addMeasurement(const Map::Point& pos);
@@ -26,7 +27,7 @@ class HorizontalWallSegment : public WallSegment{
 		unsigned int mNumberOfPoints;
 		float mYAcc;
 
-		bool isInRange(const Map::Point& pos);
+		// bool isInRange(const Map::Point& pos);
 
 	};
 }

@@ -1,9 +1,11 @@
 #include "Mapper.h"
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include "../MovementControl/MoveFollowWall.h"
 #include "WallSegment.h"
 #include "HorizontalWallSegment.h"
+#include <string.h>
 
 using namespace amee;
 
@@ -13,6 +15,7 @@ Mapper::Mapper() {
 	mNodeId = 0;
 	mLastNodeId = -1;
 	mExploringGrid = new ExploringGrid(40,0.10f);
+	mInPhase1 = true;
 }
 
 Mapper::~Mapper() {
@@ -80,35 +83,41 @@ void Mapper::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
 
 void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg) {
 	int type = 0;
-	if (mMappingState != PauseMapping && mMappingState != Mapping) {
-		return;
-	}
+	
 	switch(msg->state) {
 		case amee::MoveFollowWall::INIT:
 			mLastNodeId = -1;
 			mRotating = false;
 			break;
 		case amee::MoveFollowWall::ALIGN_TO_WALL_OUT:
-			init(); //  only does sth if not initialized
-			type = amee::Graph::NODE_NEXT_TO_WALL;
-			addNode(type);
+			if (mMappingState == PauseMapping || mMappingState == Mapping) {
+				init(); //  only does sth if not initialized
+				type = amee::Graph::NODE_NEXT_TO_WALL;
+				addNode(type);
+				mMappingState = Mapping;
+			}
 			mRotating = false;
-			mMappingState = Mapping;
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_OUT:
-			if(mInitialized) addNode(amee::Graph::NODE_NEXT_TO_WALL);
+			if (mMappingState == PauseMapping || mMappingState == Mapping) {
+				if(mInitialized) addNode(amee::Graph::NODE_NEXT_TO_WALL);
+			}
 			break;
 		case amee::MoveFollowWall::ROTATE_LEFT_IN:
 			type = amee::Graph::NODE_ROTATE_LEFT;
 			mRotating = true;
-			if (mInitialized) addNode(type);
-			mMappingState = Mapping;
+			if (mMappingState == PauseMapping || mMappingState == Mapping) {
+				if (mInitialized) addNode(type);
+				mMappingState = Mapping;
+			}	
 			break;
 		case amee::MoveFollowWall::ROTATE_RIGHT_IN:
 			mRotating = true;
-			mMappingState = Mapping;
-			type = amee::Graph::NODE_ROTATE_RIGHT;
-			if (mInitialized) addNode(type);
+			if (mMappingState == PauseMapping || mMappingState == Mapping) {
+				mMappingState = Mapping;
+				type = amee::Graph::NODE_ROTATE_RIGHT;
+				if (mInitialized) addNode(type);
+			}
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_IN:
 		case amee::MoveFollowWall::HANDLE_EVIL_WALLS_IN:
@@ -117,10 +126,14 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 		// case amee::MoveFollowWall::MOVE_TAIL_IN:
 		// case amee::MoveFollowWall::LOOK_FOR_BEGINNING_OF_WALL_IN:
 			mRotating = false;
-			mMappingState = Mapping;
+			if (mMappingState == PauseMapping || mMappingState == Mapping) {
+				mMappingState = Mapping;
+			}
 			break;
 		default:
+		if (mMappingState == PauseMapping || mMappingState == Mapping) {
 			mMappingState = PauseMapping;
+		}
 	}
 }
 
@@ -195,21 +208,24 @@ void Mapper::calculateMeasurements() {
 	float halfBase = IR_BASE_RIGHT / 2.0f;
 	float robotR = ROBOT_RADIUS;
 	// right back
-	if (isValidDistance(mDistances.rightBack)) {
-		// right back position of 0
-		Map::Point p;
-		p.x = -halfBase;
-		p.y = -robotR;
+	// right back position of 0
+	Map::Point p;
+	p.x = -halfBase;
+	p.y = -robotR;
 
-		// set sensor position in global coordinates
-		mMeasurements[RIGHT_BACK].sensorPos = p;
-		mMeasurements[RIGHT_BACK].sensorRelativePos = p;
-		mMeasurements[RIGHT_BACK].sensorPos.rotate(mPose.theta);
-		mMeasurements[RIGHT_BACK].sensorPos = mMeasurements[RIGHT_BACK].sensorPos + mPose;
-		mMeasurements[RIGHT_BACK].dist = mDistances.rightBack;
+	// set sensor position in global coordinates
+	mMeasurements[RIGHT_BACK].sensorPos = p;
+	mMeasurements[RIGHT_BACK].sensorRelativePos = p;
+	mMeasurements[RIGHT_BACK].sensorPos.rotate(mPose.theta);
+	mMeasurements[RIGHT_BACK].sensorPos = mMeasurements[RIGHT_BACK].sensorPos + mPose;
+	if (isValidDistance(mDistances.rightBack)) {
+
+		float dist = mDistances.rightBack + WallSegment::HALF_WALL_THICKNESS; // we estimate the wall center!
+
+		mMeasurements[RIGHT_BACK].dist = dist;
 
 		// add distance vector (positive y is left of the robot, negative y right)
-		p.y += -mDistances.rightBack;
+		p.y += -dist;
 
 		mMeasurements[RIGHT_BACK].valid = true;
 		p.rotate(mPose.theta);
@@ -219,20 +235,21 @@ void Mapper::calculateMeasurements() {
 	}
 
 	// right front
-	if (isValidDistance(mDistances.rightFront)) {
-		// right front position of 0
-		Map::Point p;
-		p.x = halfBase;
-		p.y = -robotR;
+	// right front position of 0
+	p.x = halfBase;
+	p.y = -robotR;
 
-		// set sensor position in global coordinates
-		mMeasurements[RIGHT_FRONT].sensorRelativePos = p;
-		mMeasurements[RIGHT_FRONT].sensorPos = p;
-		mMeasurements[RIGHT_FRONT].sensorPos.rotate(mPose.theta);
-		mMeasurements[RIGHT_FRONT].sensorPos = mMeasurements[RIGHT_FRONT].sensorPos + mPose;
-		mMeasurements[RIGHT_FRONT].dist = mDistances.rightFront;
+	// set sensor position in global coordinates
+	mMeasurements[RIGHT_FRONT].sensorRelativePos = p;
+	mMeasurements[RIGHT_FRONT].sensorPos = p;
+	mMeasurements[RIGHT_FRONT].sensorPos.rotate(mPose.theta);
+	mMeasurements[RIGHT_FRONT].sensorPos = mMeasurements[RIGHT_FRONT].sensorPos + mPose;
+	if (isValidDistance(mDistances.rightFront)) {
+		float dist = mDistances.rightFront + WallSegment::HALF_WALL_THICKNESS; // we estimate the wall center!
+
+		mMeasurements[RIGHT_FRONT].dist = dist;
 		// add distance vector (positive y is left of the robot, negative y right)
-		p.y += -mDistances.rightFront;
+		p.y += -dist;
 
 		mMeasurements[RIGHT_FRONT].valid = true;
 		p.rotate(mPose.theta);
@@ -240,21 +257,23 @@ void Mapper::calculateMeasurements() {
 	} else {
 		mMeasurements[RIGHT_FRONT].valid = false;
 	}
-	// left front
-	if (isValidDistance(mDistances.leftFront)) {
-		// left front position of 0
-		Map::Point p;
-		p.x = halfBase;
-		p.y = robotR;
 
-		// set sensor position in global coordinates
-		mMeasurements[LEFT_FRONT].sensorRelativePos = p;
-		mMeasurements[LEFT_FRONT].sensorPos = p;
-		mMeasurements[LEFT_FRONT].sensorPos.rotate(mPose.theta);
-		mMeasurements[LEFT_FRONT].sensorPos = mMeasurements[LEFT_FRONT].sensorPos + mPose;
-		mMeasurements[LEFT_FRONT].dist = mDistances.leftFront;
+	// left front
+	// left front position of 0
+	p.x = halfBase;
+	p.y = robotR;
+
+	// set sensor position in global coordinates
+	mMeasurements[LEFT_FRONT].sensorRelativePos = p;
+	mMeasurements[LEFT_FRONT].sensorPos = p;
+	mMeasurements[LEFT_FRONT].sensorPos.rotate(mPose.theta);
+	mMeasurements[LEFT_FRONT].sensorPos = mMeasurements[LEFT_FRONT].sensorPos + mPose;
+	
+	if (isValidDistance(mDistances.leftFront)) {
+		float dist = mDistances.leftFront + WallSegment::HALF_WALL_THICKNESS; // we estimate the wall center!
+		mMeasurements[LEFT_FRONT].dist = dist;
 		// add distance vector (positive y is left of the robot, negative y right)
-		p.y += mDistances.leftFront;
+		p.y += dist;
 
 		mMeasurements[LEFT_FRONT].valid = true;
 		p.rotate(mPose.theta);
@@ -264,21 +283,22 @@ void Mapper::calculateMeasurements() {
 	}
 
 	// left back
-	if (isValidDistance(mDistances.leftBack)) {
-		// left back position of 0
-		Map::Point p;
-		p.x = -halfBase;
-		p.y = robotR;
+	// left back position of 0
+	p.x = -halfBase;
+	p.y = robotR;
 
-		// set sensor position in global coordinates
-		mMeasurements[LEFT_BACK].sensorRelativePos = p;
-		mMeasurements[LEFT_BACK].sensorPos = p;
-		mMeasurements[LEFT_BACK].sensorPos.rotate(mPose.theta);
-		mMeasurements[LEFT_BACK].sensorPos = mMeasurements[LEFT_BACK].sensorPos + mPose;
-		mMeasurements[LEFT_BACK].dist = mDistances.leftBack;
+	// set sensor position in global coordinates
+	mMeasurements[LEFT_BACK].sensorRelativePos = p;
+	mMeasurements[LEFT_BACK].sensorPos = p;
+	mMeasurements[LEFT_BACK].sensorPos.rotate(mPose.theta);
+	mMeasurements[LEFT_BACK].sensorPos = mMeasurements[LEFT_BACK].sensorPos + mPose;
+
+	if (isValidDistance(mDistances.leftBack)) {
+		float dist = mDistances.leftBack + WallSegment::HALF_WALL_THICKNESS; // we estimate the wall center!
+		mMeasurements[LEFT_BACK].dist = dist;
 
 		// add distance vector (positive y is left of the robot, negative y right)
-		p.y += mDistances.leftBack;
+		p.y += dist;
 
 		mMeasurements[LEFT_BACK].valid = true;
 		p.rotate(mPose.theta);
@@ -396,6 +416,7 @@ void Mapper::localize() {
 		bool leftOk = mLeftNextToWall && (irDiff < 0.015f);
 		mMap.localize(mPose, mset, newPose, leftOk, rightOk);
 		mPose = newPose;
+		calculateMeasurements(); // we have to recalculate these because mPose has changed
 	}
 
 	pose_pub.publish(mPose);
@@ -409,7 +430,7 @@ void Mapper::mapping() {
 		mset.leftFront = mMeasurements[LEFT_FRONT];
 		mset.rightBack = mMeasurements[RIGHT_BACK];
 		mset.rightFront = mMeasurements[RIGHT_FRONT];
-		mExploringGrid->discover(mset);
+		mExploringGrid->discover(mset, mPose.theta);
 	}
 
 	int leftType = 0;
@@ -496,6 +517,9 @@ void Mapper::receive_MapperCommand(const amee::MapperCommand::ConstPtr &msg) {
 			findEdges();
 			break;
 		case LocalizeCommand:
+			if (!mInitialized) {
+				init();
+			}
 			mMappingState = Localizing;
 			break;
 		case FindEdgesToUnexploredCommand:
@@ -504,6 +528,24 @@ void Mapper::receive_MapperCommand(const amee::MapperCommand::ConstPtr &msg) {
 		default:
 			std::cout << "Unknown mapper command received." << std::endl;
 	}
+}
+
+void Mapper::saveMap() {
+  std::ofstream mapfile;
+  mapfile.open ("map");
+  mapfile << mMap;
+  mapfile.close();
+}
+
+void Mapper::readMap() {
+  std::ifstream mapfile;
+  mapfile.open ("map");
+  mMap.readFromStream(mapfile);
+  mapfile.close();
+}
+
+void Mapper::setToLocalize() {
+	mMappingState = Localizing;
 }
 
 
@@ -575,13 +617,19 @@ void testWallSegment() {
 
 int main(int argc, char **argv)
 {
-	
+
 	ros::init(argc, argv, "MapperNode");
 	ros::NodeHandle n;
 
 	// create the mapper
 	Mapper mapper;
-	
+
+
+    if ((argc > 1) && (strcmp(argv[1], "phase2") == 0)) {
+		mapper.readMap();
+		mapper.setToLocalize();
+	}
+
 	// create subscriber for distances
 	ros::Subscriber	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &Mapper::receive_distances, &mapper);
 	ros::Subscriber odo_sub = n.subscribe("/amee/motor_control/odometry", 100, &Mapper::receiveOdometry, &mapper);
@@ -596,6 +644,7 @@ int main(int argc, char **argv)
     mapper.setVisualizationPublisher(marker_pub);
     mapper.setGraphPublisher(graph_pub);
     mapper.setPosePublisher(pose_pub);
+
 
 	ros::Rate loop_rate(30); //30
 	
@@ -613,6 +662,8 @@ int main(int argc, char **argv)
 		mapper.doMapping();
 		// mapTest(marker_pub);
 	}
+
+	mapper.saveMap();
 
 	return 0;
 }

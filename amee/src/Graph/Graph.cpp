@@ -178,7 +178,6 @@ amee::GraphMsg Graph::getMessage(){
 	return graphMsg;
 }
 
-
 void Graph::saveToFile(const char * fileName) const {
 
 }

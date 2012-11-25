@@ -104,7 +104,16 @@ int main(int argc, char **argv){
 			Motor m; m.right = 0.0f; m.left = 0.0f;
 			wait(pub);
 			pub.publish(m);
-        }else{
+		}
+		// else if(strcmp(argv[1], "strat_goto") == 0){
+		// 	pub = nodeHandle.advertise<>("/StrategyControl/StrategyCommand", 1);
+		// 	Motor m; m.right = 0.0f; m.left = 0.0f;
+		// 	wait(pub);
+		// 	pub.publish(m);
+
+
+  //       }
+        else{
 			ROS_INFO("Don't know %s", argv[2]); return 0;
 		}
 
