@@ -16,6 +16,7 @@ using namespace amee;
 		mVis.originX = -mOffset;
 		mVis.originY = -mOffset;
 		mVis.cellSize = mCellSize;
+		mVis.numCells = numCells;
 	}
 
 	// only call if not rotating
@@ -47,8 +48,8 @@ using namespace amee;
 		max.first = std::max(leftBack.first, std::max(leftFront.first, std::max(rightBack.first, rightFront.first)));
 		max.second = std::max(leftBack.second, std::max(leftFront.second, std::max(rightBack.second, rightFront.second)));
 
-		for (unsigned int i = min.first; i < max.first; ++i) {
-			for (unsigned int j = min.second; j < max.second; ++j) {
+		for (unsigned int i = min.first; i <= max.first; ++i) {
+			for (unsigned int j = min.second; j <= max.second; ++j) {
 				mGrid[i][j] = true;
 				mVis.exploringGrid[i].cells[j] = true;
 			}

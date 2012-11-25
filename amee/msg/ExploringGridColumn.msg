@@ -1,1 +1,1 @@
-uint8[] cells
+int32[] cells
