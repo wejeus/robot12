@@ -20,6 +20,7 @@ class PathFinderAlgo{
 
 		std::vector<amee::Pose> findShortestPath(Graph&, const int startId, const int endId);
 		std::vector<amee::Pose> findShortestPath(Graph&, const float x, const float y, const int endId);
+		std::vector<amee::Pose> findShortestPath(Graph&, const float x0, const float y0, const float x1, const float y1);
 
 		void Dijkstra(Graph& g, const int&, float *, int *);
 

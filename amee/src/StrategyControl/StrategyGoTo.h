@@ -1,5 +1,5 @@
-#ifndef STRATEGY_GET_OUT_H
-#define STRATEGY_GET_OUT_H
+#ifndef STRATEGYGO_TO_H
+#define STRATEGYGO_TO_H
 
 #include "StrategyState.h"
 #include "../Graph/Graph.h"
@@ -9,13 +9,14 @@
 #include <queue>
 
 namespace amee{
-	class StrategyGetOut : public StrategyState {
+	class StrategyGoTo : public StrategyState {
 	public:
-		StrategyGetOut(ros::Publisher &pub);
-		~StrategyGetOut();
+		StrategyGoTo(ros::Publisher &pub);
+		~StrategyGoTo();
 
 		virtual void init(const StrategyData &data);
-		void init(const StrategyData &data, amee::GraphMsg::ConstPtr& graphMsg);
+		void init(const StrategyData &data, const amee::GraphMsg::ConstPtr& graphMsg);
+		void init(const StrategyData &data, const amee::GraphMsg::ConstPtr& graphMsg, const float& x, const float& y);
 		virtual bool isRunning() const;
 		virtual void doControl(const StrategyData &data);
 
@@ -23,7 +24,6 @@ namespace amee{
 
 	private:
 		bool mRunning;
-		bool mGoingOut;
 		ros::Publisher mPub;
 		amee::Graph mGraph;
 		std::queue<amee::Pose> mPath;
@@ -32,8 +32,8 @@ namespace amee{
 
 		inline float EuclidDist(const Pose& p, const float& x, const float& y) const;
 
-	}; //StrategyGetOut class
+	}; //StrategyGoTo class
 
 }; //namespace amee
 
-#endif //STRATEGY_GET_OUT_H
+#endif //STRATEGYGO_TO_H

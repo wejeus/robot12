@@ -10,8 +10,7 @@
 namespace amee {
 class StrategyClassify;
 class StrategyExplore;
-class StrategyGo2Tag;
-class StrategyGetOut;
+class StrategyGoTo;
 
 class StrategyControl {
 
@@ -26,10 +25,12 @@ class StrategyControl {
 
 		static const int TYPE_STRATEGY_CLASSIFY = 1;
 		static const int TYPE_STRATEGY_EXPLORE = 2;
-		static const int TYPE_STRATEGY_GO2TAG = 3;
-		static const int TYPE_STRATEGY_GET_OUT = 4;
+		static const int TYPE_STRATEGY_GET_OUT = 3;
+		static const int TYPE_STRATEGY_GO_TO = 4;
 
 	private:
+		bool mMapInitialized;
+
 		amee::StrategyData mStrategyData;
 		amee::GraphMsg::ConstPtr mGraphMsg;
 
@@ -39,8 +40,7 @@ class StrategyControl {
 
 		amee::StrategyClassify* mClassifyState;
 		amee::StrategyExplore* mExploreState;
-		amee::StrategyGo2Tag* mGo2TagState;
-		amee::StrategyGetOut* mGetOutState;
+		amee::StrategyGoTo* mGoToState;
 };
 
 };//namespace amee

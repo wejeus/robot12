@@ -123,12 +123,6 @@ int Graph::addNode(const amee::Pose& p, int type){
 
 	mNodes.push_back(nMsg_p);
 
-// NODE_NEXT_TO_WALL = 0,
-// 			NODE_ROTATE_LEFT = 1, 
-// 			NODE_ROTATE_RIGHT = 2, 
-// 			NODE_TAG = 3
-
-
 	int tmpCurNodeID = mCurNodeID++;
 
 

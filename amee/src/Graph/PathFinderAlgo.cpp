@@ -36,7 +36,7 @@ typedef priority_queue<int, vector<int>, CompareNode> NodePQ;
  * This gives you a shortest path of from a starting node ID to an end ID in a graph.
  * The return value is a vector of Pose in ordered way.
  */
-vector<Pose> PathFinderAlgo::findShortestPath(Graph& g, const int startId, const int endId){
+std::vector<amee::Pose> PathFinderAlgo::findShortestPath(Graph& g, const int startId, const int endId){
 	size_t size = g.size();
 	float pathD[size];
 	int path[size];
@@ -57,15 +57,34 @@ vector<Pose> PathFinderAlgo::findShortestPath(Graph& g, const int startId, const
 	return v;
 }
 
-vector<Pose> PathFinderAlgo::findShortestPath(Graph& g, const float x, const float y, const int endId) {
+std::vector<amee::Pose> PathFinderAlgo::findShortestPath(Graph& g, const float x, const float y, const int endId) {
+	std::vector<amee::Pose> v;
+
 	int curID = getIDfromPose(g, x, y);
-	vector<Pose> v;
-	if( curID == -1){
+	if(curID == -1){
 		std::cout << "couldn't find curID in findShortestPath(Graph, float, float, int)" << std::endl;
 		return v;
 	}
 
 	return findShortestPath(g, curID, endId);
+}
+
+std::vector<amee::Pose> PathFinderAlgo::findShortestPath(Graph& g, const float x0, const float y0, const float x1, const float y1) {
+	std::vector<amee::Pose> v;
+
+	int startID = getIDfromPose(g, x0, y0);
+	if(startID == -1) {
+		std::cout << "couldn't find the startID in findShortestPath!" << std::endl;
+		return v;
+	}
+
+	int endID = getIDfromPose(g, x1, y1);
+	if(endID == -1) {
+		std::cout << "couldn't find the endID in findShortestPath!" << std::endl;
+		return v;	
+	}
+
+	return findShortestPath(g, startID, endID);
 }
 
 

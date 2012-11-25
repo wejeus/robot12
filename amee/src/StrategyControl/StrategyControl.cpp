@@ -3,8 +3,7 @@
 #include "StrategyControl.h"
 #include "StrategyExplore.h"
 #include "StrategyClassify.h"
-#include "StrategyGetOut.h"
-#include "StrategyGo2Tag.h"
+#include "StrategyGoTo.h"
 
 #include <iostream>
 #include <cmath>
@@ -21,17 +20,16 @@ using namespace amee;
 StrategyControl::StrategyControl(ros::Publisher& pub) {
 	mClassifyState = new StrategyClassify(pub);
 	mExploreState = new StrategyExplore(pub);
-	mGo2TagState = new StrategyGo2Tag(pub);
-	mGetOutState = new StrategyGetOut(pub);
+	mGoToState = new StrategyGoTo(pub);
 
+	mMapInitialized = false;
 	mCurrentState = NULL;
 }
 
 StrategyControl::~StrategyControl() {
 	delete mClassifyState;
 	delete mExploreState;
-	delete mGo2TagState;
-	delete mGetOutState;
+	delete mGoToState;
 }
 
 void StrategyControl::doControl() {
@@ -49,22 +47,26 @@ void StrategyControl::receive_pose(const amee::Pose::ConstPtr &msg) {
 
 void StrategyControl::receive_graph(const amee::GraphMsg::ConstPtr &msg) {
 	mGraphMsg = msg;
+	mMapInitialized = true;
 }
 
 void StrategyControl::receive_command(const amee::StrategyCommand::ConstPtr &msg) {
 	int type = msg->type;
-	//float angle = msg->angle;
-	//float distance = msg->distance;
+	float x = msg->x;
+	float y = msg->y;
 	switch(type) {
 		case TYPE_STRATEGY_EXPLORE:
 			std::cout << "STRATEGY_EXPLORE" << std::endl;
 			mCurrentState = mExploreState;
 			mExploreState->init(mStrategyData);
 		break;
-		case TYPE_STRATEGY_GO2TAG:		
-			std::cout << "STRATEGY GO2TAG" << std::endl;
-			mCurrentState = mGo2TagState;
-			mGo2TagState->init(mStrategyData);
+		case TYPE_STRATEGY_GO_TO:
+			if(!mMapInitialized){
+				std::cout << "Map is not initialized, can not move to that position!" << std::endl; return;
+			}
+			std::cout << "STRATEGY GO TO" << std::endl;
+			mCurrentState = mGoToState;
+			mGoToState->init(mStrategyData, mGraphMsg, x, y);//TODO change this to add the end position, also add the init(mStrategyData, something else) to the StrategyGoTo class
 		break;
 		case TYPE_STRATEGY_CLASSIFY:
 		 	std::cout << "STRATEGY CLASSIFY" << std::endl;
@@ -72,9 +74,12 @@ void StrategyControl::receive_command(const amee::StrategyCommand::ConstPtr &msg
 			mClassifyState->init(mStrategyData);
 		break;
 		case TYPE_STRATEGY_GET_OUT:
+			if(!mMapInitialized){
+				std::cout << "Map is not initialized, can not find exit!" << std::endl; return;
+			}
 		 	std::cout << "STRATEGY GET_OUT" << std::endl;
-		 	mCurrentState = mGetOutState;
-		 	mGetOutState->init(mStrategyData);
+			mCurrentState = mGoToState;
+			mGoToState->init(mStrategyData, mGraphMsg);
 
 		break;
 		// default: std::cout << "GAY COMMAND RECEIVED" << std::endl;
@@ -99,12 +104,7 @@ int main(int argc, char **argv)
 
 	ros::Subscriber dist_sub;
 
-	// create subscriber for distances
-	/*
-	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &StrategyControl::receive_distances, &control);
-	ros::Subscriber odo_sub = n.subscribe("/amee/motor_control/odometry", 100, &StrategyControl::receive_odometry, &control);
-	ros::Subscriber sonar_sub = n.subscribe("/roboard/sonar",1, &StrategyControl::receive_sonar, &control);
-	*/
+	// create subscriber for strategy command, pose and graph
 	ros::Subscriber command_sub = n.subscribe("/StrategyControl/StrategyCommand", 10, &StrategyControl::receive_command, &control);
 	ros::Subscriber pos_sub = n.subscribe("/amee/pose", 100, &StrategyControl::receive_pose, &control);
 	ros::Subscriber graph_sub = n.subscribe("/amee/map/graph", 1, &StrategyControl::receive_graph, &control);
