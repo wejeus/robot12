@@ -27,7 +27,7 @@ class PhaseTwoControl {
 
 	private:
 		ros::Subscriber mPhaseInfo;
-		ros::Publisher mStrategyControl;
+		ros::Publisher mStrategyCommand;
 		bool mIsRunning;
 		bool mIsFinishing;
 		bool mTargetReached;

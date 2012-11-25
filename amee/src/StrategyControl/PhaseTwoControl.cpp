@@ -11,6 +11,9 @@ PhaseTwoControl::PhaseTwoControl(ros::NodeHandle &nodeHandle)
 {
 	mGraph = new Graph();
 
+// /StrategyControl/mPhaseInfo
+	mPhaseInfo = nodeHandle.subscribe("/StrategyControl/StrategyCommand", 10, &amee::PhaseTwoControl::phaseInfoCallback, this);
+	mStrategyCommand = nodeHandle.advertise<StrategyCommand>("/StrategyControl/StrategyCommand", 5);
 	// ifstream infile;
 
  //    infile.open("maze.map");
@@ -72,10 +75,6 @@ PhaseTwoControl::PhaseTwoControl(ros::NodeHandle &nodeHandle)
 	mGraph->addEdges(3,4);
 
 	mGraph->addEdges(4,5);
-
-	
-	// mPhaseInfo = nodeHandle.subscribe("/StrategyControl/PhaseInfo", 10, &amee::PhaseTwoControl::phaseInfoCallback);
-	// mStrategyControl = nodeHandle.advertise<amee::StrategyCommand>("/StrategyControl/StrategyCommand", 100);
 	
 	vector<NodeMsg*> nodes = mGraph->getNodes();
 
@@ -83,10 +82,11 @@ PhaseTwoControl::PhaseTwoControl(ros::NodeHandle &nodeHandle)
 		cout << "Test: " << (*it)->nodeID << endl;
 		if ((*it)->type == Graph::NODE_TAG) {
 			cout << "Node: " << (*it)->nodeID << " is a TAG!" << endl;
-			mTarget.push_back((*it)->nodeID)
+			mTargets.push_back((*it)->nodeID);
 		}
 	}
-	mCurrentNode = mTargets.front();
+
+	mCurrentNode = mTargets.front(); // TODO: which is actually the start node?
 	mIsRunning = true;
 }
 
@@ -96,6 +96,7 @@ PhaseTwoControl::~PhaseTwoControl() {
 
 // Maybe better to return every node reached?
 void PhaseTwoControl::phaseInfoCallback(const std_msgs::Int32 &msg) {
+	cout << "asdf" << endl;
 	if (msg.data == 1) {
 		cout << "REACHED TARGET!" << endl;
 		mTargetReached = true;
@@ -124,7 +125,8 @@ void PhaseTwoControl::rescue() {
 			command.type = StrategyControl::TYPE_STRATEGY_GO_TO;
 			command.x = mCurrentNode;
 			command.y = mNextTargetNode;
-			mStrategyControl.publish(command);
+			mStrategyCommand.publish(command);
+			cout << "message sent" << endl;
 		// else 
 			// find path to exit, go there and finish phase.
 			// mIsFinishing = true;

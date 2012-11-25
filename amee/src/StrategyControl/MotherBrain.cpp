@@ -6,9 +6,11 @@
 #include "PhaseOneControl.h"
 #include "PhaseTwoControl.h"
 #include <unistd.h>
+#include "amee/StrategyCommand.h"
 
 
 using namespace std;
+using namespace amee;
 
 enum PHASE {ONE = 1, TWO = 2};
 enum STATE {IDLE, RUN};
@@ -53,11 +55,11 @@ void executePhaseOne() {
 	// TODO
 }
 
-void executePhaseTwo(ros::NodeHandle nodeHandle) {
-	amee::PhaseTwoControl phaseControl(nodeHandle);
+PhaseTwoControl *phaseTwoControl;
 
-	while(phaseControl.isRunning()) {
-		phaseControl.rescue();
+void executePhaseTwo() {
+	if (phaseTwoControl->isRunning()) {
+		phaseTwoControl->rescue();
 	}
 }
 
@@ -65,13 +67,12 @@ const int EXPLORE = 1;
 const int RESCUE = 2;
 int mMission;
 
+
 int main(int argc, char **argv) {
 	
 	ros::init(argc, argv, "MotherBrain");//Creates a node named "StrategyControl"
 	ros::NodeHandle nodeHandle;
 
-	// ros::Subscriber buttonOne = nodeHandle.subscribe("/StrategyControl/ButtonOne", 10, &buttonOneCallback);
-	// ros::Subscriber buttonTwo = nodeHandle.subscribe("/StrategyControl/ButtonTwo", 10, &buttonTwoCallback);
 	int c;
     while ((c = getopt (argc, argv, "re")) != -1) {
         switch (c) {
@@ -94,30 +95,32 @@ int main(int argc, char **argv) {
         }
     }
 
+    
+
     if (mMission == EXPLORE) {
-    	printf("Mission: Explore maze");
-    	executePhaseTwo(nodeHandle); 
-    	printf("Mission: Explore maze - Accomplished!");
+    	printf("Mission: Explore maze\n");
+    	printf("Mission: Explore maze - Accomplished!\n");
     } else if (mMission == RESCUE) {
-    	printf("Mission: Resce tags");
-    	executePhaseTwo(nodeHandle); 
-    	printf("Mission: Rescue tags - Accomplished!");
+    	printf("Mission: Rescue tags\n");
+        phaseTwoControl = new PhaseTwoControl(nodeHandle);
+        printf("Mission: Rescue tags - Accomplished!\n");
     } else {
-        printf("Mission: Unknown");
+        printf("Mission: Unknown\n");
     }
 	// Testing code.
 
 	// executePhaseTwo(nodeHandle); 
 	// cout << "done." << endl;
 
-	// ros::Rate loop_rate(6);
-	// while(ros::ok()){
-	// 	// go to sleep for a short while
-	// 	// loop_rate.sleep();
-	// 	// call all callbacks
-	// 	// ros::spinOnce();
-	// 	ros::spin();
-	// }
+	ros::Rate loop_rate(6);
+	while(ros::ok()) {
+        cout << "." << endl;
+        executePhaseTwo();
+		// go to sleep for a short while
+		loop_rate.sleep();
+		// call all callbacks
+		ros::spinOnce();
+	}
 
 	return 0;
 }

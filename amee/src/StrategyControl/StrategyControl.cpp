@@ -51,6 +51,7 @@ void StrategyControl::receive_graph(const amee::GraphMsg::ConstPtr &msg) {
 }
 
 void StrategyControl::receive_command(const amee::StrategyCommand::ConstPtr &msg) {
+	std::cout << "asdfjkasdfl;jasdfkl" << std::endl;
 	int type = msg->type;
 	float x = msg->x;
 	float y = msg->y;
