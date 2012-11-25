@@ -5,6 +5,7 @@
 #include "../Graph/Graph.h"
 #include "../Graph/PathFinderAlgo.h"
 #include "amee/Pose.h"
+#include <std_msgs/Int32.h>
 #include "ros/ros.h"
 #include <queue>
 

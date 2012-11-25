@@ -73,7 +73,9 @@ void StrategyGoTo::doControl(const StrategyData& data) {
 	//if there are still nodes in our path
 	if(mPath.empty()){
 		std::cout << "we have reached our final destination." << std::endl;
-		// mPhaseInfo.publish();
+		std_msgs::Int32 msg;
+		msg.data = 1;
+		mPhaseInfo.publish(msg);
 		mRunning = false;
 	}else{
 

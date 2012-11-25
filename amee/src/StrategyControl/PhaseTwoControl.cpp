@@ -3,7 +3,12 @@
 using namespace amee;
 using namespace std;
 
-PhaseTwoControl::PhaseTwoControl(ros::NodeHandle &nodeHandle) {
+PhaseTwoControl::PhaseTwoControl(ros::NodeHandle &nodeHandle)
+	: mNextTargetNode(-1)
+	, mCurrentNode(-1)
+	, mIsFinishing(false)
+	, mTargetReached(true) // To force amee to search for next target from starting position.
+{
 	mGraph = new Graph();
 
 	// ifstream infile;
@@ -78,18 +83,24 @@ PhaseTwoControl::PhaseTwoControl(ros::NodeHandle &nodeHandle) {
 		cout << "Test: " << (*it)->nodeID << endl;
 		if ((*it)->type == Graph::NODE_TAG) {
 			cout << "Node: " << (*it)->nodeID << " is a TAG!" << endl;
+			mTarget.push_back((*it)->nodeID)
 		}
 	}
-
+	mCurrentNode = mTargets.front();
 	mIsRunning = true;
-}
-
-void PhaseTwoControl::phaseInfoCallback(const std_msgs::Int32 &msg) {
-
 }
 
 PhaseTwoControl::~PhaseTwoControl() {
 	delete mGraph;
+}
+
+// Maybe better to return every node reached?
+void PhaseTwoControl::phaseInfoCallback(const std_msgs::Int32 &msg) {
+	if (msg.data == 1) {
+		cout << "REACHED TARGET!" << endl;
+		mTargetReached = true;
+		mCurrentNode = mNextTargetNode;
+	}	
 }
 
 void PhaseTwoControl::rescue() {
@@ -98,6 +109,32 @@ void PhaseTwoControl::rescue() {
 // uint32[] edges
 // uint32 nodeID
 // uint32 type
+// TYPE_STRATEGY_GET_OUT = 3;
+// TYPE_STRATEGY_GO_TO = 4;
 
+	if (mTargetReached) {
+		// Determine next target
+		mNextTargetNode = mTargets.back();
+		mTargets.pop_back();
+		// calculate time needed to travel there and back to maze exit
 
+		// if within time bound: 
+			// StrategyGoTo.publish(currentPosition, nextTarget)
+			StrategyCommand command;
+			command.type = StrategyControl::TYPE_STRATEGY_GO_TO;
+			command.x = mCurrentNode;
+			command.y = mNextTargetNode;
+			mStrategyControl.publish(command);
+		// else 
+			// find path to exit, go there and finish phase.
+			// mIsFinishing = true;
+			// StrategyCommand command;
+			// command.type = StrategyControl::TYPE_STRATEGY_GET_OUT;
+			// mStrategyControl.publish(command);
+
+		mTargetReached = false;
+	} else if (mIsFinishing && mTargetReached) {
+		cout << "Phase 2 finished." << endl;
+		mIsRunning = false;
+	}
 }

@@ -8,8 +8,11 @@
 #include <iostream>
 #include "amee/GraphMsg.h"
 #include <std_msgs/Int32.h>
+#include "amee/StrategyCommand.h"
+#include "StrategyControl.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <vector>
 
 namespace amee {
 
@@ -26,7 +29,12 @@ class PhaseTwoControl {
 		ros::Subscriber mPhaseInfo;
 		ros::Publisher mStrategyControl;
 		bool mIsRunning;
+		bool mIsFinishing;
+		bool mTargetReached;
 		Graph *mGraph;
+		std::vector<int> mTargets;
+		int mNextTargetNode;
+		int mCurrentNode;
 };
 
 };//namespace amee
