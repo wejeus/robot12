@@ -1,5 +1,6 @@
 #include "Mapper.h"
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include "../MovementControl/MoveFollowWall.h"
 #include "WallSegment.h"
@@ -511,6 +512,21 @@ void Mapper::receive_MapperCommand(const amee::MapperCommand::ConstPtr &msg) {
 	}
 }
 
+void Mapper::saveMap() {
+  std::ofstream mapfile;
+  mapfile.open ("map");
+  mapfile << mMap;
+  mapfile.close();
+}
+
+void Mapper::readMap() {
+  std::ifstream mapfile;
+  mapfile.open ("map");
+  mMap.readFromStream(mapfile);
+  mapfile.close();
+  init();
+}
+
 
 void mapTest(ros::Publisher& vispub) {
 	Map map;
@@ -586,6 +602,7 @@ int main(int argc, char **argv)
 
 	// create the mapper
 	Mapper mapper;
+	mapper.readMap();
 	
 	// create subscriber for distances
 	ros::Subscriber	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &Mapper::receive_distances, &mapper);
@@ -618,6 +635,8 @@ int main(int argc, char **argv)
 		mapper.doMapping();
 		// mapTest(marker_pub);
 	}
+
+	mapper.saveMap();
 
 	return 0;
 }

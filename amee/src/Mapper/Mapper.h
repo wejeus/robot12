@@ -32,6 +32,8 @@ class Mapper {
 		void setVisualizationPublisher(ros::Publisher pub);
 		void setGraphPublisher(ros::Publisher pub);
 		void setPosePublisher(ros::Publisher pub);
+		void saveMap();
+		void readMap();
 
 		enum MappingState {Pause, PauseMapping, Mapping, Localizing};
 

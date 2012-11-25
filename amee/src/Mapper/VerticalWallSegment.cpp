@@ -9,11 +9,25 @@ using namespace amee;
 // float mXAcc;
 // Map::Point mDir;
 
+std::ostream& amee::operator<< (std::ostream &out, const VerticalWallSegment* seg) {
+	out << seg->mFrom.x << ' ' << seg->mFrom.y << ' ' << seg->mTo.x << ' ' << seg->mTo.y << ' ' << seg->mNumberOfPoints << ' ' << seg->mXAcc;
+	return out;
+}
+
 VerticalWallSegment::VerticalWallSegment(Map::Point pos) {
 	mFrom = pos;
 	mTo = pos;
 	mNumberOfPoints = 1;
 	mXAcc = pos.x;
+}
+
+VerticalWallSegment::VerticalWallSegment(std::istream& is) {
+	is >> mFrom.x;
+	is >> mFrom.y;
+	is >> mTo.x;
+	is >> mTo.y;
+	is >> mNumberOfPoints;
+	is >> mXAcc;
 }
 
 VerticalWallSegment::~VerticalWallSegment() {

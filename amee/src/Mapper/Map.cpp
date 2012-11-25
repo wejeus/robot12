@@ -8,6 +8,33 @@
 
 using namespace amee;
 
+std::ostream& amee::operator<< (std::ostream &out, const Map& m) {
+	out << m.mHorizontalWalls.size() << ' ';
+	for (std::list<HorizontalWallSegment*>::const_iterator iter = m.mHorizontalWalls.begin(), end = m.mHorizontalWalls.end(); iter != end; ++iter) {
+		out << (*iter) << ' ';
+	}
+	out << m.mVerticalWalls.size() << ' ';
+	for (std::list<VerticalWallSegment*>::const_iterator iter = m.mVerticalWalls.begin(), end = m.mVerticalWalls.end(); iter != end; ++iter) {
+		out << (*iter) << ' ';
+	}
+	return out;
+}
+
+void Map::readFromStream(std::istream& in) {
+	int num;
+	in >> num;
+	mHorizontalWalls.clear();
+	for (int i = 0; i < num; ++i) {
+		mHorizontalWalls.push_back(new HorizontalWallSegment(in));
+	}
+	in >> num;
+	mVerticalWalls.clear();
+	for (int i = 0; i < num; ++i) {
+		mVerticalWalls.push_back(new VerticalWallSegment(in));
+	}
+}
+
+
 Map::Map() {
 }
 
