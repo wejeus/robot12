@@ -20,7 +20,7 @@ class ExploringGrid {
 		to reach the other side of the wall (and thus of the cell) if that side is reachable. 
 		*/
 		ExploringGrid(int numCells, float cellSize);
-		void discover(const Map::MeasurementSet& mset);
+		void discover(const Map::MeasurementSet& mset, float theta);
 		void addUnexploredNodes(Graph& graph);
 		ExploringGridVis& getVisualization();
 
@@ -31,6 +31,7 @@ class ExploringGrid {
 		const int mNumCells;
 		const float mOffset;
 		std::pair<unsigned int,unsigned int> getCell(const Map::Point& pos);
+		std::pair<int, int> getGridDirToRoboAxis(float theta);
 	};
 }
 #endif

@@ -195,17 +195,18 @@ void Mapper::calculateMeasurements() {
 	float halfBase = IR_BASE_RIGHT / 2.0f;
 	float robotR = ROBOT_RADIUS;
 	// right back
-	if (isValidDistance(mDistances.rightBack)) {
-		// right back position of 0
-		Map::Point p;
-		p.x = -halfBase;
-		p.y = -robotR;
+	// right back position of 0
+	Map::Point p;
+	p.x = -halfBase;
+	p.y = -robotR;
 
-		// set sensor position in global coordinates
-		mMeasurements[RIGHT_BACK].sensorPos = p;
-		mMeasurements[RIGHT_BACK].sensorRelativePos = p;
-		mMeasurements[RIGHT_BACK].sensorPos.rotate(mPose.theta);
-		mMeasurements[RIGHT_BACK].sensorPos = mMeasurements[RIGHT_BACK].sensorPos + mPose;
+	// set sensor position in global coordinates
+	mMeasurements[RIGHT_BACK].sensorPos = p;
+	mMeasurements[RIGHT_BACK].sensorRelativePos = p;
+	mMeasurements[RIGHT_BACK].sensorPos.rotate(mPose.theta);
+	mMeasurements[RIGHT_BACK].sensorPos = mMeasurements[RIGHT_BACK].sensorPos + mPose;
+	if (isValidDistance(mDistances.rightBack)) {
+
 		mMeasurements[RIGHT_BACK].dist = mDistances.rightBack;
 
 		// add distance vector (positive y is left of the robot, negative y right)
@@ -219,17 +220,17 @@ void Mapper::calculateMeasurements() {
 	}
 
 	// right front
-	if (isValidDistance(mDistances.rightFront)) {
-		// right front position of 0
-		Map::Point p;
-		p.x = halfBase;
-		p.y = -robotR;
+	// right front position of 0
+	p.x = halfBase;
+	p.y = -robotR;
 
-		// set sensor position in global coordinates
-		mMeasurements[RIGHT_FRONT].sensorRelativePos = p;
-		mMeasurements[RIGHT_FRONT].sensorPos = p;
-		mMeasurements[RIGHT_FRONT].sensorPos.rotate(mPose.theta);
-		mMeasurements[RIGHT_FRONT].sensorPos = mMeasurements[RIGHT_FRONT].sensorPos + mPose;
+	// set sensor position in global coordinates
+	mMeasurements[RIGHT_FRONT].sensorRelativePos = p;
+	mMeasurements[RIGHT_FRONT].sensorPos = p;
+	mMeasurements[RIGHT_FRONT].sensorPos.rotate(mPose.theta);
+	mMeasurements[RIGHT_FRONT].sensorPos = mMeasurements[RIGHT_FRONT].sensorPos + mPose;
+	if (isValidDistance(mDistances.rightFront)) {
+
 		mMeasurements[RIGHT_FRONT].dist = mDistances.rightFront;
 		// add distance vector (positive y is left of the robot, negative y right)
 		p.y += -mDistances.rightFront;
@@ -240,18 +241,20 @@ void Mapper::calculateMeasurements() {
 	} else {
 		mMeasurements[RIGHT_FRONT].valid = false;
 	}
-	// left front
-	if (isValidDistance(mDistances.leftFront)) {
-		// left front position of 0
-		Map::Point p;
-		p.x = halfBase;
-		p.y = robotR;
 
-		// set sensor position in global coordinates
-		mMeasurements[LEFT_FRONT].sensorRelativePos = p;
-		mMeasurements[LEFT_FRONT].sensorPos = p;
-		mMeasurements[LEFT_FRONT].sensorPos.rotate(mPose.theta);
-		mMeasurements[LEFT_FRONT].sensorPos = mMeasurements[LEFT_FRONT].sensorPos + mPose;
+	// left front
+	// left front position of 0
+	p.x = halfBase;
+	p.y = robotR;
+
+	// set sensor position in global coordinates
+	mMeasurements[LEFT_FRONT].sensorRelativePos = p;
+	mMeasurements[LEFT_FRONT].sensorPos = p;
+	mMeasurements[LEFT_FRONT].sensorPos.rotate(mPose.theta);
+	mMeasurements[LEFT_FRONT].sensorPos = mMeasurements[LEFT_FRONT].sensorPos + mPose;
+	
+	if (isValidDistance(mDistances.leftFront)) {
+
 		mMeasurements[LEFT_FRONT].dist = mDistances.leftFront;
 		// add distance vector (positive y is left of the robot, negative y right)
 		p.y += mDistances.leftFront;
@@ -264,17 +267,18 @@ void Mapper::calculateMeasurements() {
 	}
 
 	// left back
-	if (isValidDistance(mDistances.leftBack)) {
-		// left back position of 0
-		Map::Point p;
-		p.x = -halfBase;
-		p.y = robotR;
+	// left back position of 0
+	p.x = -halfBase;
+	p.y = robotR;
 
-		// set sensor position in global coordinates
-		mMeasurements[LEFT_BACK].sensorRelativePos = p;
-		mMeasurements[LEFT_BACK].sensorPos = p;
-		mMeasurements[LEFT_BACK].sensorPos.rotate(mPose.theta);
-		mMeasurements[LEFT_BACK].sensorPos = mMeasurements[LEFT_BACK].sensorPos + mPose;
+	// set sensor position in global coordinates
+	mMeasurements[LEFT_BACK].sensorRelativePos = p;
+	mMeasurements[LEFT_BACK].sensorPos = p;
+	mMeasurements[LEFT_BACK].sensorPos.rotate(mPose.theta);
+	mMeasurements[LEFT_BACK].sensorPos = mMeasurements[LEFT_BACK].sensorPos + mPose;
+
+	if (isValidDistance(mDistances.leftBack)) {
+
 		mMeasurements[LEFT_BACK].dist = mDistances.leftBack;
 
 		// add distance vector (positive y is left of the robot, negative y right)
@@ -410,7 +414,7 @@ void Mapper::mapping() {
 		mset.leftFront = mMeasurements[LEFT_FRONT];
 		mset.rightBack = mMeasurements[RIGHT_BACK];
 		mset.rightFront = mMeasurements[RIGHT_FRONT];
-		mExploringGrid->discover(mset);
+		mExploringGrid->discover(mset, mPose.theta);
 	}
 
 	int leftType = 0;
