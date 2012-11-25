@@ -34,6 +34,7 @@ class Mapper {
 		void setPosePublisher(ros::Publisher pub);
 		void saveMap();
 		void readMap();
+		void setToLocalize();
 
 		enum MappingState {Pause, PauseMapping, Mapping, Localizing};
 
@@ -56,6 +57,7 @@ class Mapper {
 		amee::Pose mLastTagPose;
 
 		bool mRotating;
+		bool mInPhase1;
 
 		std::list<int> mNewNodes;
 		std::list<int> mOldNodes;

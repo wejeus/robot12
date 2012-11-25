@@ -5,6 +5,7 @@
 #include "../MovementControl/MoveFollowWall.h"
 #include "WallSegment.h"
 #include "HorizontalWallSegment.h"
+#include <string.h>
 
 using namespace amee;
 
@@ -14,6 +15,7 @@ Mapper::Mapper() {
 	mNodeId = 0;
 	mLastNodeId = -1;
 	mExploringGrid = new ExploringGrid(40,0.10f);
+	mInPhase1 = true;
 }
 
 Mapper::~Mapper() {
@@ -81,35 +83,41 @@ void Mapper::receiveOdometry(const amee::Odometry::ConstPtr &msg) {
 
 void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg) {
 	int type = 0;
-	if (mMappingState != PauseMapping && mMappingState != Mapping) {
-		return;
-	}
+	
 	switch(msg->state) {
 		case amee::MoveFollowWall::INIT:
 			mLastNodeId = -1;
 			mRotating = false;
 			break;
 		case amee::MoveFollowWall::ALIGN_TO_WALL_OUT:
-			init(); //  only does sth if not initialized
-			type = amee::Graph::NODE_NEXT_TO_WALL;
-			addNode(type);
+			if (mMappingState == PauseMapping || mMappingState == Mapping) {
+				init(); //  only does sth if not initialized
+				type = amee::Graph::NODE_NEXT_TO_WALL;
+				addNode(type);
+				mMappingState = Mapping;
+			}
 			mRotating = false;
-			mMappingState = Mapping;
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_OUT:
-			if(mInitialized) addNode(amee::Graph::NODE_NEXT_TO_WALL);
+			if (mMappingState == PauseMapping || mMappingState == Mapping) {
+				if(mInitialized) addNode(amee::Graph::NODE_NEXT_TO_WALL);
+			}
 			break;
 		case amee::MoveFollowWall::ROTATE_LEFT_IN:
 			type = amee::Graph::NODE_ROTATE_LEFT;
 			mRotating = true;
-			if (mInitialized) addNode(type);
-			mMappingState = Mapping;
+			if (mMappingState == PauseMapping || mMappingState == Mapping) {
+				if (mInitialized) addNode(type);
+				mMappingState = Mapping;
+			}	
 			break;
 		case amee::MoveFollowWall::ROTATE_RIGHT_IN:
 			mRotating = true;
-			mMappingState = Mapping;
-			type = amee::Graph::NODE_ROTATE_RIGHT;
-			if (mInitialized) addNode(type);
+			if (mMappingState == PauseMapping || mMappingState == Mapping) {
+				mMappingState = Mapping;
+				type = amee::Graph::NODE_ROTATE_RIGHT;
+				if (mInitialized) addNode(type);
+			}
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_IN:
 		case amee::MoveFollowWall::HANDLE_EVIL_WALLS_IN:
@@ -118,10 +126,14 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 		// case amee::MoveFollowWall::MOVE_TAIL_IN:
 		// case amee::MoveFollowWall::LOOK_FOR_BEGINNING_OF_WALL_IN:
 			mRotating = false;
-			mMappingState = Mapping;
+			if (mMappingState == PauseMapping || mMappingState == Mapping) {
+				mMappingState = Mapping;
+			}
 			break;
 		default:
+		if (mMappingState == PauseMapping || mMappingState == Mapping) {
 			mMappingState = PauseMapping;
+		}
 	}
 }
 
@@ -502,6 +514,9 @@ void Mapper::receive_MapperCommand(const amee::MapperCommand::ConstPtr &msg) {
 			findEdges();
 			break;
 		case LocalizeCommand:
+			if (!mInitialized) {
+				init();
+			}
 			mMappingState = Localizing;
 			break;
 		case FindEdgesToUnexploredCommand:
@@ -524,7 +539,10 @@ void Mapper::readMap() {
   mapfile.open ("map");
   mMap.readFromStream(mapfile);
   mapfile.close();
-  init();
+}
+
+void Mapper::setToLocalize() {
+	mMappingState = Localizing;
 }
 
 
@@ -596,14 +614,19 @@ void testWallSegment() {
 
 int main(int argc, char **argv)
 {
-	
+
 	ros::init(argc, argv, "MapperNode");
 	ros::NodeHandle n;
 
 	// create the mapper
 	Mapper mapper;
-	mapper.readMap();
-	
+
+
+    if ((argc > 1) && (strcmp(argv[1], "phase2") == 0)) {
+		mapper.readMap();
+		mapper.setToLocalize();
+	}
+
 	// create subscriber for distances
 	ros::Subscriber	dist_sub = n.subscribe("/amee/sensors/irdistances", 100, &Mapper::receive_distances, &mapper);
 	ros::Subscriber odo_sub = n.subscribe("/amee/motor_control/odometry", 100, &Mapper::receiveOdometry, &mapper);
@@ -618,6 +641,7 @@ int main(int argc, char **argv)
     mapper.setVisualizationPublisher(marker_pub);
     mapper.setGraphPublisher(graph_pub);
     mapper.setPosePublisher(pose_pub);
+
 
 	ros::Rate loop_rate(30); //30
 	
