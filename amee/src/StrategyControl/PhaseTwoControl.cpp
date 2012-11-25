@@ -37,8 +37,8 @@ PhaseTwoControl::PhaseTwoControl(ros::NodeHandle &nodeHandle) {
 
  //    infile.close();
 
-	float correct_dists[] = {0.0f, 7.0f, 10.3078f, 17.0346f, 20.6218f, 13.3417f};
-	int correct_path[]  = {0, 0, 0, 2, 5, 0};
+	// float correct_dists[] = {0.0f, 7.0f, 10.3078f, 17.0346f, 20.6218f, 13.3417f};
+	// int correct_path[]  = {0, 0, 0, 2, 5, 0};
 
 	float x_list[] = {0.0f, 7.0f,  2.5f,  7.0f,  5.0f,  3.0f};
 	float y_list[] = {0.0f, 0.0f, 10.0f, 15.0f, 20.0f, 13.0f};
@@ -69,7 +69,7 @@ PhaseTwoControl::PhaseTwoControl(ros::NodeHandle &nodeHandle) {
 	mGraph->addEdges(4,5);
 
 	
-	mPhaseInfo = nodeHandle.subscribe("/StrategyControl/PhaseInfo", 10, &phaseInfoCallback);
+	// mPhaseInfo = nodeHandle.subscribe("/StrategyControl/PhaseInfo", 10, &amee::PhaseTwoControl::phaseInfoCallback);
 	// mStrategyControl = nodeHandle.advertise<amee::StrategyCommand>("/StrategyControl/StrategyCommand", 100);
 	
 	vector<NodeMsg*> nodes = mGraph->getNodes();
@@ -84,7 +84,7 @@ PhaseTwoControl::PhaseTwoControl(ros::NodeHandle &nodeHandle) {
 	mIsRunning = true;
 }
 
-void PhaseTwoControl::phaseInfoCallback(const std_msg::Int32 &msg) {
+void PhaseTwoControl::phaseInfoCallback(const std_msgs::Int32 &msg) {
 
 }
 

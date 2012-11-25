@@ -16,35 +16,35 @@ STATE mState = IDLE;
 void executePhaseOne();
 void executePhaseTwo();
 
-// Should determine state (phaseOne or phaseTwo)
-void buttonOneCallback(const std_msgs::Int32 &msg) {
-	if (mPhase == ONE) {
-		cout << "Switching to phase TWO" << endl;
-		mPhase = TWO;
-	} else {
-		cout << "Switching to phase ONE" << endl;
-		mPhase = ONE;
-	}
-}
+// // Should determine state (phaseOne or phaseTwo)
+// void buttonOneCallback(const std_msgs::Int32 &msg) {
+// 	if (mPhase == ONE) {
+// 		cout << "Switching to phase TWO" << endl;
+// 		mPhase = TWO;
+// 	} else {
+// 		cout << "Switching to phase ONE" << endl;
+// 		mPhase = ONE;
+// 	}
+// }
 
-// Should react to button click and start currently selected state.
-void buttonTwoCallback(const std_msgs::Int32 &msg) {
-	if (mState == IDLE) {
-		cout << "Starting phase: " << mPhase << endl;
-		mState = RUN;
+// // Should react to button click and start currently selected state.
+// void buttonTwoCallback(const std_msgs::Int32 &msg) {
+// 	if (mState == IDLE) {
+// 		cout << "Starting phase: " << mPhase << endl;
+// 		mState = RUN;
 
-		// Once started it ignores new events from button
-		if (mPhase == ONE) {
-			executePhaseOne();
-		} else if (mPhase == TWO) {
-			executePhaseTwo();
-		} else {
-			cout << "MotherBrain: UNKNOWN STATE!" << endl;
-		}
+// 		// Once started it ignores new events from button
+// 		if (mPhase == ONE) {
+// 			executePhaseOne();
+// 		} else if (mPhase == TWO) {
+// 			executePhaseTwo();
+// 		} else {
+// 			cout << "MotherBrain: UNKNOWN STATE!" << endl;
+// 		}
 
-		mState = IDLE;
-	}
-}
+// 		mState = IDLE;
+// 	}
+// }
 
 void executePhaseOne() {
 	// TODO
@@ -64,8 +64,8 @@ int main(int argc, char **argv) {
 	ros::init(argc, argv, "MotherBrain");//Creates a node named "StrategyControl"
 	ros::NodeHandle nodeHandle;
 
-	ros::Subscriber buttonOne = nodeHandle.subscribe("/StrategyControl/ButtonOne", 10, &buttonOneCallback);
-	ros::Subscriber buttonTwo = nodeHandle.subscribe("/StrategyControl/ButtonTwo", 10, &buttonTwoCallback);
+	// ros::Subscriber buttonOne = nodeHandle.subscribe("/StrategyControl/ButtonOne", 10, &buttonOneCallback);
+	// ros::Subscriber buttonTwo = nodeHandle.subscribe("/StrategyControl/ButtonTwo", 10, &buttonTwoCallback);
 	
 	// Testing code.
 	executePhaseTwo(nodeHandle);

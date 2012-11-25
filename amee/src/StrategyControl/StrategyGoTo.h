@@ -11,7 +11,7 @@
 namespace amee{
 	class StrategyGoTo : public StrategyState {
 	public:
-		StrategyGoTo(ros::Publisher &pub);
+		StrategyGoTo(ros::Publisher &pub, ros::Publisher &phaseInfo);
 		~StrategyGoTo();
 
 		virtual void init(const StrategyData &data);
