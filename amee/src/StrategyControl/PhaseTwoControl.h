@@ -9,6 +9,7 @@
 #include "amee/GraphMsg.h"
 #include <std_msgs/Int32.h>
 #include "amee/StrategyCommand.h"
+#include "amee/IRDistances.h"
 #include "StrategyControl.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,13 +20,14 @@ namespace amee {
 class PhaseTwoControl {
 
 	public:
-		PhaseTwoControl(ros::NodeHandle &nodeHandle);
+		PhaseTwoControl(ros::NodeHandle &nodeHandle, ros::Publisher &sp);
 		~PhaseTwoControl();
 		void phaseInfoCallback(const std_msgs::Int32 &msg);
 		void rescue();
 		bool isRunning() { return mIsRunning; }
 
 	private:
+		StrategyCommand command;
 		ros::Subscriber mPhaseInfo;
 		ros::Publisher mStrategyCommand;
 		bool mIsRunning;

@@ -95,14 +95,13 @@ int main(int argc, char **argv) {
         }
     }
 
-    
-
     if (mMission == EXPLORE) {
     	printf("Mission: Explore maze\n");
     	printf("Mission: Explore maze - Accomplished!\n");
     } else if (mMission == RESCUE) {
     	printf("Mission: Rescue tags\n");
-        phaseTwoControl = new PhaseTwoControl(nodeHandle);
+        ros::Publisher sp = nodeHandle.advertise<StrategyCommand>("/StrategyControl/StrategyCommand", 1);
+        phaseTwoControl = new PhaseTwoControl(nodeHandle, sp);
         printf("Mission: Rescue tags - Accomplished!\n");
     } else {
         printf("Mission: Unknown\n");

@@ -3,17 +3,18 @@
 using namespace amee;
 using namespace std;
 
-PhaseTwoControl::PhaseTwoControl(ros::NodeHandle &nodeHandle)
+PhaseTwoControl::PhaseTwoControl(ros::NodeHandle &nodeHandle, ros::Publisher &sp)
 	: mNextTargetNode(-1)
 	, mCurrentNode(-1)
 	, mIsFinishing(false)
 	, mTargetReached(true) // To force amee to search for next target from starting position.
 {
 	mGraph = new Graph();
-
+	mStrategyCommand = sp;
 // /StrategyControl/mPhaseInfo
-	mPhaseInfo = nodeHandle.subscribe("/StrategyControl/StrategyCommand", 10, &amee::PhaseTwoControl::phaseInfoCallback, this);
-	mStrategyCommand = nodeHandle.advertise<StrategyCommand>("/StrategyControl/StrategyCommand", 5);
+	mPhaseInfo = nodeHandle.subscribe("/StrategyControl/PhaseInfo", 10, &amee::PhaseTwoControl::phaseInfoCallback, this);
+	// mStrategyCommand = nodeHandle.advertise<StrategyCommand>("/asdf", 1);
+	
 	// ifstream infile;
 
  //    infile.open("maze.map");
@@ -88,6 +89,10 @@ PhaseTwoControl::PhaseTwoControl(ros::NodeHandle &nodeHandle)
 
 	mCurrentNode = mTargets.front(); // TODO: which is actually the start node?
 	mIsRunning = true;
+				command.type = 1;
+			command.x = (float)mCurrentNode;
+			command.y = (float)mNextTargetNode;
+			mStrategyCommand.publish(command);
 }
 
 PhaseTwoControl::~PhaseTwoControl() {
@@ -121,11 +126,8 @@ void PhaseTwoControl::rescue() {
 
 		// if within time bound: 
 			// StrategyGoTo.publish(currentPosition, nextTarget)
-			StrategyCommand command;
-			command.type = StrategyControl::TYPE_STRATEGY_GO_TO;
-			command.x = mCurrentNode;
-			command.y = mNextTargetNode;
-			mStrategyCommand.publish(command);
+		
+
 			cout << "message sent" << endl;
 		// else 
 			// find path to exit, go there and finish phase.
