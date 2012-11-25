@@ -31,7 +31,7 @@ using namespace amee;
 		 	leftFront = getCell(mset.leftFront.pos);
 			leftFront.first = leftFront.first - dirToAxis.first;
 			leftFront.second = leftFront.second - dirToAxis.second;
-		} else (!mset.leftBack.valid){ // else we can at least add one cell on the left side to the explored ones
+		} else if (!mset.leftBack.valid) { // else we can at least add one cell on the left side to the explored ones
 			leftFront.first = leftFront.first + dirToAxis.first;
 			leftFront.second = leftFront.second + dirToAxis.second;
 		}
