@@ -86,9 +86,7 @@ void StrategyGoTo::init(const amee::Pose &pose, const amee::GraphMsg::ConstPtr& 
 	if(v.empty())
 		std::cout << "PathFinderAlgo returnd empty path list!" << std::endl;
 
-	// Path pathMsg;
-	// pathMsg.path = v;
-	// mPathPub.publish(pathMsg);
+	Path pathMsg;
 
 	mPath.empty();
 	int i = 0;
@@ -96,7 +94,12 @@ void StrategyGoTo::init(const amee::Pose &pose, const amee::GraphMsg::ConstPtr& 
 	for(std::vector<NodeMsg>::iterator it = v.begin(); it != v.end(); ++it) {
 		mPath.push(*it);
 		std::cout << i << ": " << (*it).pose.x << " " << (*it).pose.y << " id: " << (*it).nodeID << std::endl;
+
+		pathMsg.nodeIDs.push_back((*it).nodeID);
 	}
+
+
+	mPathPub.publish(pathMsg);
 
 	moveToNextWaypoint();
 
