@@ -19,7 +19,7 @@ class MoveCoordinate;
 class MovementControl {
 
 	public:
-		MovementControl(ros::Publisher& pub, ros::Publisher& statespub);
+		MovementControl(ros::Publisher& pub, ros::Publisher& statespub, ros::Publisher& movement_event_pub);
 		~MovementControl();
 		void receive_distances(const amee::IRDistances::ConstPtr &msg);
 		void receive_odometry(const amee::Odometry::ConstPtr &msg);
@@ -43,6 +43,9 @@ class MovementControl {
 		static const int TYPE_STOP = 5;
 		static const int TYPE_ALIGN_TO_WALL = 6;
 		static const int TYPE_ALIGN_TO_FRONT_WALL = 7;
+
+		static const unsigned int MOVEMENT_EVENT_TYPE_OBSTICLE_IN_FRONT = 1;
+		static const unsigned int MOVEMENT_EVENT_TYPE_DONE_MOVING_STRAIGHT = 2;
 
 	private:
 

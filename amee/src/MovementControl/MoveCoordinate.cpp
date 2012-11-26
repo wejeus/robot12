@@ -1,8 +1,10 @@
 #include <iostream>
 #include "amee/Velocity.h"
+#include "amee/MovementEvent.h"
 #include "MoveCoordinate.h"
 #include "MoveRotate.h"
 #include "MoveStraight.h"
+#include "MovementControl.h"
 #include <cmath>
 #include <numeric>
 
@@ -13,8 +15,10 @@
 using namespace amee;
 using namespace std;
 
-MoveCoordinate::MoveCoordinate(ros::Publisher& pub) {
+MoveCoordinate::MoveCoordinate(ros::Publisher& pub, ros::Publisher& movement_event_pub) {
 	mPub = pub;
+	mMovementEventPub = movement_event_pub;
+
 	mRotater = new MoveRotate(mPub);
 	mStraightMove = new MoveStraight(mPub);
 	mRunning = false;
@@ -58,6 +62,23 @@ void MoveCoordinate::doControl(const SensorData& data) {
 
 	if(mRunning) {
 
+		if(MovementControl::wallInFront(data)){
+			//publish the movementEvent type
+			MovementEvent me;
+			me.type = MovementControl::MOVEMENT_EVENT_TYPE_OBSTICLE_IN_FRONT;
+			mMovementEventPub.publish(me);
+
+			mRunning = false;
+			std::cout << "In MoveCoordinate, wall-In-Front, stopping!" << std::endl;
+
+			//publish stop
+			Velocity vel;
+			vel.left = vel.right = 0.0f; 
+			mPub.publish(vel);
+
+			return;
+		}
+
 		//TODO: remove this
 		mSensorData = data;
 
@@ -76,6 +97,13 @@ void MoveCoordinate::doControl(const SensorData& data) {
 			}else{
 				cout << "In MoveCoordinate, done with the MoveCoordinate movement." << endl;
 				mRunning = false;
+
+
+				//publish the movementEvent type
+				MovementEvent me;
+				me.type = MovementControl::MOVEMENT_EVENT_TYPE_DONE_MOVING_STRAIGHT;
+				mMovementEventPub.publish(me);
+
 			}
 		}
 	}
