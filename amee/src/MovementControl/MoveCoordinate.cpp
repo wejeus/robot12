@@ -51,7 +51,7 @@ void MoveCoordinate::init(const SensorData &data, const float &x, const float &y
 
 	cout << "Rotate: " << angle << ", and then move " << mDistance << endl;
 
-	mRotater->init(mSensorData, angle);
+	mRotater->init(data, angle);
 
 
 }
@@ -62,37 +62,34 @@ void MoveCoordinate::doControl(const SensorData& data) {
 
 	if(mRunning) {
 
-		//TODO: remove this
-		mSensorData = data;
-
 		if (mRotater->isRunning()) {
-			mRotater->doControl(mSensorData);
+			mRotater->doControl(data);
 		}else if(!mRotationDone){//only one time
 			cout << "In MoveCoordinate, done rotating, now initiating straight movement" << endl;
 
 			mRotationDone = true;
-			mStraightMove->init(mSensorData, mDistance);
+			mStraightMove->init(data, mDistance);
 		}
 
 		if(mRotationDone){//rotation done, go straight to the point
-			if(MovementControl::wallInFront(data)){
-				//publish the movementEvent type
-				MovementEvent me;
-				me.type = MovementControl::MOVEMENT_EVENT_TYPE_OBSTICLE_IN_FRONT;
-				mMovementEventPub.publish(me);
+			// if(MovementControl::wallInFront(data)){
+			// 	//publish the movementEvent type
+			// 	MovementEvent me;
+			// 	me.type = MovementControl::MOVEMENT_EVENT_TYPE_OBSTICLE_IN_FRONT;
+			// 	mMovementEventPub.publish(me);
 
-				mRunning = false;
-				std::cout << "In MoveCoordinate, wall-In-Front, stopping!" << std::endl;
+			// 	mRunning = false;
+			// 	std::cout << "In MoveCoordinate, wall-In-Front, stopping!" << std::endl;
 
-				//publish stop
-				Velocity vel;
-				vel.left = vel.right = 0.0f; 
-				mPub.publish(vel);
+			// 	//publish stop
+			// 	Velocity vel;
+			// 	vel.left = vel.right = 0.0f; 
+			// 	mPub.publish(vel);
 
-				return;
-			}
+			// 	return;
+			// }
 			if(mStraightMove->isRunning()){
-				mStraightMove->doControl(mSensorData);
+				mStraightMove->doControl(data);
 			}else{
 				cout << "In MoveCoordinate, done with the MoveCoordinate movement." << endl;
 				mRunning = false;
@@ -100,7 +97,7 @@ void MoveCoordinate::doControl(const SensorData& data) {
 
 				//publish the movementEvent type
 				MovementEvent me;
-				me.type = MovementControl::MOVEMENT_EVENT_TYPE_DONE_MOVING_STRAIGHT;
+				me.type = MovementControl::MOVEMENT_EVENT_TYPE_DONE_MOVING_COORDINATE;
 				mMovementEventPub.publish(me);
 
 			}

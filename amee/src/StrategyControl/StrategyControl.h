@@ -5,11 +5,13 @@
 #include "../Graph/Graph.h"
 #include "amee/GraphMsg.h"
 #include "amee/StrategyCommand.h"
+#include "amee/MapperEvent.h"
+#include "amee/MovementEvent.h"
 #include "StrategyState.h"
 
 namespace amee {
-class StrategyClassify;
-class StrategyExplore;
+// class StrategyClassify;
+// class StrategyExplore;
 class StrategyGoTo;
 
 class StrategyControl {
@@ -20,7 +22,9 @@ class StrategyControl {
 		void receive_command(const amee::StrategyCommand::ConstPtr &msg);
 		void receive_pose(const amee::Pose::ConstPtr &msg);
 		void receive_graph(const amee::GraphMsg::ConstPtr &msg);
-		void doControl();
+		void receive_mapper_event(const amee::MapperEvent::ConstPtr &msg);
+		void receive_movement_event(const amee::MovementEvent::ConstPtr &msg);
+		// void doControl();
 		void init();
 
 		static const int TYPE_STRATEGY_CLASSIFY = 1;
@@ -29,18 +33,17 @@ class StrategyControl {
 		static const int TYPE_STRATEGY_GO_TO = 4;
 
 	private:
-		bool mMapInitialized;
-
-		amee::StrategyData mStrategyData;
+		
+		// amee::StrategyData mStrategyData;
 		amee::GraphMsg::ConstPtr mGraphMsg;
+		amee::Pose mPose;
 
 		ros::Publisher speed_pub;
-		// ros::Publisher mPhaseInfo;
 
 		amee::StrategyState* mCurrentState;
 
-		amee::StrategyClassify* mClassifyState;
-		amee::StrategyExplore* mExploreState;
+		// amee::StrategyClassify* mClassifyState;
+		// amee::StrategyExplore* mExploreState;
 		amee::StrategyGoTo* mGoToState;
 };
 

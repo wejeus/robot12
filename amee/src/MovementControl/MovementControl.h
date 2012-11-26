@@ -45,7 +45,10 @@ class MovementControl {
 		static const int TYPE_ALIGN_TO_FRONT_WALL = 7;
 
 		static const unsigned int MOVEMENT_EVENT_TYPE_OBSTICLE_IN_FRONT = 1;
-		static const unsigned int MOVEMENT_EVENT_TYPE_DONE_MOVING_STRAIGHT = 2;
+		static const unsigned int MOVEMENT_EVENT_TYPE_DONE_MOVING_COORDINATE = 2;
+		static const unsigned int MOVEMENT_EVENT_TYPE_DONE_ROTATING = 3;
+		static const unsigned int MOVEMENT_EVENT_TYPE_DONE_ALIGNING_WALL = 4;
+		static const unsigned int MOVEMENT_EVENT_TYPE_FAILED_ALIGNING_WALL = 5;
 
 	private:
 

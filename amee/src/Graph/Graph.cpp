@@ -135,7 +135,7 @@ int Graph::getIDFromPose(float x, float y, float theta) {
 		tmpY = (*it)->pose.y;
 
 		tmpDist = sqrt((tmpX - x) * (tmpX - x) + (tmpY - y) * (tmpY - y));
-		if(tmpDist < MAX_DISTANCE_TO_NODE && tmpDist < best_dist_found){
+		if(tmpDist < best_dist_found){ // tmpDist < MAX_DISTANCE_TO_NODE &&
 			best_dist_found = tmpDist;
 			best_id_found = (*it)->nodeID;
 		}
