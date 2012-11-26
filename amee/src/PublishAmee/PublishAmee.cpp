@@ -110,7 +110,7 @@ int main(int argc, char **argv){
 			MapperCommand m; m.type = 2;
 			wait(pub);
 			pub.publish(m);
-		}else if(strcmp(argv[1], "stopmap") == 0){
+		}else if(strcmp(argv[1], "localize") == 0){
 			pub = nodeHandle.advertise<MapperCommand>("/amee/map/mapper_commands", 1);
 			MapperCommand m; m.type = 3;
 			wait(pub);
