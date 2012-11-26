@@ -91,10 +91,12 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 			mRotating = false;
 			break;
 		case amee::MoveFollowWall::ALIGN_TO_WALL_OUT:
-			if (mMappingState == PauseMapping || mMappingState == Mapping) {
-				init(); //  only does sth if not initialized
+		
+			init(); //  only does sth if not initialized
+			if (mMappingState == PauseMapping) {
 				mMappingState = Mapping;
 			}
+			
 			type = amee::Graph::NODE_NEXT_TO_WALL;
 			handleNodeEvent(type, msg->timestamp);
 			mRotating = false;
@@ -566,9 +568,6 @@ void Mapper::receive_MapperCommand(const amee::MapperCommand::ConstPtr &msg) {
 			findEdges();
 			break;
 		case LocalizeCommand:
-			if (!mInitialized) {
-				init();
-			}
 			mMappingState = Localizing;
 			break;
 		case FindEdgesToUnexploredCommand:
