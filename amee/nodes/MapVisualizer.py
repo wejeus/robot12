@@ -139,7 +139,7 @@ def onNodeMsgUpdate(msg):
 
 def onPathUpdate(msg):
   global path
-  path = msg.path
+  path = msg.nodeIDs
 
 def drawExplorationGrid(grid):
   startPos = (grid.originX, grid.originY)

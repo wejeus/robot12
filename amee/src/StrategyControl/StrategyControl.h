@@ -17,7 +17,7 @@ class StrategyGoTo;
 class StrategyControl {
 
 	public:
-		StrategyControl(ros::Publisher& pub, ros::Publisher &phaseInfo);
+		StrategyControl(ros::Publisher& pub, ros::Publisher &phaseInfo, ros::Publisher &pathPub);
 		~StrategyControl();
 		void receive_command(const amee::StrategyCommand::ConstPtr &msg);
 		void receive_pose(const amee::Pose::ConstPtr &msg);

@@ -4,6 +4,7 @@
 // #include "StrategyExplore.h"
 // #include "StrategyClassify.h"
 #include "StrategyGoTo.h"
+#include "amee/Path.h"
 
 #include <iostream>
 #include <cmath>
@@ -17,10 +18,10 @@
 using namespace amee;
 
 
-StrategyControl::StrategyControl(ros::Publisher& pub, ros::Publisher &phaseInfo) {
+StrategyControl::StrategyControl(ros::Publisher& pub, ros::Publisher &phaseInfo, ros::Publisher& pathPub) {
 	// mClassifyState = new StrategyClassify(pub);
 	// mExploreState = new StrategyExplore(pub);
-	mGoToState = new StrategyGoTo(pub, phaseInfo);
+	mGoToState = new StrategyGoTo(pub, phaseInfo, pathPub);
 	mCurrentState = mGoToState;
 }
 
@@ -101,9 +102,10 @@ int main(int argc, char **argv)
 	// create the controller and initialize it
 	ros::Publisher pub = n.advertise<amee::MovementCommand>("/MovementControl/MovementCommand", 1);
 	ros::Publisher phaseInfo = n.advertise<std_msgs::Int32>("/StrategyControl/PhaseInfo", 100);
+	ros::Publisher pathPub = n.advertise<amee::Path>("/amee/graph/path", 10);
 
 	//StrategyControl control(vel_pub, wall_pub);
-	StrategyControl control(pub, phaseInfo);
+	StrategyControl control(pub, phaseInfo, pathPub);
 	
 
 	ros::Subscriber dist_sub;

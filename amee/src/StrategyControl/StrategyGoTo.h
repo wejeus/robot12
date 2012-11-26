@@ -13,7 +13,7 @@
 namespace amee{
 	class StrategyGoTo : public StrategyState {
 	public:
-		StrategyGoTo(ros::Publisher &pub, ros::Publisher &phaseInfo);
+		StrategyGoTo(ros::Publisher &pub, ros::Publisher &phaseInfo, ros::Publisher &pathPub);
 		~StrategyGoTo();
 
 		// virtual void init(const StrategyData &data);
@@ -34,6 +34,7 @@ namespace amee{
 		bool mFollowingWall;
 		ros::Publisher mCommandPub;
 		ros::Publisher mPhaseInfo;
+		ros::Publisher mPathPub;
 		amee::Graph mGraph;
 		std::queue<amee::NodeMsg> mPath;
 		amee::Pose mPose;

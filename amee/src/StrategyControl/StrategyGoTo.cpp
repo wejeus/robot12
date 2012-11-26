@@ -3,13 +3,15 @@
 #include "../Mapper/Mapper.h"
 #include "../MovementControl/MovementControl.h"
 #include "amee/MovementCommand.h"
+#include "amee/Path.h"
 #include <cmath>
 
 using namespace amee;
 
-StrategyGoTo::StrategyGoTo(ros::Publisher& pub, ros::Publisher &phaseInfo) {
+StrategyGoTo::StrategyGoTo(ros::Publisher& pub, ros::Publisher &phaseInfo, ros::Publisher &pathPub) {
 	mCommandPub = pub;
 	mPhaseInfo = phaseInfo;
+	mPathPub = pathPub;
 	mRunning = false;
 	// mRestartFollowingWall = true;
 	// mFollowWallPossible = false;
@@ -83,6 +85,10 @@ void StrategyGoTo::init(const amee::Pose &pose, const amee::GraphMsg::ConstPtr& 
 	std::vector<NodeMsg> v = pfa.findShortestPath(mGraph, currentNodeId, id);
 	if(v.empty())
 		std::cout << "PathFinderAlgo returnd empty path list!" << std::endl;
+
+	// Path pathMsg;
+	// pathMsg.path = v;
+	// mPathPub.publish(pathMsg);
 
 	mPath.empty();
 	int i = 0;
