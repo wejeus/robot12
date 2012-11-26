@@ -18,6 +18,8 @@ class Graph{
 			NODE_TAG = 3
 		};
 
+		static const float MAX_DISTANCE_TO_NODE = 0.02f;
+
 		Graph();
 		Graph(const Graph&);
 		// Graph(const amee::GraphMsg::ConstPtr&);
@@ -37,6 +39,9 @@ class Graph{
 		// void addNode(const amee::Pose& p, int type, int id);
 		int addNode(const amee::Pose& p, int type);
 
+		int getIDFromPose(const amee::Pose& pose);
+		int getIDFromPose(float x, float y, float theta);
+
 		void addEdges(int id1, int id2);
 
 		NodeMsg* getNode(int id);
@@ -45,7 +50,7 @@ class Graph{
 
 		//for serialization
 		void saveToFile(const char * fileName) const;
-		// Graph& loadFromFile(const char * fileName);
+		void loadFromFile(const char * fileName);
 
 	private:
 		size_t mCurNodeID;

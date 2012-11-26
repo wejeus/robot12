@@ -6,6 +6,7 @@
 #include "../Graph/PathFinderAlgo.h"
 #include "amee/Pose.h"
 #include <std_msgs/Int32.h>
+#include "amee/NodeMsg.h"
 #include "ros/ros.h"
 #include <queue>
 
@@ -18,18 +19,20 @@ namespace amee{
 		virtual void init(const StrategyData &data);
 		void init(const StrategyData &data, const amee::GraphMsg::ConstPtr& graphMsg);
 		void init(const StrategyData &data, const amee::GraphMsg::ConstPtr& graphMsg, const float& x, const float& y);
+		void init(const StrategyData &data, const amee::GraphMsg::ConstPtr& graphMsg, const unsigned int& id);
 		virtual bool isRunning() const;
 		virtual void doControl(const StrategyData &data);
 
-		static const float EUCLIDEAN_POSITION_DISTANCE = 0.1f;
+		static const float EUCLIDEAN_POSITION_DISTANCE = 0.035f;
 
 	private:
 		bool mRunning;
-		bool restartFollowingWall;
+		bool mRestartFollowingWall;
+		bool mFollowWallPossible;
 		ros::Publisher mPub;
 		ros::Publisher mPhaseInfo;
 		amee::Graph mGraph;
-		std::queue<amee::Pose> mPath;
+		std::queue<amee::NodeMsg> mPath;
 
 		StrategyData mStrategyData;
 

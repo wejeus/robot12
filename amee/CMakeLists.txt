@@ -50,7 +50,7 @@ rosbuild_add_executable(PublishAmee src/PublishAmee/PublishAmee.cpp)
 #rosbuild_add_executable(Localize src/Localize/Localize.cpp src/Localize/EKF.cpp src/Amee.cpp)
 rosbuild_add_executable(IMUReader src/IMUSensor/IMUReader.cpp src/Amee.cpp)
 
-rosbuild_add_executable(MotherBrain src/StrategyControl/MotherBrain.cpp src/StrategyControl/PhaseOneControl.cpp src/StrategyControl/PhaseTwoControl.cpp src/Graph/Graph.cpp)
+#rosbuild_add_executable(MotherBrain src/StrategyControl/MotherBrain.cpp src/StrategyControl/PhaseOneControl.cpp src/StrategyControl/PhaseTwoControl.cpp src/Graph/Graph.cpp)
 
 #rosbuild_add_executable(NodeKiller src/NodeKiller/NodeKiller.cpp)
 

@@ -34,7 +34,7 @@ typedef priority_queue<int, vector<int>, CompareNode> NodePQ;
 
 /**
  * This gives you a shortest path of from a starting node ID to an end ID in a graph.
- * The return value is a vector of Pose in ordered way.
+ * The return value is a vector of NodeMsg in ordered way.
  */
 std::vector<amee::NodeMsg> PathFinderAlgo::findShortestPath(Graph& g, const int startId, const int endId){
 	size_t size = g.size();
@@ -51,6 +51,8 @@ std::vector<amee::NodeMsg> PathFinderAlgo::findShortestPath(Graph& g, const int 
 		v.push_back(*(g.getNode(curDest)));
 		curDest = path[curDest];
 	}
+
+	v.push_back(*(g.getNode(startId)));
 
 	reverse(v.begin(), v.end());
 
@@ -163,7 +165,7 @@ void PathFinderAlgo::Dijkstra(Graph& g, const int& source, float * pathD, int * 
 		
 		v = &(g.getNode(curID)->edges);
 		for(it = v->begin(); it != v->end(); ++it){
-			float penalty = (abs(curID - (*it)) > 1) ? NODE_DISTANCE_PENALTY : 0;
+			float penalty = ((*it) - curID != 1) ? NODE_DISTANCE_PENALTY : 0.0f;
 			float alt = pathD[curID] + EuclidDist(g.getNode(curID)->pose, g.getNode(*it)->pose) + penalty;
 
 			if(alt < pathD[(*it)]){

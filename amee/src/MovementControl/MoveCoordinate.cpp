@@ -27,15 +27,29 @@ MoveCoordinate::~MoveCoordinate() {
 
 void MoveCoordinate::init(const SensorData& data) {
 	mRunning = true;
-	mFirstRun = true;
 	mRotationDone = false;
 }
 
 void MoveCoordinate::init(const SensorData &data, const float &x, const float &y){
 	init(data);
 
-	mX = x;
-	mY = y;
+	cout << "In MoveCoordinate init, destpos: (" 
+		 << x << ", " << y << ")" << endl;
+
+	float angle = atan2(y, x) * 180 / M_PI;
+	angle = checkDirection(angle);
+
+	float destPoint[2] = {x, y};
+	float curPoint[2] = {0.0f, 0.0f};
+
+	mDistance = euclidDist(destPoint, curPoint);
+	// cout << "distance " << distance << ", angle " << angle << endl;
+
+	cout << "Rotate: " << angle << ", and then move " << mDistance << endl;
+
+	mRotater->init(mSensorData, angle);
+
+
 }
 
 bool MoveCoordinate::isRunning() const { return mRunning; }
@@ -43,36 +57,9 @@ bool MoveCoordinate::isRunning() const { return mRunning; }
 void MoveCoordinate::doControl(const SensorData& data) {
 
 	if(mRunning) {
-		mCurX = data.odometry.x;
-		mCurY = data.odometry.y;
 
 		//TODO: remove this
 		mSensorData = data;
-
-		if(mFirstRun){
-			cout << "In MoveCoordinate mFirstRun, destpos: (" 
-				 << mX << ", " << mY << ")" << " curPos: ("
-				 << mCurX << ", " << mCurY << ")" << endl;
-			cout << "Starting angle: " << data.odometry.angle << endl;
-			mCurAngle = fmod(data.odometry.angle, 360);
-
-			float destPoint[2] = {mX, mY};
-			float curPoint[2] = {mCurX, mCurY};
-
-			// float distance = norm(curPoint);
-			// float angle = acos(inner_product(destPoint, destPoint+3, curPoint, 0.0f) / (norm(destPoint)*norm(curPoint)));
-			// cout << "distance " << distance << ", angle " << angle << endl;
-
-			mAngle = getRotationAngle(curPoint, destPoint);
-			mDistance = euclidDist(curPoint, destPoint);
-			cout << "Rotate: " << mAngle << ", and then move " << mDistance << endl;
-
-			mRotater->init(mSensorData, mAngle);
-
-			// Velocity v; //TODO: set the volocity data values
-			// mPub.publish(v);
-			mFirstRun = false;
-		}
 
 		if (mRotater->isRunning()) {
 			mRotater->doControl(mSensorData);
@@ -98,16 +85,16 @@ void MoveCoordinate::doControl(const SensorData& data) {
 // 	return (sqrt(pow(mX - mCurX, 2) + pow(mY - mCurY, 2)) < DISTANCE_THRESHHOLD);
 // }
 
-float MoveCoordinate::getRotationAngle(const float p1[2], const float p2[2]) const {
-	float dX = p2[0] - p1[0];
-	float dY = p2[1] - p1[1];
+// float MoveCoordinate::getRotationAngle(const float p1[2], const float p2[2]) const {
+// 	float dX = p2[0] - p1[0];
+// 	float dY = p2[1] - p1[1];
 
-	float v = atan2(dY, dX) * 180 / M_PI;
-	float angleDifference = v - mCurAngle;
+// 	float v = atan2(dY, dX) * 180 / M_PI;
+// 	float angleDifference = v - mCurAngle;
 
-	return checkDirection(angleDifference);
+// 	return checkDirection(angleDifference);
 
-}
+// }
 
 
 float MoveCoordinate::checkDirection(const float f) const {

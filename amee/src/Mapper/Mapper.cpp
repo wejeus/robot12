@@ -535,6 +535,7 @@ void Mapper::saveMap() {
   mapfile.open ("map");
   mapfile << mMap;
   mapfile.close();
+  mGraph.saveToFile("graph");
 }
 
 void Mapper::readMap() {
@@ -542,6 +543,7 @@ void Mapper::readMap() {
   mapfile.open ("map");
   mMap.readFromStream(mapfile);
   mapfile.close();
+  mGraph.loadFromFile("graph");
 }
 
 void Mapper::setToLocalize() {

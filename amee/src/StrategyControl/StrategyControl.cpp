@@ -51,10 +51,10 @@ void StrategyControl::receive_graph(const amee::GraphMsg::ConstPtr &msg) {
 }
 
 void StrategyControl::receive_command(const amee::StrategyCommand::ConstPtr &msg) {
-	std::cout << "asdfjkasdfl;jasdfkl" << std::endl;
 	int type = msg->type;
 	float x = msg->x;
 	float y = msg->y;
+	unsigned int id = msg->nodeId;	
 	switch(type) {
 		case TYPE_STRATEGY_EXPLORE:
 			std::cout << "STRATEGY_EXPLORE" << std::endl;
@@ -67,7 +67,7 @@ void StrategyControl::receive_command(const amee::StrategyCommand::ConstPtr &msg
 			}
 			std::cout << "STRATEGY GO TO" << std::endl;
 			mCurrentState = mGoToState;
-			mGoToState->init(mStrategyData, mGraphMsg, x, y);//TODO change this to add the end position, also add the init(mStrategyData, something else) to the StrategyGoTo class
+			mGoToState->init(mStrategyData, mGraphMsg,id);//TODO change this to add the end position, also add the init(mStrategyData, something else) to the StrategyGoTo class
 		break;
 		case TYPE_STRATEGY_CLASSIFY:
 		 	std::cout << "STRATEGY CLASSIFY" << std::endl;

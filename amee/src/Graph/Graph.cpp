@@ -1,4 +1,7 @@
 #include "Graph.h"
+#include <iostream>
+#include <fstream>
+#include <limits>
 
 using namespace amee;
 
@@ -114,6 +117,33 @@ const std::vector<NodeMsg*>& Graph::getNodes() const { return mNodes; }
  
 // 	mNodes[id1].connectNeighbours(mNodes[id2]);
 // }
+
+int Graph::getIDFromPose(const amee::Pose& pose) {
+	return getIDFromPose(pose.x, pose.y, pose.theta);
+}
+
+int Graph::getIDFromPose(float x, float y, float theta) {
+	int best_id_found = -1;
+	float best_dist_found = std::numeric_limits<float>::max();
+
+	
+	std::vector<NodeMsg*>::const_iterator it;
+
+	float tmpX, tmpY, tmpDist;
+	for(it=mNodes.begin(); it != mNodes.end(); ++it) {
+		tmpX = (*it)->pose.x;
+		tmpY = (*it)->pose.y;
+
+		tmpDist = sqrt((tmpX - x) * (tmpX - x) + (tmpY - y) * (tmpY - y));
+		if(tmpDist < MAX_DISTANCE_TO_NODE && tmpDist < best_dist_found){
+			best_dist_found = tmpDist;
+			best_id_found = (*it)->nodeID;
+		}
+	}
+
+	return best_id_found;
+}
+
 int Graph::addNode(const amee::Pose& p, int type){
 
 	NodeMsg * nMsg_p = new NodeMsg();
@@ -179,12 +209,48 @@ amee::GraphMsg Graph::getMessage(){
 }
 
 void Graph::saveToFile(const char * fileName) const {
-
+  std::ofstream graphFile;
+  graphFile.open(fileName);
+  graphFile << mNodes.size() << ' ';
+  for (unsigned int i = 0; i < mNodes.size(); ++i) {
+  	NodeMsg* node = mNodes[i];
+  	graphFile << node->pose.x << ' ' << node->pose.y << ' ' << node->pose.theta << ' ' << node->nodeID << ' ' << node->type << ' ';
+  	graphFile << node->edges.size() << ' ';
+  	for (unsigned int j = 0; j < node->edges.size(); ++j) {
+  		graphFile << node->edges[j] << ' ';
+  	}
+  }
+  graphFile.close();
 }
 
-// Graph& Graph::loadFromFile(const char * fileName) {
-
-// }
+void Graph::loadFromFile(const char * fileName) {
+	std::ifstream graphFile;
+	graphFile.open(fileName);
+	unsigned int numNodes;
+	graphFile >> numNodes;
+	mNodes.resize(numNodes);
+	mNextToWallNodes.clear();
+	mRotateLeftNodes.clear();
+	mRotateRightNodes.clear();
+	mTagNodes.clear();
+	for (unsigned int i = 0; i < numNodes; ++i) {
+		NodeMsg* node = new NodeMsg();
+		graphFile >> node->pose.x >> node->pose.y >> node->pose.theta >> node->nodeID >> node->type;
+		unsigned int numEdges;
+		graphFile >> numEdges;
+		node->edges.resize(numEdges);
+		for (unsigned int j = 0; j  < numEdges; ++j) {
+			graphFile >> node->edges[j];
+		}
+		switch(node->type){
+			case NODE_NEXT_TO_WALL:		mNextToWallNodes.push_back(node->nodeID);	break;
+			case NODE_ROTATE_LEFT:		mRotateLeftNodes.push_back(node->nodeID);	break;
+			case NODE_ROTATE_RIGHT:		mRotateRightNodes.push_back(node->nodeID);	break;
+			case NODE_TAG:				mTagNodes.push_back(node->nodeID);			break;
+		}
+		mNodes[i] = node;
+	}
+}
 
 };// namespace amee
 
