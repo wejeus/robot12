@@ -6,6 +6,7 @@
 #include "WallSegment.h"
 #include "HorizontalWallSegment.h"
 #include <string.h>
+#include "amee/NodeEvent.h"
 
 using namespace amee;
 
@@ -41,7 +42,7 @@ void Mapper::receive_tag(const amee::Tag::ConstPtr& msg) {
 	// mTagPositions.push_back(p);
 	if (sqrt((mPose.x - mLastTagPose.x) * (mPose.x - mLastTagPose.x) + (mPose.y - mLastTagPose.y) * (mPose.y - mLastTagPose.y)) > 0.04f) {
 		int type = amee::Graph::NODE_TAG;
-		addNode(type);
+		addNode(type, mPose.timestamp);
 		mLastTagPose = mPose;	
 	}
 }
@@ -93,21 +94,21 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 			if (mMappingState == PauseMapping || mMappingState == Mapping) {
 				init(); //  only does sth if not initialized
 				type = amee::Graph::NODE_NEXT_TO_WALL;
-				addNode(type);
+				addNode(type, msg->timestamp);
 				mMappingState = Mapping;
 			}
 			mRotating = false;
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_OUT:
 			if (mMappingState == PauseMapping || mMappingState == Mapping) {
-				if(mInitialized) addNode(amee::Graph::NODE_NEXT_TO_WALL);
+				if(mInitialized) addNode(amee::Graph::NODE_NEXT_TO_WALL, msg->timestamp);
 			}
 			break;
 		case amee::MoveFollowWall::ROTATE_LEFT_IN:
 			type = amee::Graph::NODE_ROTATE_LEFT;
 			mRotating = true;
 			if (mMappingState == PauseMapping || mMappingState == Mapping) {
-				if (mInitialized) addNode(type);
+				if (mInitialized) addNode(type, msg->timestamp);
 				mMappingState = Mapping;
 			}	
 			break;
@@ -116,7 +117,7 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 			if (mMappingState == PauseMapping || mMappingState == Mapping) {
 				mMappingState = Mapping;
 				type = amee::Graph::NODE_ROTATE_RIGHT;
-				if (mInitialized) addNode(type);
+				if (mInitialized) addNode(type, msg->timestamp);
 			}
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_IN:
@@ -137,13 +138,43 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 	}
 }
 
-void Mapper::addNode(int type) {
-	mNodeId = mGraph.addNode(mPose, type);
-	if (mLastNodeId != -1) {
-		mGraph.addEdges(mNodeId, mLastNodeId);
-	} 
-	mLastNodeId = mNodeId;
-	mNewNodes.push_back(mNodeId);
+void Mapper::addNode(int type, double timestamp) {
+	int existingNodeId = mGraph.getClosestOfType(type, mPose);
+	bool nodeRevisited = false;
+	if (existingNodeId != -1) {
+		NodeMsg* node = mGraph.getNode(existingNodeId);
+		float dist = sqrt((mPose.x - node->pose.x)*(mPose.x - node->pose.x) + (mPose.y - node->pose.y) * (mPose.y - node->pose.y));
+		nodeRevisited = (dist <= Graph::MAX_DISTANCE_TO_NODE) && sameTheta(mPose.theta, node->pose.theta);
+		mNodeId = existingNodeId;
+
+		// TODO: We could adapt our Pose here, but not sure if it is a good idea or not
+
+		if (mLastNodeId != -1) {
+			mGraph.addEdges(mNodeId, mLastNodeId);
+		}
+		mLastNodeId = mNodeId;
+	}
+	
+	if (!nodeRevisited) {	
+		mNodeId = mGraph.addNode(mPose, type);
+		if (mLastNodeId != -1) {
+			mGraph.addEdges(mNodeId, mLastNodeId);
+		} 
+		mLastNodeId = mNodeId;
+		mNewNodes.push_back(mNodeId);	
+	}
+
+	NodeEvent event;
+	event.timestamp = timestamp;
+	event.nodeID = mNodeId;
+	event.newNode = !nodeRevisited;
+	event.type = type;
+
+	node_pub.publish(event);
+}
+
+bool Mapper::sameTheta(float t1, float t2) {
+	return (fabs(t1 - t2) <= 0.3f || fabs(t1 - t2) >= (2 * M_PI - 0.3f));
 }
 
 void Mapper::findEdges() {
@@ -323,6 +354,10 @@ void Mapper::setGraphPublisher(ros::Publisher pub) {
 
 void Mapper::setPosePublisher(ros::Publisher pub) {
 	pose_pub = pub;
+}
+
+void Mapper::setNodePublisher(ros::Publisher pub) {
+	node_pub = pub;
 }
 
 void Mapper::visualize() {
@@ -642,10 +677,12 @@ int main(int argc, char **argv)
 	ros::Publisher pose_pub = n.advertise<amee::Pose>("/amee/pose",5);
   	ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);
   	ros::Publisher graph_pub = n.advertise<amee::GraphMsg>("/amee/map/graph",10);
+  	ros::Publisher node_pub = n.advertise<amee::NodeEvent>("/amee/map/node_events",10);
 
     mapper.setVisualizationPublisher(marker_pub);
     mapper.setGraphPublisher(graph_pub);
     mapper.setPosePublisher(pose_pub);
+    mapper.setNodePublisher(node_pub);
 
 
 	ros::Rate loop_rate(30); //30

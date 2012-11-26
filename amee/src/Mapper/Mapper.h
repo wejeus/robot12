@@ -32,6 +32,7 @@ class Mapper {
 		void setVisualizationPublisher(ros::Publisher pub);
 		void setGraphPublisher(ros::Publisher pub);
 		void setPosePublisher(ros::Publisher pub);
+		void setNodePublisher(ros::Publisher pub);
 		void saveMap();
 		void readMap();
 		void setToLocalize();
@@ -48,6 +49,7 @@ class Mapper {
 		ros::Publisher vis_pub;
 		ros::Publisher graph_pub;
 		ros::Publisher pose_pub;
+		ros::Publisher node_pub;
 
 		amee::IRDistances mDistances;
 		amee::Pose mPose;
@@ -98,8 +100,9 @@ class Mapper {
 		void followedWallDirection(int& left, int& right);
 		void mapping();
 		void localize();
-		void addNode(int type);
+		void addNode(int type, double timestamp);
 		void checkIfNextToWall();
+		bool sameTheta(float t1, float t2);
 	};
 }
 #endif

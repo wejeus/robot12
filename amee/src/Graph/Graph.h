@@ -18,7 +18,7 @@ class Graph{
 			NODE_TAG = 3
 		};
 
-		static const float MAX_DISTANCE_TO_NODE = 0.02f;
+		static const float MAX_DISTANCE_TO_NODE = 0.04f;
 
 		Graph();
 		Graph(const Graph&);
@@ -42,6 +42,8 @@ class Graph{
 		int getIDFromPose(const amee::Pose& pose);
 		int getIDFromPose(float x, float y, float theta);
 
+		int getClosestOfType(int type, const amee::Pose& pose);
+
 		void addEdges(int id1, int id2);
 
 		NodeMsg* getNode(int id);
@@ -59,6 +61,8 @@ class Graph{
 		std::vector<int> mRotateLeftNodes;
 		std::vector<int> mRotateRightNodes;
 		std::vector<int> mNextToWallNodes;
+
+		int findClosestTo(std::vector<int>& nodeVector, const amee::Pose& pose);
 		//amee::GraphMsg mMsg;
 
 };//class Graph

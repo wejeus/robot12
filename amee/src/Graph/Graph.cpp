@@ -144,6 +144,33 @@ int Graph::getIDFromPose(float x, float y, float theta) {
 	return best_id_found;
 }
 
+int Graph::getClosestOfType(int type, const amee::Pose& pose) {
+	int result = -1;
+	switch(type){
+		case NODE_NEXT_TO_WALL:		result = findClosestTo(mNextToWallNodes, pose);	break;
+		case NODE_ROTATE_LEFT:		result = findClosestTo(mRotateLeftNodes, pose);	break;
+		case NODE_ROTATE_RIGHT:		result = findClosestTo(mRotateRightNodes, pose);	break;
+		case NODE_TAG:				result = findClosestTo(mTagNodes, pose);			break;
+	}
+	return result;
+}
+
+int Graph::findClosestTo(std::vector<int>& nodeVector, const amee::Pose& pose) {
+	int best_id_found = -1;
+	float best_dist_found = std::numeric_limits<float>::max();
+	for (unsigned int i = 0; i < nodeVector.size(); ++i) {
+		float tmpX = mNodes[nodeVector[i]]->pose.x;
+		float tmpY = mNodes[nodeVector[i]]->pose.y;
+
+		float tmpDist = sqrt((tmpX - pose.x) * (tmpX - pose.x) + (tmpY - pose.y) * (tmpY - pose.y));
+		if (tmpDist < best_dist_found) {
+			best_dist_found = tmpDist;
+			best_id_found = mNodes[nodeVector[i]]->nodeID;
+		}
+	}
+	return best_id_found;
+}
+
 int Graph::addNode(const amee::Pose& p, int type){
 
 	NodeMsg * nMsg_p = new NodeMsg();
