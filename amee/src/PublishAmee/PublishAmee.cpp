@@ -1,9 +1,6 @@
 #include "PublishAmee.h"
-<<<<<<< HEAD
 #include "amee/StrategyCommand.h"
-=======
 #include "../Mapper/Mapper.h"
->>>>>>> hanif
 
 using namespace amee;
 using namespace roboard_drivers;

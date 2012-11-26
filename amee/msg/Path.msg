@@ -1,1 +1,1 @@
-uint[] nodeIDs
+uint32[] nodeIDs
