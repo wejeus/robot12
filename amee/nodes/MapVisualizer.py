@@ -2,7 +2,7 @@
 
 import roslib; roslib.load_manifest('amee')
 import rospy, math, operator, sys
-from amee.msg import MapVisualization, WallVisualization, NodeMsg, GraphMsg, Pose
+from amee.msg import MapVisualization, WallVisualization, NodeMsg, GraphMsg, Pose, Path
 #import and init pygame
 import pygame
 pygame.init() 
@@ -20,6 +20,7 @@ pygame.display.flip()
 #draw it to the screen
 nodes = []
 pose = (0,0,0)
+path = []
 
 def refresh(msg):
   window.fill((0, 0, 0))
@@ -54,7 +55,30 @@ def refresh(msg):
         pygame.draw.line(window,(100,0,0),start,end) 
     drawNode(x, y, theta)
 
-  pygame.display.flip() 
+
+
+  for idx in range(0, len(path)-1):#iterate from first to next to last nodeID in the path
+    curNodeID = path[idx]
+    nextNodeID = path[idx+1]
+
+    (x, y, theta, nodeID, edges) = nodes[curNodeID]
+    
+    start = transform(x, y)
+    end = transform(nodes[nextNodeID][0], nodes[nextNodeID][1])
+
+    pygame.draw.line(window, (0,200,0), start, end)
+    #drawNode(x, y, theta)
+
+  if len(path) > 1: # add an edge from the last to first
+    (x, y, theta, nodeID, edges) = nodes[path[len(path)-1]]
+    start = transform(x, y)
+    end = transform(nodes[path[0]][0], nodes[path[0]][1])
+
+    pygame.draw.line(window, (0,100,0), start, end)
+    #drawNode(x, y, theta)
+
+
+  pygame.display.flip()
 
 def findScaleAndOffset(msg):
   global scale
@@ -113,6 +137,10 @@ def onNodeMsgUpdate(msg):
     node = (nodeMsg.pose.x, nodeMsg.pose.y, nodeMsg.pose.theta, nodeMsg.nodeID, edges)
     nodes.append(node)
 
+def onPathUpdate(msg):
+  global path
+  path = msg.path
+
 def drawExplorationGrid(grid):
   startPos = (grid.originX, grid.originY)
   cellSizeX = scale[0] * grid.cellSize - 2
@@ -142,6 +170,7 @@ if __name__ == '__main__':
         rospy.Subscriber("/amee/map/visualization", MapVisualization, refresh)
         rospy.Subscriber("/amee/map/graph", GraphMsg, onNodeMsgUpdate)
         rospy.Subscriber("/amee/pose", Pose, poseMsg)
+        rospy.Subscriber("/amee/graph/path", Path, onPathUpdate)
 
         rospy.loginfo("Displaying map...")
 

@@ -1,5 +1,9 @@
 #include "PublishAmee.h"
+<<<<<<< HEAD
 #include "amee/StrategyCommand.h"
+=======
+#include "../Mapper/Mapper.h"
+>>>>>>> hanif
 
 using namespace amee;
 using namespace roboard_drivers;
@@ -116,6 +120,16 @@ int main(int argc, char **argv){
             sc.nodeId = atoi(argv[2]);
             wait(pub);
             pub.publish(sc);
+		}else if(strcmp(argv[1], "edges") == 0){
+			pub = nodeHandle.advertise<MapperCommand>("/amee/map/mapper_commands", 1);
+			MapperCommand m; m.type = 2;
+			wait(pub);
+			pub.publish(m);
+		}else if(strcmp(argv[1], "localize") == 0){
+			pub = nodeHandle.advertise<MapperCommand>("/amee/map/mapper_commands", 1);
+			MapperCommand m; m.type = 3;
+			wait(pub);
+			pub.publish(m);
 		}
 		// else if(strcmp(argv[1], "strat_goto") == 0){
 		// 	pub = nodeHandle.advertise<>("/StrategyControl/StrategyCommand", 1);
