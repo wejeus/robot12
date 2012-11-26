@@ -11,19 +11,20 @@
 #include "MoveAlignToFrontWall.h"
 #include "MoveCoordinate.h"
 #include "amee/FollowWallStates.h"
+#include "amee/MovementEvent.h"
 #include <std_msgs/Int32.h>
 
 using namespace amee;
 
 
-MovementControl::MovementControl(ros::Publisher& pub, ros::Publisher& statesPub) {
+MovementControl::MovementControl(ros::Publisher& pub, ros::Publisher& statesPub, ros::Publisher& movement_event_pub) {
 	mRotationState = new MoveRotate(pub);
 	mStraightState = new MoveStraight(pub);
 	mStopState = new MoveStop(pub);
 	mFollowWallState = new MoveFollowWall(pub, statesPub);
 	mAlignWallState = new MoveAlignWall(pub);
 	mAlignToFrontWallState = new MoveAlignToFrontWall(pub);
-	mCoordinateState = new MoveCoordinate(pub);
+	mCoordinateState = new MoveCoordinate(pub, movement_event_pub);
 	mCurrentState = mStopState;
 }
 
@@ -132,9 +133,10 @@ int main(int argc, char **argv)
 	ros::Publisher vel_pub = n.advertise<Velocity>("/amee/motor_control/set_wheel_velocities", 100);
 	ros::Publisher wall_pub = n.advertise<FollowWallStates>("/amee/follow_wall_states", 100);
 	ros::Publisher sonar_interval_pub = n.advertise<std_msgs::Int32>("roboard/sonar_interval", 100);
+	ros::Publisher movement_event_pub = n.advertise<MovementEvent>("/amee/movement_events", 100);
 
 	// create the controller and initialize it
-	MovementControl control(vel_pub, wall_pub);
+	MovementControl control(vel_pub, wall_pub, movement_event_pub);
 	
 
 	ros::Subscriber dist_sub;

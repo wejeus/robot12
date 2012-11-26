@@ -11,7 +11,7 @@ namespace amee{
 	class MoveCoordinate : public MovementState{
 
 	public:
-		MoveCoordinate(ros::Publisher &pub);
+		MoveCoordinate(ros::Publisher &pub, ros::Publisher& movement_event_pub);
 		~MoveCoordinate();
 
 		virtual void init(const SensorData &data);
@@ -28,6 +28,7 @@ namespace amee{
 		float mDistance; // the destination position
 
 		ros::Publisher mPub;
+		ros::Publisher mMovementEventPub;
 
 		amee::SensorData mSensorData;
 
