@@ -30,8 +30,11 @@ namespace amee{
 
 	private:
 		bool mRunning;
+
+		
+		
 		// bool mRestartFollowingWall;
-		bool mFollowingWall;
+		// bool mFollowingWall;
 		ros::Publisher mCommandPub;
 		ros::Publisher mPhaseInfo;
 		ros::Publisher mPathPub;
@@ -41,7 +44,7 @@ namespace amee{
 
 		StrategyData mStrategyData;
 
-		void moveToNextWaypoint();
+		void moveToNextWaypoint(bool fromMoveCoordinate);
 		void stop();
 		inline float EuclidDist(const Pose& p, const float& x, const float& y) const;
 

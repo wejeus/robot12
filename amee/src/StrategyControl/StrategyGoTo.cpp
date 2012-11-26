@@ -71,7 +71,6 @@ StrategyGoTo::~StrategyGoTo() {
 void StrategyGoTo::init(const amee::Pose &pose, const amee::GraphMsg::ConstPtr& graphMsg, const unsigned int& id) {
 	std::cout << "StrategyGoTo init, move to node " << id << std::endl;
 	mGraph = graphMsg;
-	mFollowingWall = false;
 
 	int currentNodeId = mGraph.getIDFromPose(pose.x, pose.y, pose.theta);
 
@@ -98,7 +97,7 @@ void StrategyGoTo::init(const amee::Pose &pose, const amee::GraphMsg::ConstPtr& 
 		std::cout << i << ": " << (*it).pose.x << " " << (*it).pose.y << " id: " << (*it).nodeID << std::endl;
 	}
 
-	moveToNextWaypoint();
+	moveToNextWaypoint(true);
 
 	mRunning = true;
 
@@ -152,7 +151,7 @@ bool StrategyGoTo::isRunning() const {
 
 // }
 
-void StrategyGoTo::moveToNextWaypoint() {
+void StrategyGoTo::moveToNextWaypoint(bool fromMoveCoordinate) {
 	//if there are still nodes in our path
 	if(mPath.empty()){
 	 	std::cout << "we have reached our final destination." << std::endl;
@@ -175,12 +174,14 @@ void StrategyGoTo::moveToNextWaypoint() {
 
 			mc.type = 4; // moveFollowWall
 			std::cout << "Do MoveFollowWall to get to next waypoint" << std::endl;
-			if (!mFollowingWall) {
+
+			if (fromMoveCoordinate) {
+
 				mCommandPub.publish(mc);		
 			}
-			mFollowingWall = true;
+			// mFollowingWall = true;
 		} else {
-			mFollowingWall = false;
+			// mFollowingWall = false;
 			mc.type = 3; 
 			mc.x = waypoint.pose.x - mPose.x; 
 			mc.y = waypoint.pose.y - mPose.y; //moveCoordinate 
@@ -216,7 +217,7 @@ void StrategyGoTo::receive_graph(const amee::GraphMsg::ConstPtr &msg){}
 void StrategyGoTo::receive_mapper_event(const amee::MapperEvent::ConstPtr &msg){
 	if (msg->type == Mapper::NodeReached) {
 		std::cout << "Node reached" << std::endl;
-		moveToNextWaypoint();
+		moveToNextWaypoint(false);
 	} else if (msg->type == Mapper::UnknownNode) {
 		std::cout << "HELP!!! UnknownNode" << std::endl;
 	}
@@ -227,7 +228,7 @@ void StrategyGoTo::receive_movement_event(const amee::MovementEvent::ConstPtr &m
 		std::cout << "HELP!!! Obstacle detected!!!" << std::endl;
 	} else if (msg->type == MovementControl::MOVEMENT_EVENT_TYPE_DONE_MOVING_COORDINATE) {
 		std::cout << "Movement completed" << std::endl;
-		moveToNextWaypoint();
+		moveToNextWaypoint(true);
 	}
 }
 
