@@ -1,4 +1,5 @@
 #include "PublishAmee.h"
+#include "amee/StrategyCommand.h"
 
 using namespace amee;
 using namespace roboard_drivers;
@@ -104,6 +105,17 @@ int main(int argc, char **argv){
 			Motor m; m.right = 0.0f; m.left = 0.0f;
 			wait(pub);
 			pub.publish(m);
+		}else if(strcmp(argv[1], "goto") == 0){
+			if (argc < 3) {
+				ROS_INFO("Need a node id to go to");
+				return 0;
+			}
+            pub = nodeHandle.advertise<StrategyCommand>("/StrategyControl/StrategyCommand", 1);
+            StrategyCommand sc;
+            sc.type = 4;
+            sc.nodeId = atoi(argv[2]);
+            wait(pub);
+            pub.publish(sc);
 		}
 		// else if(strcmp(argv[1], "strat_goto") == 0){
 		// 	pub = nodeHandle.advertise<>("/StrategyControl/StrategyCommand", 1);

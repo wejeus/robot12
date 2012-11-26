@@ -15,8 +15,7 @@ Mapper::Mapper() {
 	mMappingState = PauseMapping;
 	mNodeId = 0;
 	mLastNodeId = -1;
-	mExploringGrid = new ExploringGrid(40,0.10f);
-	mInPhase1 = true;
+	mExploringGrid = new ExploringGrid(60,0.10f);
 }
 
 Mapper::~Mapper() {
@@ -91,12 +90,10 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 			mRotating = false;
 			break;
 		case amee::MoveFollowWall::ALIGN_TO_WALL_OUT:
-		
 			init(); //  only does sth if not initialized
 			if (mMappingState == PauseMapping) {
 				mMappingState = Mapping;
 			}
-			
 			type = amee::Graph::NODE_NEXT_TO_WALL;
 			handleNodeEvent(type, msg->timestamp);
 			mRotating = false;
@@ -107,14 +104,14 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 		case amee::MoveFollowWall::ROTATE_LEFT_IN:
 			type = amee::Graph::NODE_ROTATE_LEFT;
 			mRotating = true;
-			if (mMappingState == PauseMapping || mMappingState == Mapping) {
+			if (mMappingState == PauseMapping) {
 				mMappingState = Mapping;
 			}	
 			if (mInitialized) handleNodeEvent(type, msg->timestamp);
 			break;
 		case amee::MoveFollowWall::ROTATE_RIGHT_IN:
 			mRotating = true;
-			if (mMappingState == PauseMapping || mMappingState == Mapping) {
+			if (mMappingState == PauseMapping) {
 				mMappingState = Mapping;
 			}
 			type = amee::Graph::NODE_ROTATE_RIGHT;
@@ -127,14 +124,14 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 		// case amee::MoveFollowWall::MOVE_TAIL_IN:
 		// case amee::MoveFollowWall::LOOK_FOR_BEGINNING_OF_WALL_IN:
 			mRotating = false;
-			if (mMappingState == PauseMapping || mMappingState == Mapping) {
+			if (mMappingState == PauseMapping) {
 				mMappingState = Mapping;
 			}
 			break;
 		default:
-		if (mMappingState == PauseMapping || mMappingState == Mapping) {
-			mMappingState = PauseMapping;
-		}
+			if (mMappingState == Mapping) {
+				mMappingState = PauseMapping;
+			}
 	}
 }
 
@@ -142,9 +139,10 @@ void Mapper::handleNodeEvent(int type, double timestamp) {
 	int existingNodeId = mGraph.getClosestOfType(type, mPose); //check if node already exists
 	bool nodeRevisited = false;
 	MapperEvent event;
-	if (existingNodeId != -1) { 
+	
+	if (existingNodeId != -1) { // we found a close node
 		NodeMsg* node = mGraph.getNode(existingNodeId);
-		float dist = sqrt((mPose.x - node->pose.x)*(mPose.x - node->pose.x) + (mPose.y - node->pose.y) * (mPose.y - node->pose.y));
+		float dist = euclDist(mPose, node->pose);
 		nodeRevisited = (dist <= Graph::MAX_DISTANCE_TO_NODE) && sameTheta(mPose.theta, node->pose.theta);
 		mNodeId = existingNodeId;
 
@@ -158,21 +156,24 @@ void Mapper::handleNodeEvent(int type, double timestamp) {
 		}
 	}
 	
-	if (!nodeRevisited && (mMappingState == PauseMapping || mMappingState == Mapping)) {	
-		mNodeId = mGraph.addNode(mPose, type);
-		if (mLastNodeId != -1) {
-			mGraph.addEdges(mNodeId, mLastNodeId);
-		} 
-		mLastNodeId = mNodeId;
-		mNewNodes.push_back(mNodeId);
+	if (!nodeRevisited) {
+		if (mMappingState == PauseMapping || mMappingState == Mapping) {	
+			mNodeId = mGraph.addNode(mPose, type);
+			
+			if (mLastNodeId != -1) {
+				mGraph.addEdges(mNodeId, mLastNodeId);
+			} 
+			mLastNodeId = mNodeId;
+			mNewNodes.push_back(mNodeId);
 
-		event.type = NewNode;
+			event.type = NewNode;
 	
-	} else {
-		std::cout << "UNKNOWN NODE!!!! " << std::endl;
-		event.type = UnknownNode;
-	}
-
+		} else {
+			std::cout << "UNKNOWN NODE!!!! " << std::endl;
+			event.type = UnknownNode;
+		}
+	} 
+	
 	event.nodeID = mNodeId;
 	event.pose = mPose;
 	event.nodeType = type;
@@ -194,7 +195,7 @@ void Mapper::findEdges() {
 		for (std::list<int>::const_iterator j = mNewNodes.begin(), end = mNewNodes.end(); j != end; j++) {
 			NodeMsg* endNode = mGraph.getNode(*j);
 			Map::Point end(endNode->pose);
-			if ((dist(startNode->pose, endNode->pose) <= 0.5f) && mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
+			if ((euclDist(startNode->pose, endNode->pose) <= 0.5f) && mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
 				mGraph.addEdges(*i,*j);
 			}
 		}
@@ -207,7 +208,7 @@ void Mapper::findEdges() {
 		for (std::list<int>::const_iterator j = i, end = mNewNodes.end(); j != end; j++) {
 			NodeMsg* endNode = mGraph.getNode(*j);
 			Map::Point end(endNode->pose);
-			if ((dist(startNode->pose, endNode->pose) <= 0.5f) && mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
+			if ((euclDist(startNode->pose, endNode->pose) <= 0.5f) && mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
 				mGraph.addEdges(*i,*j);
 			}
 		}
@@ -232,7 +233,7 @@ void Mapper::init() {
 		base.pos.x = 0.0f;
 		base.pos.y = 0.0f;
 		mMeasurements.resize(4,base);
-		mMappingState = PauseMapping;
+		// mMappingState = PauseMapping;
 		mVisualizeTimer = 0;
 		mCleanTimer = 0;
 
@@ -432,9 +433,6 @@ void Mapper::doMapping() {
 		checkIfNextToWall(); 
 
 		switch(mMappingState) {
-			case Pause:
-				// std::cout << "Mapper state: Pause" << std::endl;
-				break;
 			case PauseMapping:
 				localize();
 				break;
@@ -558,9 +556,6 @@ void Mapper::followedWallDirection(int& left, int& right) {
 
 void Mapper::receive_MapperCommand(const amee::MapperCommand::ConstPtr &msg) {
 	switch (msg->type) {
-		case PauseCommand:
-			mMappingState = Pause;
-			break;
 		case MapCommand:
 			mMappingState = PauseMapping;
 			break;
@@ -598,7 +593,7 @@ void Mapper::setToLocalize() {
 	mMappingState = Localizing;
 }
 
-float Mapper::dist(const amee::Pose& a, const amee::Pose& b) {
+float Mapper::euclDist(const amee::Pose& a, const amee::Pose& b) {
 	return sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
 }
 
