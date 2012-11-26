@@ -6,7 +6,7 @@
 #include "WallSegment.h"
 #include "HorizontalWallSegment.h"
 #include <string.h>
-#include "amee/NodeEvent.h"
+#include "amee/MapperEvent.h"
 
 using namespace amee;
 
@@ -42,7 +42,7 @@ void Mapper::receive_tag(const amee::Tag::ConstPtr& msg) {
 	// mTagPositions.push_back(p);
 	if (sqrt((mPose.x - mLastTagPose.x) * (mPose.x - mLastTagPose.x) + (mPose.y - mLastTagPose.y) * (mPose.y - mLastTagPose.y)) > 0.04f) {
 		int type = amee::Graph::NODE_TAG;
-		addNode(type, mPose.timestamp);
+		handleNodeEvent(type, mPose.timestamp);
 		mLastTagPose = mPose;	
 	}
 }
@@ -93,32 +93,30 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 		case amee::MoveFollowWall::ALIGN_TO_WALL_OUT:
 			if (mMappingState == PauseMapping || mMappingState == Mapping) {
 				init(); //  only does sth if not initialized
-				type = amee::Graph::NODE_NEXT_TO_WALL;
-				addNode(type, msg->timestamp);
 				mMappingState = Mapping;
 			}
+			type = amee::Graph::NODE_NEXT_TO_WALL;
+			handleNodeEvent(type, msg->timestamp);
 			mRotating = false;
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_OUT:
-			if (mMappingState == PauseMapping || mMappingState == Mapping) {
-				if(mInitialized) addNode(amee::Graph::NODE_NEXT_TO_WALL, msg->timestamp);
-			}
+			if(mInitialized) handleNodeEvent(amee::Graph::NODE_NEXT_TO_WALL, msg->timestamp);	
 			break;
 		case amee::MoveFollowWall::ROTATE_LEFT_IN:
 			type = amee::Graph::NODE_ROTATE_LEFT;
 			mRotating = true;
 			if (mMappingState == PauseMapping || mMappingState == Mapping) {
-				if (mInitialized) addNode(type, msg->timestamp);
 				mMappingState = Mapping;
 			}	
+			if (mInitialized) handleNodeEvent(type, msg->timestamp);
 			break;
 		case amee::MoveFollowWall::ROTATE_RIGHT_IN:
 			mRotating = true;
 			if (mMappingState == PauseMapping || mMappingState == Mapping) {
 				mMappingState = Mapping;
-				type = amee::Graph::NODE_ROTATE_RIGHT;
-				if (mInitialized) addNode(type, msg->timestamp);
 			}
+			type = amee::Graph::NODE_ROTATE_RIGHT;
+			if (mInitialized) handleNodeEvent(type, msg->timestamp);
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_IN:
 		case amee::MoveFollowWall::HANDLE_EVIL_WALLS_IN:
@@ -138,37 +136,46 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 	}
 }
 
-void Mapper::addNode(int type, double timestamp) {
-	int existingNodeId = mGraph.getClosestOfType(type, mPose);
+void Mapper::handleNodeEvent(int type, double timestamp) {
+	int existingNodeId = mGraph.getClosestOfType(type, mPose); //check if node already exists
 	bool nodeRevisited = false;
-	if (existingNodeId != -1) {
+	MapperEvent event;
+	if (existingNodeId != -1) { 
 		NodeMsg* node = mGraph.getNode(existingNodeId);
 		float dist = sqrt((mPose.x - node->pose.x)*(mPose.x - node->pose.x) + (mPose.y - node->pose.y) * (mPose.y - node->pose.y));
 		nodeRevisited = (dist <= Graph::MAX_DISTANCE_TO_NODE) && sameTheta(mPose.theta, node->pose.theta);
 		mNodeId = existingNodeId;
 
 		// TODO: We could adapt our Pose here, but not sure if it is a good idea or not
-
-		if (mLastNodeId != -1) {
-			mGraph.addEdges(mNodeId, mLastNodeId);
+		if (nodeRevisited) {
+			if ((mLastNodeId != -1) && (mMappingState == PauseMapping || mMappingState == Mapping)) {
+				mGraph.addEdges(mNodeId, mLastNodeId);
+			}
+			mLastNodeId = mNodeId;
+			event.type = NodeReached;
 		}
-		mLastNodeId = mNodeId;
 	}
 	
-	if (!nodeRevisited) {	
+	if (!nodeRevisited && (mMappingState == PauseMapping || mMappingState == Mapping)) {	
 		mNodeId = mGraph.addNode(mPose, type);
 		if (mLastNodeId != -1) {
 			mGraph.addEdges(mNodeId, mLastNodeId);
 		} 
 		mLastNodeId = mNodeId;
-		mNewNodes.push_back(mNodeId);	
+		mNewNodes.push_back(mNodeId);
+
+		event.type = NewNode;
+	
+	} else {
+		std::cout << "UNKNOWN NODE!!!! " << std::endl;
+		event.type = UnknownNode;
 	}
 
-	NodeEvent event;
-	event.timestamp = timestamp;
 	event.nodeID = mNodeId;
-	event.newNode = !nodeRevisited;
-	event.type = type;
+	event.pose = mPose;
+	event.nodeType = type;
+	event.timestamp = timestamp;
+
 
 	node_pub.publish(event);
 }
@@ -185,7 +192,7 @@ void Mapper::findEdges() {
 		for (std::list<int>::const_iterator j = mNewNodes.begin(), end = mNewNodes.end(); j != end; j++) {
 			NodeMsg* endNode = mGraph.getNode(*j);
 			Map::Point end(endNode->pose);
-			if (mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
+			if ((dist(startNode->pose, endNode->pose) <= 0.5f) && mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
 				mGraph.addEdges(*i,*j);
 			}
 		}
@@ -198,7 +205,7 @@ void Mapper::findEdges() {
 		for (std::list<int>::const_iterator j = i, end = mNewNodes.end(); j != end; j++) {
 			NodeMsg* endNode = mGraph.getNode(*j);
 			Map::Point end(endNode->pose);
-			if (mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
+			if ((dist(startNode->pose, endNode->pose) <= 0.5f) && mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
 				mGraph.addEdges(*i,*j);
 			}
 		}
@@ -226,6 +233,13 @@ void Mapper::init() {
 		mMappingState = PauseMapping;
 		mVisualizeTimer = 0;
 		mCleanTimer = 0;
+
+		MapperEvent event;
+		event.type = Inititialized;
+		event.timestamp = mPose.timestamp;
+		event.pose = mPose;
+
+		node_pub.publish(event);
 
 
 		/******* KALMAN: initialize here *********/
@@ -585,6 +599,9 @@ void Mapper::setToLocalize() {
 	mMappingState = Localizing;
 }
 
+float Mapper::dist(const amee::Pose& a, const amee::Pose& b) {
+	return sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+}
 
 void mapTest(ros::Publisher& vispub) {
 	Map map;
@@ -677,7 +694,7 @@ int main(int argc, char **argv)
 	ros::Publisher pose_pub = n.advertise<amee::Pose>("/amee/pose",5);
   	ros::Publisher marker_pub = n.advertise<amee::MapVisualization>("/amee/map/visualization", 10);
   	ros::Publisher graph_pub = n.advertise<amee::GraphMsg>("/amee/map/graph",10);
-  	ros::Publisher node_pub = n.advertise<amee::NodeEvent>("/amee/map/node_events",10);
+  	ros::Publisher node_pub = n.advertise<amee::MapperEvent>("/amee/map/mapper_events",10);
 
     mapper.setVisualizationPublisher(marker_pub);
     mapper.setGraphPublisher(graph_pub);

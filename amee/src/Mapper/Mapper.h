@@ -38,6 +38,7 @@ class Mapper {
 		void setToLocalize();
 
 		enum MappingState {Pause, PauseMapping, Mapping, Localizing};
+		enum MapperEvents {Inititialized, NodeReached, NewNode, UnknownNode};
 
 		static const float IR_BASE_RIGHT = 0.104;
 		static const float ROBOT_RADIUS = 0.12f;
@@ -100,9 +101,10 @@ class Mapper {
 		void followedWallDirection(int& left, int& right);
 		void mapping();
 		void localize();
-		void addNode(int type, double timestamp);
+		void handleNodeEvent(int type, double timestamp);
 		void checkIfNextToWall();
 		bool sameTheta(float t1, float t2);
+		float dist(const amee::Pose& a, const amee::Pose& b);
 	};
 }
 #endif

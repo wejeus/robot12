@@ -32,8 +32,8 @@ using namespace amee;
 			leftFront.first = leftFront.first - dirToAxis.first;
 			leftFront.second = leftFront.second - dirToAxis.second;
 		} else if (!mset.leftBack.valid) { // else we can at least add one cell on the left side to the explored ones
-			leftFront.first = leftFront.first + dirToAxis.first;
-			leftFront.second = leftFront.second + dirToAxis.second;
+			// leftFront.first = leftFront.first + dirToAxis.first;
+			// leftFront.second = leftFront.second + dirToAxis.second;
 		}
 		// std::cout << "leftFront " << mset.leftFront.sensorPos.x << " " << mset.leftFront.sensorPos.y << " leftBack " << mset.leftBack.sensorPos.x << " " << mset.leftBack.sensorPos.y << std::endl;
 		// std::cout << "rightFront " << mset.rightFront.sensorPos.x << " " << mset.rightFront.sensorPos.y << " rightBack " << mset.rightBack.sensorPos.x << " " << mset.rightBack.sensorPos.y << std::endl;
@@ -43,8 +43,8 @@ using namespace amee;
 			leftBack.first = leftBack.first - dirToAxis.first;
 			leftBack.second = leftBack.second - dirToAxis.second;
 		} else if (!mset.leftFront.valid) { // else we can at least add one cell on the left side to the explored ones
-			leftBack.first = leftBack.first + dirToAxis.first;
-			leftBack.second = leftBack.second + dirToAxis.second;
+			// leftBack.first = leftBack.first + dirToAxis.first;
+			// leftBack.second = leftBack.second + dirToAxis.second;
 		}
 
 
