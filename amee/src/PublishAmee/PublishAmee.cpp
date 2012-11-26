@@ -1,4 +1,5 @@
 #include "PublishAmee.h"
+#include "../Mapper/Mapper.h"
 
 using namespace amee;
 using namespace roboard_drivers;
@@ -102,6 +103,16 @@ int main(int argc, char **argv){
         }else if(strcmp(argv[1], "reset") == 0){
 			pub = nodeHandle.advertise<Motor>("/serial/motor_speed", 1);
 			Motor m; m.right = 0.0f; m.left = 0.0f;
+			wait(pub);
+			pub.publish(m);
+		}else if(strcmp(argv[1], "edges") == 0){
+			pub = nodeHandle.advertise<MapperCommand>("/amee/map/mapper_commands", 1);
+			MapperCommand m; m.type = 2;
+			wait(pub);
+			pub.publish(m);
+		}else if(strcmp(argv[1], "stopmap") == 0){
+			pub = nodeHandle.advertise<MapperCommand>("/amee/map/mapper_commands", 1);
+			MapperCommand m; m.type = 3;
 			wait(pub);
 			pub.publish(m);
 		}

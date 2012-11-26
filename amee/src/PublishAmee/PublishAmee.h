@@ -9,6 +9,7 @@
 #include "amee/MovementCommand.h"
 #include "amee/Velocity.h"
 #include "amee/Odometry.h"
+#include "amee/MapperCommand.h"
 #include <stdio.h>
 #include <termios.h>
 #include <unistd.h>
