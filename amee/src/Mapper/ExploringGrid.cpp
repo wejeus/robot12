@@ -2,6 +2,7 @@
 #include "amee/ExploringGridColumn.h"
 #include <cmath>
 
+
 using namespace amee;
 
 	ExploringGrid::ExploringGrid(int numCells, float cellSize) : mCellSize(cellSize), mNumCells(numCells), mOffset(mNumCells * mCellSize / 2.0f) {
@@ -132,7 +133,7 @@ using namespace amee;
 		return p;
 	}
 
-	bool ExploringGrid::getNextUnexploredPose(Map &map, const Pose& start_pose, Pose& out_pose) {
+	bool ExploringGrid::getNextUnexploredPose(Map &map, Graph& graph, Pose& out_pose, unsigned int& id) {
 		std::cout << "ExploringGrid looking for a new unexplored position..." << std::endl;
 		std::vector<Blob> blobs;
 		int blobIdx = findBlobs(blobs);
@@ -144,17 +145,26 @@ using namespace amee;
 
 		//TODO: look for the closest pose in the blob and go there
 		//out_pose = the newly founded pose
-		Map::Point start(start_pose);
+		
 		std::vector< std::vector<int> > &b = blobs[blobIdx].region;
 		uint size = b.size();
+
 		for(uint x=0; x<size; ++x){
 			for(uint y=0; y<size; ++y){
-				Map::Point end = getPoint(x, y);
-				if(euclidDist(start.x, start.y, end.x, end.y) < 0.5f && map.isPathCollisionFree(start, end, 0.02f, 0.12f)) {
-					out_pose.x = end.x;
-					out_pose.y = end.y;
-					return true;
+				if (!(b[x][y] & BLOB_GLOBAL_POS_VISITED)) {
+					Map::Point end = getPoint(x,y);
+					std::vector<NodeMsg*> nodes = graph.getNodes();
+					for (unsigned int i = 0; i < nodes.size(); ++i) {
+						Map::Point start(nodes[i]->pose);
+						if(euclidDist(start.x, start.y, end.x, end.y) < 0.5f && map.isPathCollisionFree(start, end, 0.02f, 0.12f)) {
+						out_pose.x = end.x;
+						out_pose.y = end.y;
+						id = nodes[i]->nodeID;
+						return true;
+					}	
+					}
 				}
+				
 			}
 		}
 
@@ -178,18 +188,27 @@ using namespace amee;
 		}
 
 		uint largest = 0;
+		uint sndLargest = 0;
 		int largestBlobIdx = -1;
+		int sndLargestIdx = -1;
 		for(uint i=0; i<blobs.size(); ++i){
-			if(blobs[i].size > largest){
-				largest = blobs[i].size;
-				largestBlobIdx = i;
+			if(blobs[i].size > sndLargest){
+				if (blobs[i].size > largest) {
+					sndLargest = largest;
+					sndLargestIdx = largestBlobIdx;
+					largest = blobs[i].size;
+					largestBlobIdx = i;
+				} else {
+					sndLargest = blobs[i].size;
+					sndLargestIdx = i;
+				}
 			}
 		}
 
-		if(largestBlobIdx != -1)
-			std::cout << "Found " << blobs.size() << " blobs, with the largest being: " << largest << std::endl;
+		if(sndLargestIdx != -1)
+			std::cout << "Found " << blobs.size() << " blobs, with the snd largest being: " << sndLargest << std::endl;
 
-		return largestBlobIdx;
+		return sndLargestIdx;
 	}
 
 	void ExploringGrid::blobExtender(Blob& b, int r, int c) const {

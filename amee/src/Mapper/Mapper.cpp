@@ -15,7 +15,7 @@ Mapper::Mapper() {
 	mMappingState = PauseMapping;
 	mNodeId = 0;
 	mLastNodeId = -1;
-	mExploringGrid = new ExploringGrid(60,0.10f);
+	mExploringGrid = new ExploringGrid(110,0.10f);
 }
 
 Mapper::~Mapper() {
@@ -565,8 +565,18 @@ void Mapper::receive_MapperCommand(const amee::MapperCommand::ConstPtr &msg) {
 		case LocalizeCommand:
 			mMappingState = Localizing;
 			break;
-		case FindEdgesToUnexploredCommand:
-			//TODO
+		case FindEdgesToUnexploredCommand: {
+			Pose unexploredPose;
+			unsigned int id;
+			bool foundPosition = mExploringGrid->getNextUnexploredPose(mMap, mGraph, unexploredPose, id);
+			if (foundPosition) {
+				MapperEvent me;
+				me.type = UnexploredCell;
+				me.nodeID = id;
+				me.pose = unexploredPose;
+				node_pub.publish(me);
+			}
+			}
 			break;
 		default:
 			std::cout << "Unknown mapper command received." << std::endl;

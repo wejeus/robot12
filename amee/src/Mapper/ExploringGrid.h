@@ -52,7 +52,7 @@ class ExploringGrid {
 		ExploringGrid(int numCells, float cellSize);
 		void discover(const Map::MeasurementSet& mset, float theta);
 		void addUnexploredNodes(Graph& graph);
-		bool getNextUnexploredPose(Map& map, const Pose& start_pose, Pose& out_pose);
+		bool getNextUnexploredPose(Map& map, Graph& graph, Pose& out_pose, unsigned int& id);
 		ExploringGridVis& getVisualization();
 
 	private:

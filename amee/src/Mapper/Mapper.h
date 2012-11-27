@@ -38,7 +38,7 @@ class Mapper {
 		void setToLocalize();
 
 		enum MappingState {PauseMapping, Mapping, Localizing};
-		enum MapperEvents {Inititialized, NodeReached, NewNode, UnknownNode};
+		enum MapperEvents {Inititialized, NodeReached, NewNode, UnknownNode, UnexploredCell};
 
 		static const float IR_BASE_RIGHT = 0.104;
 		static const float ROBOT_RADIUS = 0.12f;
