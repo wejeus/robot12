@@ -15,7 +15,7 @@ Mapper::Mapper() {
 	mMappingState = PauseMapping;
 	mNodeId = 0;
 	mLastNodeId = -1;
-	mExploringGrid = new ExploringGrid(60,0.10f);
+	// mExploringGrid = new ExploringGrid(60,0.10f);
 }
 
 Mapper::~Mapper() {
@@ -407,7 +407,7 @@ void Mapper::visualize() {
 			//mVis.tags.push_back(p);
 		}
 
-		mVis.gridVis = mExploringGrid->getVisualization();
+		// mVis.gridVis = mExploringGrid->getVisualization();
 
 		vis_pub.publish(mVis);
 
@@ -479,7 +479,7 @@ void Mapper::mapping() {
 		mset.leftFront = mMeasurements[LEFT_FRONT];
 		mset.rightBack = mMeasurements[RIGHT_BACK];
 		mset.rightFront = mMeasurements[RIGHT_FRONT];
-		mExploringGrid->discover(mset, mPose.theta);
+		// mExploringGrid->discover(mset, mPose.theta);
 	}
 
 	int leftType = 0;
