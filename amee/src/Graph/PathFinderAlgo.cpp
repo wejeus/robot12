@@ -170,7 +170,7 @@ bool PathFinderAlgo::Dijkstra(Graph& g, const int& source,  const int endId, flo
 		
 		v = &(g.getNode(curID)->edges);
 		for(it = v->begin(); it != v->end(); ++it){
-			float penalty = ((*it) - curID != 1) ? NODE_DISTANCE_PENALTY : 0.0f;
+			float penalty = (((*it) < curID) || ((*it) - curID != 1)) ? NODE_DISTANCE_PENALTY : 0.0f;
 			float alt = pathD[curID] + EuclidDist(g.getNode(curID)->pose, g.getNode(*it)->pose) + penalty;
 
 			if(alt < pathD[(*it)]){

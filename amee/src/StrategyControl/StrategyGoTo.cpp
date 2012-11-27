@@ -215,7 +215,7 @@ void StrategyGoTo::moveToNextWaypoint() {
 					mCommandPub.publish(mc);
 				} else {
 		 			NodeMsg waypoint = mPath.front();
-					if (waypoint.nodeID - reachedWaypoint.nodeID != 1) { // if we can not follow a wall to get to the next waypoint
+					if ((reachedWaypoint.nodeID > waypoint.nodeID) || (waypoint.nodeID - reachedWaypoint.nodeID != 1)) { // if we can not follow a wall to get to the next waypoint
 						std::cout << "continue move coordinate" << std::endl;
 						startMoveCoordinate(waypoint.pose);
 					} else {
