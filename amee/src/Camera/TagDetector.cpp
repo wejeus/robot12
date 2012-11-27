@@ -13,6 +13,7 @@
 #include <sys/time.h>
 #include <sstream>
 #include <string>
+#include "CameraHack.h"
 
 #define ROS
 
@@ -29,8 +30,14 @@ using namespace amee;
 using namespace std;
 using namespace cv;
 
-enum TAG_CLASS {FAILURE, UNKNOWN, APPLE, BANANA, BOOK, CAMERA, DRYER, GLASS, GLASSES, HAMMER, LAPTOP, MUG, SCISSORS, TEDDY};
+enum TAG_CLASS {NOTHING, FAILURE, UNKNOWN, APPLE, BANANA, BOOK, CAMERA, DRYER, GLASS, GLASSES, HAMMER, LAPTOP, MUG, SCISSORS, TEDDY};
 enum COLOR {UNKNOWN_COLOR, BLACK, GREEN, BLUE, MAGENTA};
+
+struct TagInfo {
+    TAG_CLASS type;
+    COLOR color;
+    ros::Time timestamp;
+};
 
 struct PixelSum {
     COLOR color;
@@ -66,12 +73,12 @@ int CANNY_HIGH = 92;
 int GAUSSIAN_KERNEL_SIZE = 7;
 int GAUSSIAN_SIGMA = 1.5;
 double TAG_MIN_PIXEL_AREA = 1500.0;
-int TAG_SIZE = 200;
-int NEEDED_PIXELS_RED_BORDER = 400;
-int NEEDED_PIXELS_RED_THRESHOLD = 400;
+int TAG_SIZE = 50;
+int NEEDED_PIXELS_RED_BORDER = 100;
+int NEEDED_PIXELS_RED_THRESHOLD = 200;
 char TAG_FILES[] = "tags/files.txt";
 
-void render(Mat &frame);
+void render(Mat &frame, ros::Time timestamp);
 void show(const string& winname, InputArray mat);
 void log(string fmt, ...);
 string class2name(TAG_CLASS object);
@@ -79,9 +86,10 @@ TAG_CLASS name2class(string name);
 string color2string(COLOR object);
 void drawText(Mat &image, string text);
 void initROS(int argc, char *argv[]);
-void publishMovement(int state);
+void publishMap(ros::Time timestamp, int object, int color);
 void stream(string source);
 bool captureSingleFrame(Mat &frame);
+
 
 /* For classification */
 int filterRedPixels(Mat &srcImage, Mat &destImage);
@@ -94,9 +102,13 @@ TAG_CLASS classifyTagUsingTemplate(Mat &ROI);
 bool isReadyForNextTag();
 void setNextTagTimout();
 
+
+void analyse(ros::Time ts);
+
+
 /* Globals */
 double lastTagTimeout;
-// VideoCapture capture;
+deque<TagInfo> tagHistory;
 int CAMERA_ID = -1;
 bool CAPTURE_HIGHRES_IMAGE = false;
 vector<TagTemplate> sourceTemplates;
@@ -115,6 +127,7 @@ void onTrackbar(int value, void* = NULL) {
 }
 
 // TODO: Unknown color on -> b1, b2, g2, g3, m2, s2
+// export LD_PRELOAD=/usr/lib/libv4l/v4l1compat.so
 int main(int argc, char *argv[]) {
 
     int c;
@@ -197,58 +210,97 @@ void imout(Mat &frame, string type) {
     id++;
 }
 
+double getTime() {
+    struct timeval timestamp;
+    gettimeofday(&timestamp, NULL);
+    return timestamp.tv_sec+double(timestamp.tv_usec)/1000000.0;
+}
+
+
 // TODO: Goal -> Classification block should not run so often...
-void render(Mat &frame) {
+void render(Mat &frame, ros::Time timestamp) {
 
     Mat thresholdedImage, ROI;
-    TAG_CLASS res;
+    TagInfo tag;
+    tag.type = NOTHING;
+    tag.color = UNKNOWN_COLOR;
+    tag.timestamp = timestamp;
+        
+    int redPixelsInImage = filterRedPixels(frame, thresholdedImage);
 
-    if ( (filterRedPixels(frame, thresholdedImage) > NEEDED_PIXELS_RED_THRESHOLD) && isReadyForNextTag()) {
+    if (redPixelsInImage > NEEDED_PIXELS_RED_THRESHOLD && isReadyForNextTag()) {
 
         CLASSIFICATION_IN_PROGRESS = true;
-        // log("Found some object, classification in progress...\n");
-
-        publishMovement(5); // Stop motors
-        // sleep(1);
-
-        if ( ! SOURCE_IS_SINGLE_IMAGE) {
-            CAPTURE_HIGHRES_IMAGE = true;
-            captureSingleFrame(frame);
-            CAPTURE_HIGHRES_IMAGE = false;
-        }
 
         if (findTagROI(frame, thresholdedImage, ROI)) {
 
             if (!prepareROI(ROI, ROI)) {
-                imout(frame, "noPrepare_");
+                // imout(frame, "noPrepare_");
                 log("Could not prepare ROI!\n");
             }
 
-            // TODO: test if ROI is "good enough" to make a classification (is in center, sharp?)
-            // TODO: move robot so that tag is in center (1. determine distance from tag center to image normal 2. move(distance))
-            
-            if (USE_TEMPLATES) res = classifyTagUsingTemplate(ROI);
-
-            log("Color: %s, ", color2string(determineTagColor(ROI)).c_str());
-            log("Object: %s\n", class2name(res).c_str()); 
-            setNextTagTimout();
-
-            imout(frame, "success_");
-            
+            if (USE_TEMPLATES) tag.type = classifyTagUsingTemplate(ROI);
+            tag.color = determineTagColor(ROI);      
         } else {
-            imout(frame, "noFindRect_");
-            log("Could not find (possible) tag rectangle in image\n");
+            // imout(frame, "noFindRect_");
+            // log("\nCould not find (possible) tag rectangle in image\n");
         }
                 
-        publishMovement(4); // continue wall following
+        CLASSIFICATION_IN_PROGRESS = false;  
+    }
 
-        CLASSIFICATION_IN_PROGRESS = false;           
+    if (tag.type == NOTHING || tag.type == FAILURE) {
+        log("[%d.%d] <nothing found>\n", timestamp.sec, timestamp.nsec);
+        // imout(frame, "fail_");
     } else {
-        imout(frame, "fail_");
-        log("Could not find enough red pixels in source image or timeout blocked\n");
+        log("[%d.%d] Found: %s with color: %s\n", timestamp.sec, timestamp.nsec, class2name(tag.type).c_str(), color2string(tag.color).c_str());
+        tagHistory.push_front(tag);
+        analyse(timestamp);
+        setNextTagTimout();
     }
 
     show(windowResult, frame);
+}
+
+
+void analyse(ros::Time ts) {
+    vector<int> types(15,0);
+    vector<int> colors(5,0);
+
+    for (deque<TagInfo>::iterator it = tagHistory.begin(); it < tagHistory.end(); ++it) {
+        if ((ts.sec - it->timestamp.sec) < 4) { // Filter out old measurements
+            types[(int)it->type]++;
+            colors[(int)it->color]++;
+        }
+    }
+
+    int bestType = -1;
+    int typeID;
+    for (int i = 0; i < 15; ++i) {
+        if (types[i] > bestType) {
+            bestType = types[i];
+            typeID = i;
+        }
+    }
+
+    int bestColor = -1;
+    int colorID;
+    for (int i = 0; i < 5; ++i) {
+        if (colors[i] > bestColor) {
+            bestColor = types[i];
+            colorID = i;
+        }
+    }
+
+    if (bestType >= 2) {
+        // log("Publish. Type: %d Color: %d\n", typeID, colorID);
+        // Publishes the previous ts to get more accurate estimate of position of frame
+        publishMap(tagHistory[1].timestamp, typeID, colorID); 
+    }
+
+    if (tagHistory.size() > 5) {
+        tagHistory.erase(tagHistory.begin()+2, tagHistory.end());
+    }
 }
 
 bool isReadyForNextTag() {
@@ -277,6 +329,8 @@ void setNextTagTimout() {
 
 /* Thresholds redpixels and saves resulting binary image in destImage, returns number of red pixels in image */
 int filterRedPixels(Mat &srcImage, Mat &destImage) {
+    resize(srcImage, destImage, Size(100, 100), 0, 0, INTER_LINEAR);
+
     Mat hsvImage, firstRedSection, secondRedSection;
     cvtColor(srcImage, hsvImage, CV_BGR2HSV);
     
@@ -300,7 +354,7 @@ bool findTagROI(Mat &srcImage, Mat &thresholdedImage, Mat &ROI) {
 
     // GaussianBlur(srcImage, srcImage, Size(GAUSSIAN_KERNEL_SIZE, GAUSSIAN_KERNEL_SIZE), GAUSSIAN_SIGMA, GAUSSIAN_SIGMA);
     
-    dilate(thresholdedImage, thresholdedImage, erosionElement);
+    // dilate(thresholdedImage, thresholdedImage, erosionElement);
 
     Canny(thresholdedImage, thresholdedImage, CANNY_LOW, CANNY_HIGH);
 
@@ -357,12 +411,22 @@ bool prepareROI(Mat &srcROI, Mat &destROI) {
 }
 
 // TODO: Adjust color params to better match colors.
-COLOR determineTagColor(Mat &ROI) {
-    // Mat r,g,b;
-    // vector<Mat> bgr;
-    // split(ROI, bgr);
-    // log("B %d G %d R %d\n", countNonZero(bgr[0]), countNonZero(bgr[1]), countNonZero(bgr[2]));
-    // return UNKNOWN_COLOR;
+COLOR determineTagColor(Mat &srcROI) {
+    float borderRatio = 0.3f;
+    int width = srcROI.cols;
+    int height = srcROI.rows;
+    int borderSizeX = width*borderRatio;
+    int borderSizeY = height*borderRatio;
+    Rect nonBorderROI(borderSizeX, borderSizeY, width-(2*borderSizeX), height-(2*borderSizeY));
+
+    Mat ROI;
+    // Check for correct dimensions (new ROI smaller than original)
+    if (0 <= nonBorderROI.x && 0 <= nonBorderROI.width && nonBorderROI.x + nonBorderROI.width <= srcROI.cols && 0 <= nonBorderROI.y && 0 <= nonBorderROI.height && nonBorderROI.y + nonBorderROI.height <= srcROI.rows) {
+        ROI = srcROI(nonBorderROI);
+    }
+
+    // show(windowTag, ROI);
+
     int saturationLow = 50;
     int saturationHigh = 255;
     int valueLow = 0;
@@ -370,24 +434,54 @@ COLOR determineTagColor(Mat &ROI) {
 
     Mat hsvImage, binaryImage;
     cvtColor(ROI, hsvImage, CV_BGR2HSV);
-    int numColoredPixels;
+
+    // vector<Mat> hsv;
+    // split(hsvImage, hsv);
+
+    // /// Establish the number of bins
+    // int histSize = 180;
+    // /// Set the ranges ( for B,G,R) )
+    // float range[] = { 0, 180 } ;
+    // const float* histRange = { range };
+    // bool uniform = true;
+    // bool accumulate = false;
+    // Mat b_hist;
+
+    // calcHist( &hsv[0], 1, 0, Mat(), b_hist, 1, &histSize, &histRange, uniform, accumulate );
+    // int hist_w = 512;
+    // int hist_h = 400;
+    // int bin_w = cvRound( (double) hist_w/histSize );
+
+    // Mat histImage( hist_h, hist_w, CV_8UC3, Scalar( 0,0,0) );
+    // /// Draw for each channel
+    // for( int i = 1; i < histSize; i++ ) {
+    //     line( histImage, Point( bin_w*(i-1), hist_h - cvRound(b_hist.at<float>(i-1)) ) ,
+    //                    Point( bin_w*(i), hist_h - cvRound(b_hist.at<float>(i)) ),
+    //                    Scalar( 255, 0, 0), 2, 8, 0  );
+    // }
+    // //Show histogram
+    // show(windowThresh, histImage);
+    // waitKey(10);
+
+
+
     vector<PixelSum> elems;
     PixelSum ps;
 
     // Green
-    inRange(hsvImage, Scalar(60, saturationLow, valueLow), Scalar(90, saturationHigh, valueHigh), binaryImage);
+    inRange(hsvImage, Scalar(55, saturationLow, valueLow), Scalar(90, saturationHigh, valueHigh), binaryImage);
     ps.numPixels = countNonZero(binaryImage);
     ps.color = GREEN;
     elems.push_back(ps);
 
     // Blue
-    inRange(hsvImage, Scalar(110, saturationLow, valueLow), Scalar(130, saturationHigh, valueHigh), binaryImage);
+    inRange(hsvImage, Scalar(105, saturationLow, valueLow), Scalar(135, saturationHigh, valueHigh), binaryImage);
     ps.numPixels = countNonZero(binaryImage);
     ps.color = BLUE;
     elems.push_back(ps);
 
     // Magenta
-    inRange(hsvImage, Scalar(150, saturationLow, valueLow), Scalar(165, saturationHigh, valueHigh), binaryImage);
+    inRange(hsvImage, Scalar(150, saturationLow, valueLow), Scalar(179, saturationHigh, valueHigh), binaryImage);
     ps.numPixels = countNonZero(binaryImage);
     ps.color = MAGENTA;
     elems.push_back(ps);
@@ -396,13 +490,29 @@ COLOR determineTagColor(Mat &ROI) {
     bestMatch.color = UNKNOWN_COLOR;
     bestMatch.numPixels = 0;
     for (vector<PixelSum>::iterator it = elems.begin(); it < elems.end(); ++it) {
-        log("COLOR: %s VALUE: %d\n", color2string(it->color).c_str(), it->numPixels);
+        // log("COLOR: %s VALUE: %d\n", color2string(it->color).c_str(), it->numPixels);
         if (it->numPixels > bestMatch.numPixels) {
             bestMatch.color = it->color;
             bestMatch.numPixels = it->numPixels;
         }
     }
 
+    PixelSum secondBestMatch;
+    secondBestMatch.color = UNKNOWN_COLOR;
+    secondBestMatch.numPixels = 0;
+    for (vector<PixelSum>::iterator it = elems.begin(); it < elems.end(); ++it) {
+        if (it->color != bestMatch.color && it->numPixels > secondBestMatch.numPixels) {
+            secondBestMatch.color = it->color;
+            secondBestMatch.numPixels = it->numPixels;
+        }
+    }
+
+    int diff = bestMatch.numPixels - secondBestMatch.numPixels;
+    // cout << "Diff: " << diff << endl;
+
+    if (diff < 10) {
+        return BLACK;
+    }
     // if (bestMatch.numPixels < 1000) {
     //     bestMatch.color = BLACK;
     // } else if (elems[0].numPixels > 1000 && elems[1].numPixels > 1000) {
@@ -411,9 +521,9 @@ COLOR determineTagColor(Mat &ROI) {
     // }
 
     // Debug: adjustment of saturation params.
-    inRange(hsvImage, Scalar(SATURATION_COLOR_LOW, saturationLow, valueLow), Scalar(SATURATION_COLOR_HIGH, saturationHigh, valueHigh), binaryImage);
-    log("Match: %d\n", countNonZero(binaryImage));
-    show(windowTag, binaryImage);
+    // inRange(hsvImage, Scalar(SATURATION_COLOR_LOW, saturationLow, valueLow), Scalar(SATURATION_COLOR_HIGH, saturationHigh, valueHigh), binaryImage);
+    // log("Match: %d\n", countNonZero(binaryImage));
+    // show(windowTag, binaryImage);
 
     return bestMatch.color;
 }
@@ -472,10 +582,8 @@ TAG_CLASS classifyTagUsingTemplate(Mat &ROI) {
     GaussianBlur(tmpROI, tmpROI, Size(GAUSSIAN_KERNEL_SIZE, GAUSSIAN_KERNEL_SIZE), GAUSSIAN_SIGMA, GAUSSIAN_SIGMA);
     // equalizeHist(tmpROI, tmpROI);
     thresholdBlackWhite(tmpROI, tmpROI);
-    
-    // show(windowTag, tmpROI);
 
-    double bestMatch = 100;
+    double bestMatch = 10000; // infinity
     TAG_CLASS obj;
 
     for (vector<TagTemplate>::iterator it = sourceTemplates.begin(); it < sourceTemplates.end(); ++it) {
@@ -488,10 +596,13 @@ TAG_CLASS classifyTagUsingTemplate(Mat &ROI) {
             bestMatch = min;
             obj = it->object;
         }
-
     }
 
-    log("bestMatch: %f\n", bestMatch);
+    // log("bestMatch: %f (error: %f)\n", bestMatch, error);
+    if (bestMatch > 0.5f) {
+        return UNKNOWN;
+    }
+
     return obj;
 }
 
@@ -512,6 +623,7 @@ void initROS(int argc, char *argv[]) {
 
 VideoCapture *capture = new VideoCapture();
 // VideoCapture *capture;
+
 
 bool captureSingleFrame(Mat &frame) {
     // VideoCapture capture;
@@ -543,7 +655,6 @@ bool captureSingleFrame(Mat &frame) {
     return true;
 }
 
-
 // TODO: Stream from video file
 void stream(string source) {
     cout << "Starting TagDetection using raw input." << endl;
@@ -557,51 +668,29 @@ void stream(string source) {
         cout << "I will now stream from camera: " << source << endl;
         CAMERA_ID = atoi(source.c_str());
     } else {
-        SOURCE_IS_SINGLE_IMAGE = false;
+        SOURCE_IS_SINGLE_IMAGE = true;
     }
 
     if (SOURCE_IS_SINGLE_IMAGE) {
         cout << "Reading single image: " << source.c_str() << endl;
         Mat image = imread(source.c_str(), 1);
-        render(image);
+        // render(image);
         waitKey();
     } else {
-        cout << "Streaming started..." << endl;
+        cout << "Streaming starting..." << endl;
+        Mat frame;
+        cyclops::CameraHack ch_capture(CAMERA_ID, 320, 240);
+        ros::Time timestamp;
 
-capture->open(CAMERA_ID);
-        
         while (true) {
-            Mat frame;
-            if ( ! CLASSIFICATION_IN_PROGRESS && captureSingleFrame(frame)) { 
-                render(frame);
-            }
+            ch_capture.getFreshImg(frame, timestamp.sec, timestamp.nsec);
+            render(frame, timestamp);
         }
+        // cvReleaseCapture(&cv_cap);
     }
 
-// capture.open(atoi(source.c_str()));
-    // if (capture.isOpened()) {
-    //     // Stream from webcam
-    //     while (true) {
-    //         Mat frame;
-    //         if ( ! CLASSIFICATION_IN_PROGRESS && captureSingleFrame(frame)) { 
-    //             render(frame);
-    //         }
-
-    //         if (DISPLAY_GRAPHICAL) {
-    //             // if(waitKey(CAMERA_INTERVAL) >= 0) break;
-    //         } else {
-    //             // usleep(CAMERA_INTERVAL*1000);
-    //         }
-    //     }
-    // } else {
-    //     // Read single image
-    //     SOURCE_IS_SINGLE_IMAGE = true;
-    //     cout << "Reading image: " << source.c_str() << endl;
-    //     Mat image = imread(source.c_str(), 1);
-    //     render(image);
-    //     waitKey();
-    // }
 }
+
 
 
 /* -------------------------------------------------------------------------- */
@@ -643,19 +732,17 @@ void show(const string& winname, InputArray mat) {
     }
 }
 
-void publishMovement(int state) {
+void publishMap(ros::Time timestamp, int object, int color) {
     #ifdef ROS
     if (USE_ROS) {
-        // roboard_drivers::Motor motorMessage;
-        // motorMessage.left = 0.0f;
-        // motorMessage.right = 0.0f;
-        // rawMotorPublisher.publish(motorMessage);
-
-        if (state == 4) log("Publish WALL\n");
-        if (state == 5) log("Publish STOPWALL\n");
-        MovementCommand mc;
-        mc.type = state;
-        movementPublisher.publish(mc);
+        Tag t;
+        t.ts_sec = timestamp.sec;
+        t.ts_nsec = timestamp.nsec;
+        t.side = 1;
+        t.object = object;
+        t.color = color;
+        mapPublisher.publish(t);
+        cout << "mapPublisher: " << timestamp << " : " << object << " : " << color << endl;
     }
     #endif
 }

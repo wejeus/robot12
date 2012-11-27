@@ -22,6 +22,7 @@ nodes = []
 pose = (0,0,0)
 path = []
 
+
 def refresh(msg):
   window.fill((0, 0, 0))
   findScaleAndOffset(msg)
@@ -43,6 +44,7 @@ def refresh(msg):
     #print end[1]
   for tag in msg.tags:
     drawTag(tag.x,tag.y)  
+
   drawAmee(pose[0],pose[1],pose[2])
 
   for node in nodes:
@@ -159,7 +161,6 @@ def drawExplorationGrid(grid):
 def poseMsg(msg):
   global pose
   pose = (msg.x, msg.y, msg.theta)   
-
 
 if __name__ == '__main__':
     # Register this node
