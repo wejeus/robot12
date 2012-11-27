@@ -20,11 +20,11 @@ class PathFinderAlgo{
 		static const float MAX_ANGLE_DISTANCE = 10.0f;
 		static const float NODE_DISTANCE_PENALTY = 0.15f; //add this amount of meters in the Dijkstra
 
-		std::vector<amee::NodeMsg> findShortestPath(Graph&, const int startId, const int endId);
-		std::vector<amee::NodeMsg> findShortestPath(Graph&, const float x, const float y, const int endId);
-		std::vector<amee::NodeMsg> findShortestPath(Graph&, const float x0, const float y0, const float x1, const float y1);
+		bool findShortestPath(Graph&, std::vector<amee::NodeMsg>& v, const int startId, const int endId);
+		// std::vector<amee::NodeMsg> findShortestPath(Graph&, const float x, const float y, const int endId);
+		// std::vector<amee::NodeMsg> findShortestPath(Graph&, const float x0, const float y0, const float x1, const float y1);
 
-		void Dijkstra(Graph& g, const int&, float *, int *);
+		bool Dijkstra(Graph& g, const int&,  const int endId, float *, int *);
 
 		int getIDfromPose(Graph& g, const float x, const float y) const; /* return -1 if no id is found...*/
 		

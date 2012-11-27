@@ -31,7 +31,11 @@ namespace amee{
 	private:
 		bool mRunning;
 
-		
+		enum GoToState {
+			MoveCoordinate, Rotate, Align, FollowWall, FinalRotate
+		};
+
+		GoToState mState;
 		
 		// bool mRestartFollowingWall;
 		// bool mFollowingWall;
@@ -44,7 +48,9 @@ namespace amee{
 
 		StrategyData mStrategyData;
 
-		void moveToNextWaypoint(bool fromMoveCoordinate);
+		void moveToNextWaypoint();
+		void startFollowWall();
+		void startMoveCoordinate(Pose& pose);
 		void stop();
 		inline float EuclidDist(const Pose& p, const float& x, const float& y) const;
 

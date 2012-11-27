@@ -71,6 +71,7 @@ StrategyGoTo::~StrategyGoTo() {
 void StrategyGoTo::init(const amee::Pose &pose, const amee::GraphMsg::ConstPtr& graphMsg, const unsigned int& id) {
 	std::cout << "StrategyGoTo init, move to node " << id << std::endl;
 	mGraph = graphMsg;
+	mState = MoveCoordinate;
 
 	int currentNodeId = mGraph.getIDFromPose(pose.x, pose.y, pose.theta);
 
@@ -78,28 +79,36 @@ void StrategyGoTo::init(const amee::Pose &pose, const amee::GraphMsg::ConstPtr& 
 		std::cout << "ERROR: We are not close to a node! Can't plan path." << std::endl;
 		mRunning = false;
 		return;
-	} // TODO else move to closest node
+	} 
 
 	PathFinderAlgo pfa;
-	std::vector<NodeMsg> v = pfa.findShortestPath(mGraph, currentNodeId, id);
-	if(v.empty())
+	std::vector<NodeMsg> v;
+	bool pathFound = pfa.findShortestPath(mGraph, v, currentNodeId, id);
+	if(v.empty() || !pathFound) {
 		std::cout << "PathFinderAlgo returnd empty path list!" << std::endl;
+		mRunning = false;
+		return;
+	}
 
-	// Path pathMsg;
-	// pathMsg.path = v;
-	// mPathPub.publish(pathMsg);
+	Path pathMsg;
 
 	mPath.empty();
 	int i = 0;
 	std::cout << "Path: " << std::endl;
+	NodeMsg startNode = *(mGraph.getNode(currentNodeId));
+	mPath.push(startNode); // push the start node twice on the queue, that way we will move there first
 	for(std::vector<NodeMsg>::iterator it = v.begin(); it != v.end(); ++it) {
 		mPath.push(*it);
 		std::cout << i << ": " << (*it).pose.x << " " << (*it).pose.y << " id: " << (*it).nodeID << std::endl;
+		++i;
+		pathMsg.nodeIDs.push_back((*it).nodeID);
 	}
 
-	moveToNextWaypoint(true);
-
+	mPathPub.publish(pathMsg);
 	mRunning = true;
+	moveToNextWaypoint();
+
+	
 
 }
 
@@ -119,7 +128,7 @@ bool StrategyGoTo::isRunning() const {
 	// 	mPhaseInfo.publish(msg);
 	// 	mRunning = false;
 	// 	MovementCommand mc;
-	// 	mc.type = 5; // MoveStop
+		// 	mc.type = 5; // MoveStop
 	// 	mCommandPub.publish(mc);
 	// }else{
 
@@ -151,57 +160,113 @@ bool StrategyGoTo::isRunning() const {
 
 // }
 
-void StrategyGoTo::moveToNextWaypoint(bool fromMoveCoordinate) {
-	//if there are still nodes in our path
-	if(mPath.empty()){
-	 	std::cout << "we have reached our final destination." << std::endl;
-	 	std_msgs::Int32 msg;
-	 	msg.data = 1;
-	 	mPhaseInfo.publish(msg);
-	 	mRunning = false;
-	 	stop();
-	}else{
+void StrategyGoTo::moveToNextWaypoint() {
+	if (isRunning()) {
 
-	 	NodeMsg reachedWaypoint = mPath.front();
-		mPath.pop();
-		NodeMsg waypoint = mPath.front();
-		 	
-// 		unsigned int mLastNodeID = waypoint.nodeID;
 
-// 		waypoint = mPath.front();
-		MovementCommand mc;
-		if (waypoint.nodeID - reachedWaypoint.nodeID == 1) { // checks if we can follow a wall to get to the next
-
-			mc.type = 4; // moveFollowWall
-			std::cout << "Do MoveFollowWall to get to next waypoint" << std::endl;
-
-			if (fromMoveCoordinate) {
-
-				mCommandPub.publish(mc);		
+	switch (mState) {
+		case Rotate:
+			std::cout << "Rotate Done" << std::endl;
+			if (mPath.front().type == Graph::NODE_NEXT_TO_WALL) {
+				std::cout << "We can align, so align!" << std::endl;
+				MovementCommand mc;
+				mc.type = MovementControl::TYPE_ALIGN_TO_WALL;
+				mCommandPub.publish(mc);
+				mState = Align;
+			} else {
+				std::cout << "Can't align, so start followWall" << std::endl;
+				startFollowWall();
 			}
-			// mFollowingWall = true;
-		} else {
-			// mFollowingWall = false;
-			mc.type = 3; 
-			mc.x = waypoint.pose.x - mPose.x; 
-			mc.y = waypoint.pose.y - mPose.y; //moveCoordinate 
-			float tx = cos(mPose.theta) * mc.x + sin(mPose.theta) * mc.y;	
-			float ty = -sin(mPose.theta) * mc.x + cos(mPose.theta) * mc.y;
-			mc.x = tx;
-			mc.y = ty;
-			std::cout << "Do MoveCoordinate to get to next waypoint mc: " << mc.x << " " << mc.y << std::endl;
-			mCommandPub.publish(mc);
+			break;
+		case Align:
+			std::cout << "Align done" << std::endl;
+			startFollowWall();
+			break;
+		case FollowWall: {
+				std::cout << "FollowWall node reached" << std::endl;
+				NodeMsg reachedWaypoint = mPath.front();
+		 		mPath.pop();
+				if(mPath.empty()){
+		 			std::cout << "we have reached our final destination." << std::endl;
+		 			std_msgs::Int32 msg;
+		 			msg.data = 1;
+		 			mPhaseInfo.publish(msg);
+		 			mRunning = false;
+		 			stop();
+		 		} else {	
+		 			std::cout << "switching to move coordinate" << std::endl;
+		 			NodeMsg waypoint = mPath.front();
+		 			if (waypoint.nodeID - reachedWaypoint.nodeID != 1) { // if we can not follow a wall to get to the next waypoint
+		 				startMoveCoordinate(waypoint.pose);
+					}
+		 		}
+		 	}
+			break;
+		case MoveCoordinate: {
+				std::cout << "MoveCoordinate done" << std::endl;
+				NodeMsg reachedWaypoint = mPath.front();
+	 			mPath.pop();
+	 			if(mPath.empty()){
+	 				std::cout << "End of path, do final rotation" << std::endl;
+	 				mState = FinalRotate;
+	 				MovementCommand mc;
+					mc.angle = (reachedWaypoint.pose.theta - mPose.theta) * 180.0f / M_PI;
+					mc.type = MovementControl::TYPE_MOVE_ROTATE;
+					mCommandPub.publish(mc);
+				} else {
+		 			NodeMsg waypoint = mPath.front();
+					if (waypoint.nodeID - reachedWaypoint.nodeID != 1) { // if we can not follow a wall to get to the next waypoint
+						std::cout << "continue move coordinate" << std::endl;
+						startMoveCoordinate(waypoint.pose);
+					} else {
+						std::cout << "we can do follow wall, so rotate first and then follow wall" << std::endl;
+						mState = Rotate;
+						MovementCommand mc;
+						mc.type = MovementControl::TYPE_MOVE_ROTATE;
+						mc.angle = (waypoint.pose.theta - mPose.theta) * 180.0f / M_PI;
+						mCommandPub.publish(mc);
+					}
+				}
+			}
+			break;	
+		case FinalRotate:
+				std::cout << "we have reached our final destination." << std::endl;
+	 			std_msgs::Int32 msg;
+	 			msg.data = 1;
+	 			mPhaseInfo.publish(msg);
+	 			mRunning = false;
+	 			stop();
+	 		break;
 		}
-		
-		std::cout << "Going to the next node in the path..." << std::endl;
-
 	}
+	}
+
+void StrategyGoTo::startMoveCoordinate(Pose& pose) {
+	MovementCommand mc;
+	mc.type = MovementControl::TYPE_MOVE_COORDINATE; 
+	mc.x = pose.x - mPose.x; 
+	mc.y = pose.y - mPose.y; //moveCoordinate 
+	float tx = cos(mPose.theta) * mc.x + sin(mPose.theta) * mc.y;	
+	float ty = -sin(mPose.theta) * mc.x + cos(mPose.theta) * mc.y;
+	mc.x = tx;
+	mc.y = ty;
+	std::cout << "Do MoveCoordinate to get to next waypoint mc: " << mc.x << " " << mc.y << std::endl;
+	mCommandPub.publish(mc);
+	mState = MoveCoordinate;
+}
+
+void StrategyGoTo::startFollowWall() {
+	MovementCommand mc;
+	mc.type = MovementControl::TYPE_FOLLOW_WALL;
+	std::cout << "Do MoveFollowWall to get to next waypoint" << std::endl;
+	mCommandPub.publish(mc);
+	mState = FollowWall;	
 }
 
 void StrategyGoTo::stop() {
-		MovementCommand mc;
-	 	mc.type = 5; // MoveStop
-	 	mCommandPub.publish(mc);
+	MovementCommand mc;
+ 	mc.type = MovementControl::TYPE_STOP; // MoveStop
+ 	mCommandPub.publish(mc);
 }
 
 inline float StrategyGoTo::EuclidDist(const Pose& p, const float& x, const float& y) const {
@@ -212,12 +277,14 @@ void StrategyGoTo::receive_pose(const amee::Pose::ConstPtr &msg){
 	mPose = (*msg);
 }
 
-void StrategyGoTo::receive_graph(const amee::GraphMsg::ConstPtr &msg){}
+void StrategyGoTo::receive_graph(const amee::GraphMsg::ConstPtr &msg){
+	mGraph = msg;
+}
 
 void StrategyGoTo::receive_mapper_event(const amee::MapperEvent::ConstPtr &msg){
 	if (msg->type == Mapper::NodeReached) {
 		std::cout << "Node reached" << std::endl;
-		moveToNextWaypoint(false);
+		moveToNextWaypoint();
 	} else if (msg->type == Mapper::UnknownNode) {
 		std::cout << "HELP!!! UnknownNode" << std::endl;
 	}
@@ -227,8 +294,18 @@ void StrategyGoTo::receive_movement_event(const amee::MovementEvent::ConstPtr &m
 	if (msg->type == MovementControl::MOVEMENT_EVENT_TYPE_OBSTICLE_IN_FRONT) {
 		std::cout << "HELP!!! Obstacle detected!!!" << std::endl;
 	} else if (msg->type == MovementControl::MOVEMENT_EVENT_TYPE_DONE_MOVING_COORDINATE) {
-		std::cout << "Movement completed" << std::endl;
-		moveToNextWaypoint(true);
+		std::cout << "MoveCoordinate completed" << std::endl;
+		moveToNextWaypoint();
+	} else if ((msg->type == MovementControl::MOVEMENT_EVENT_TYPE_DONE_ROTATING) && ((mState == Rotate) ||(mState == FinalRotate))) {
+		std::cout << "Rotating completed" << std::endl;
+		moveToNextWaypoint();
+	} else if ((msg->type == MovementControl::MOVEMENT_EVENT_TYPE_DONE_ALIGNING_WALL) && mState == Align) {
+		std::cout << "Aligning completed" << std::endl;
+		moveToNextWaypoint();
+	} else if ((msg->type == MovementControl::MOVEMENT_EVENT_TYPE_FAILED_ALIGNING_WALL) && mState == Align) {
+		std::cout << "DAMN, COULDN't ALIGN. IMPLEMENT HANDLING OF THIS CASE!!!!" << std::endl;
+	} else {
+		std::cout << "Unknown move completed" << std::endl;
 	}
 }
 
