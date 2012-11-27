@@ -52,6 +52,7 @@ namespace amee{
 		void startFollowWall();
 		void startMoveCoordinate(Pose& pose);
 		void stop();
+		float getAngleChange(float from, float to);
 		inline float EuclidDist(const Pose& p, const float& x, const float& y) const;
 
 	}; //StrategyGoTo class

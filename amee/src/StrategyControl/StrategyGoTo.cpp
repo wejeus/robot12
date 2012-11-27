@@ -97,6 +97,7 @@ void StrategyGoTo::init(const amee::Pose &pose, const amee::GraphMsg::ConstPtr& 
 	std::cout << "Path: " << std::endl;
 	NodeMsg startNode = *(mGraph.getNode(currentNodeId));
 	mPath.push(startNode); // push the start node twice on the queue, that way we will move there first
+	pathMsg.nodeIDs.clear();
 	for(std::vector<NodeMsg>::iterator it = v.begin(); it != v.end(); ++it) {
 		mPath.push(*it);
 		std::cout << i << ": " << (*it).pose.x << " " << (*it).pose.y << " id: " << (*it).nodeID << std::endl;
@@ -107,9 +108,6 @@ void StrategyGoTo::init(const amee::Pose &pose, const amee::GraphMsg::ConstPtr& 
 	mPathPub.publish(pathMsg);
 	mRunning = true;
 	moveToNextWaypoint();
-
-	
-
 }
 
 bool StrategyGoTo::isRunning() const {
@@ -196,7 +194,7 @@ void StrategyGoTo::moveToNextWaypoint() {
 		 		} else {	
 		 			std::cout << "switching to move coordinate" << std::endl;
 		 			NodeMsg waypoint = mPath.front();
-		 			if (waypoint.nodeID - reachedWaypoint.nodeID != 1) { // if we can not follow a wall to get to the next waypoint
+		 			if ((reachedWaypoint.nodeID >= waypoint.nodeID) || (waypoint.nodeID - reachedWaypoint.nodeID != 1)) { // if we can not follow a wall to get to the next waypoint
 		 				startMoveCoordinate(waypoint.pose);
 					}
 		 		}
@@ -210,12 +208,12 @@ void StrategyGoTo::moveToNextWaypoint() {
 	 				std::cout << "End of path, do final rotation" << std::endl;
 	 				mState = FinalRotate;
 	 				MovementCommand mc;
-					mc.angle = (reachedWaypoint.pose.theta - mPose.theta) * 180.0f / M_PI;
+					mc.angle = getAngleChange(mPose.theta, reachedWaypoint.pose.theta);
 					mc.type = MovementControl::TYPE_MOVE_ROTATE;
 					mCommandPub.publish(mc);
 				} else {
 		 			NodeMsg waypoint = mPath.front();
-					if ((reachedWaypoint.nodeID > waypoint.nodeID) || (waypoint.nodeID - reachedWaypoint.nodeID != 1)) { // if we can not follow a wall to get to the next waypoint
+					if ((reachedWaypoint.nodeID >= waypoint.nodeID) || (waypoint.nodeID - reachedWaypoint.nodeID != 1)) { // if we can not follow a wall to get to the next waypoint
 						std::cout << "continue move coordinate" << std::endl;
 						startMoveCoordinate(waypoint.pose);
 					} else {
@@ -223,7 +221,7 @@ void StrategyGoTo::moveToNextWaypoint() {
 						mState = Rotate;
 						MovementCommand mc;
 						mc.type = MovementControl::TYPE_MOVE_ROTATE;
-						mc.angle = (waypoint.pose.theta - mPose.theta) * 180.0f / M_PI;
+						mc.angle = getAngleChange(mPose.theta, waypoint.pose.theta);
 						mCommandPub.publish(mc);
 					}
 				}
@@ -240,6 +238,25 @@ void StrategyGoTo::moveToNextWaypoint() {
 		}
 	}
 	}
+
+float StrategyGoTo::getAngleChange(float from, float to) {
+	if (from >= to) {
+		float rotateLeft = 2.0f * M_PI - from + to;
+		float rotateRight = from - to;
+		if (rotateLeft < rotateRight) {
+			return rotateLeft * 180.0f / M_PI;
+		} 
+		return -rotateRight * 180.0f / M_PI;
+	} else {
+		float rotateLeft = to - from;
+		float rotateRight = from + 2.0f * M_PI - to;
+		if (rotateLeft < rotateRight) {
+			return rotateLeft * 180.0f / M_PI;
+		}
+		return -rotateRight * 180.0f / M_PI;
+	}
+	return 0.0f;
+}
 
 void StrategyGoTo::startMoveCoordinate(Pose& pose) {
 	MovementCommand mc;
@@ -284,6 +301,7 @@ void StrategyGoTo::receive_graph(const amee::GraphMsg::ConstPtr &msg){
 void StrategyGoTo::receive_mapper_event(const amee::MapperEvent::ConstPtr &msg){
 	if (msg->type == Mapper::NodeReached) {
 		std::cout << "Node reached" << std::endl;
+		// IDEA: IF NOT THE CORRECT NODE, STOP EXECUTING PATH AND PUBLISH FAIL MESSAGE
 		moveToNextWaypoint();
 	} else if (msg->type == Mapper::UnknownNode) {
 		std::cout << "HELP!!! UnknownNode" << std::endl;

@@ -40,6 +40,7 @@ namespace amee{
 		float checkDirection(const float) const;
 		float euclidDist(const float[2], const float[2]) const;
 		float norm(const float[2]) const;
+		bool wallInFront(const SensorData& data);
 		
 	}; //MoveCoordinate
 

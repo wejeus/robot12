@@ -18,7 +18,7 @@ class Graph{
 			NODE_TAG = 3
 		};
 
-		static const float MAX_DISTANCE_TO_NODE = 0.05f;
+		static const float MAX_DISTANCE_TO_NODE = 0.1f;
 
 		Graph();
 		Graph(const Graph&);
