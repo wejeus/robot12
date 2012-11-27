@@ -123,3 +123,155 @@ using namespace amee;
 		cell.second = floor(ty / mCellSize);
 		return cell;
 	}
+
+	Map::Point ExploringGrid::getPoint(uint x, uint y){
+		Map::Point p;
+		p.x = (float)x * mCellSize - mOffset;
+		p.y = (float)y * mCellSize - mOffset;
+
+		return p;
+	}
+
+	bool ExploringGrid::getNextUnexploredPose(Map &map, const Pose& start_pose, Pose& out_pose) {
+		std::cout << "ExploringGrid looking for a new unexplored position..." << std::endl;
+		std::vector<Blob> blobs;
+		int blobIdx = findBlobs(blobs);
+
+		if(blobIdx == -1){
+			std::cout << "Could not find any blobs..." << std::endl;
+			return false;
+		}
+
+		//TODO: look for the closest pose in the blob and go there
+		//out_pose = the newly founded pose
+		Map::Point start(start_pose);
+		std::vector< std::vector<int> > &b = blobs[blobIdx].region;
+		uint size = b.size();
+		for(uint x=0; x<size; ++x){
+			for(uint y=0; y<size; ++y){
+				Map::Point end = getPoint(x, y);
+				if(euclidDist(start.x, start.y, end.x, end.y) < 0.5f && map.isPathCollisionFree(start, end, 0.02f, 0.12f)) {
+					out_pose.x = end.x;
+					out_pose.y = end.y;
+					return true;
+				}
+			}
+		}
+
+		std::cout << "Couldn't find close enough pose in the blob" << std::endl;
+		return false;
+	}
+
+	int ExploringGrid::findBlobs(std::vector<Blob>& blobs) const {
+		std::cout << "Looking for blobs..." << std::endl;
+		uint rowSize = mGrid.size();
+		uint colSize = mGrid[0].size();
+
+		for (int r = 0; r < rowSize; ++r) {
+			for (int c = 0; c < colSize; ++c) {
+				if(!mGrid[r][c]) {
+					Blob newBlob( (rowSize > colSize) ? rowSize : colSize);
+					blobExtender(newBlob, r, c);
+					blobs.push_back(newBlob);
+				}
+			}
+		}
+
+		uint largest = 0;
+		int largestBlobIdx = -1;
+		for(uint i=0; i<blobs.size(); ++i){
+			if(blobs[i].size > largest){
+				largest = blobs[i].size;
+				largestBlobIdx = i;
+			}
+		}
+
+		if(largestBlobIdx != -1)
+			std::cout << "Found " << blobs.size() << " blobs, with the largest being: " << largest << std::endl;
+
+		return largestBlobIdx;
+	}
+
+	void ExploringGrid::blobExtender(Blob& b, int r, int c) const {
+		b.set(r,c, BLOB_POS_VISITED);
+
+		//calculate indices - prevet out of boundary access
+		int ur = r+1 < mGrid.size() ? r+1 : r; //upper row
+		int lr = r-1 > 0 ? r-1 : r; //lower row
+		int lc = c-1 > 0 ? c-1 : c; //left column
+		int rc = c+1 < mGrid[0].size() ? c+1: c; //right col
+
+		//all the surounding pixles
+		BlobPoint p[8] = {{ur,lc},{ur,c},{ur,rc},{r,lc},{r,rc},{lr,lc},{lr,c},{lr,rc}};
+
+		for(int i=0; i<8; ++i){
+
+			if(!(b.region[p[i].r][p[i].c] & BLOB_POS_VISITED)){
+				if(!mGrid[p[i].r][p[i].c])
+					blobExtender(b, p[i].r, p[i].c);
+				else
+					b.set(p[i].r, p[i].c, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
+			}
+		}
+
+		// PIXLES ABOVE
+		// if(!(b.region[ur][lc] & BLOB_POS_VISITED)){
+		// 	if(!mGrid[ur][lc])
+		// 		blobExtender(b, ur, lc);
+		// 	else
+		// 		b.set(ur,lc, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
+		// }
+
+		// if(!(b.region[ur][c] & BLOB_POS_VISITED)){
+		// 	if(!mGrid[ur][c])
+		// 		blobExtender(b, ur, c);
+		// 	else
+		// 		b.set(ur,c, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
+		// }
+
+		// if(!(b.region[ur][rc] & BLOB_POS_VISITED)){
+		// 	if(!mGrid[ur][rc])
+		// 		blobExtender(b, ur, rc);
+		// 	else
+		// 		b.set(ur,rc, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
+		// }
+
+		// //LEFT AND RIGHT
+		// if(!(b.region[r][lc] & BLOB_POS_VISITED)){
+		// 	if(!mGrid[r][lc])
+		// 		blobExtender(b, r, lc);
+		// 	else
+		// 		b.set(r,lc, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
+		// }
+		// if(!(b.region[r][rc] & BLOB_POS_VISITED)){
+		// 	if(!mGrid[r][rc])
+		// 		blobExtender(b, r, rc);
+		// 	else
+		// 		b.set(r,rc, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
+		// }
+
+		// //PIXELS BENEATH
+		// if(!(b.region[lr][lc] & BLOB_POS_VISITED)){
+		// 	if(!mGrid[lr][lc])
+		// 		blobExtender(b, lr, lc);
+		// 	else
+		// 		b.set(lr,lc, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
+		// }
+		// if(!(b.region[lr][c] & BLOB_POS_VISITED)){
+		// 	if(!mGrid[lr][c])
+		// 		blobExtender(b, lr, c);
+		// 	else
+		// 		b.set(lr,c, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
+		// }
+		// if(!(b.region[lr][rc] & BLOB_POS_VISITED)){
+		// 	if(!mGrid[lr][rc])
+		// 		blobExtender(b, lr, rc);
+		// 	else
+		// 		b.set(lr,rc, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
+		// }
+	}
+
+
+float ExploringGrid::euclidDist(float x0, float y0, float x1, float y1){
+	return sqrt((x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1));
+}
