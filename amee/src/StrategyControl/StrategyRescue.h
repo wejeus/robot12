@@ -1,5 +1,5 @@
-#ifndef STRATEGY_EXPLORE_H
-#define STRATEGY_EXPLORE_H
+#ifndef STRATEGY_RESCUE_H
+#define STRATEGY_RESCUE_H
 
 #include "StrategyState.h"
 #include "../Graph/Graph.h"
@@ -14,10 +14,10 @@
 namespace amee{
 	class StrategyGoTo;
 
-	class StrategyExplore : public StrategyState {
+	class StrategyRescue : public StrategyState {
 	public:
-		StrategyExplore(ros::Publisher &pub, ros::Publisher &phaseInfo, ros::Publisher &pathPub);
-		~StrategyExplore();
+		StrategyRescue(ros::Publisher &pub, ros::Publisher &phaseInfo, ros::Publisher &pathPub);
+		~StrategyRescue();
 
 		// virtual void init(const StrategyData &data);
 		// void init(const StrategyData &data, const amee::GraphMsg::ConstPtr& graphMsg);
@@ -57,4 +57,4 @@ namespace amee{
 
 }; //namespace amee
 
-#endif //STRATEGY_EXPLORE_H
+#endif //STRATEGY_RESCUE_H

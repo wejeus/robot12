@@ -13,6 +13,8 @@ namespace amee {
 // class StrategyClassify;
 // class StrategyExplore;
 class StrategyGoTo;
+class StrategyRescue;
+class StrategyExplore;
 
 class StrategyControl {
 
@@ -24,6 +26,9 @@ class StrategyControl {
 		void receive_graph(const amee::GraphMsg::ConstPtr &msg);
 		void receive_mapper_event(const amee::MapperEvent::ConstPtr &msg);
 		void receive_movement_event(const amee::MovementEvent::ConstPtr &msg);
+		void receive_timerP1(const ros::TimerEvent &event);
+		void receive_timerP2(const ros::TimerEvent &event);
+
 		// void doControl();
 		void init();
 
@@ -31,6 +36,7 @@ class StrategyControl {
 		static const int TYPE_STRATEGY_EXPLORE = 2;
 		static const int TYPE_STRATEGY_GET_OUT = 3;
 		static const int TYPE_STRATEGY_GO_TO = 4;
+		static const int TYPE_STRATEGY_RESCUE = 5;
 
 	private:
 		
@@ -45,6 +51,8 @@ class StrategyControl {
 		// amee::StrategyClassify* mClassifyState;
 		// amee::StrategyExplore* mExploreState;
 		amee::StrategyGoTo* mGoToState;
+		amee::StrategyRescue* mRescueState;
+
 };
 
 };//namespace amee

@@ -4,6 +4,7 @@
 #include "amee/GraphMsg.h"
 #include "amee/MapperEvent.h"
 #include "amee/MovementEvent.h"
+#include "ros/ros.h"
 
 
 namespace amee{
@@ -30,6 +31,8 @@ namespace amee{
 		virtual void receive_graph(const amee::GraphMsg::ConstPtr &msg) = 0;
 		virtual void receive_mapper_event(const amee::MapperEvent::ConstPtr &msg) = 0;
 		virtual void receive_movement_event(const amee::MovementEvent::ConstPtr &msg) = 0;
+		virtual void receive_timerP1(const ros::TimerEvent &event) = 0;
+		virtual void receive_timerP2(const ros::TimerEvent &event) = 0;
 		
 	}; //StrategyState
 

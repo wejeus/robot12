@@ -231,4 +231,8 @@ void StrategyGoTo::receive_movement_event(const amee::MovementEvent::ConstPtr &m
 	}
 }
 
+void StrategyGoTo::receive_timerP1(const ros::TimerEvent &event) {}
+
+void StrategyGoTo::receive_timerP2(const ros::TimerEvent &event) {}
+
 

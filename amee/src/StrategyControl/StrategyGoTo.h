@@ -25,6 +25,8 @@ namespace amee{
 		virtual void receive_graph(const amee::GraphMsg::ConstPtr &msg);
 		virtual void receive_mapper_event(const amee::MapperEvent::ConstPtr &msg);
 		virtual void receive_movement_event(const amee::MovementEvent::ConstPtr &msg);
+		virtual void receive_timerP1(const ros::TimerEvent &event);
+		virtual void receive_timerP2(const ros::TimerEvent &event);
 
 		static const float EUCLIDEAN_POSITION_DISTANCE = 0.035f;
 

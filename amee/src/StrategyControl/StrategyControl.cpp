@@ -4,6 +4,7 @@
 // #include "StrategyExplore.h"
 // #include "StrategyClassify.h"
 #include "StrategyGoTo.h"
+#include "StrategyRescue.h"
 #include "amee/Path.h"
 
 #include <iostream>
@@ -22,6 +23,7 @@ StrategyControl::StrategyControl(ros::Publisher& pub, ros::Publisher &phaseInfo,
 	// mClassifyState = new StrategyClassify(pub);
 	// mExploreState = new StrategyExplore(pub);
 	mGoToState = new StrategyGoTo(pub, phaseInfo, pathPub);
+	mRescueState = new StrategyRescue(pub, phaseInfo, pathPub);
 	mCurrentState = mGoToState;
 }
 
@@ -58,6 +60,11 @@ void StrategyControl::receive_command(const amee::StrategyCommand::ConstPtr &msg
 			// mCurrentState = mExploreState;
 			// mExploreState->init(mStrategyData);
 		break;
+		case TYPE_STRATEGY_RESCUE:
+			std::cout << "STRATEGY_RESCUE" << std::endl;
+			mCurrentState = mRescueState;
+			mRescueState->init(mPose, mGraphMsg);
+		break;
 		case TYPE_STRATEGY_GO_TO:
 			std::cout << "STRATEGY GO TO" << std::endl;
 			mCurrentState = mGoToState;
@@ -89,6 +96,14 @@ void StrategyControl::receive_movement_event(const amee::MovementEvent::ConstPtr
 	mCurrentState->receive_movement_event(msg);
 }
 
+void StrategyControl::receive_timerP1(const ros::TimerEvent &event) {
+	mCurrentState->receive_timerP1(event);
+}
+
+void StrategyControl::receive_timerP2(const ros::TimerEvent &event) {
+	mCurrentState->receive_timerP2(event);
+}
+
 void StrategyControl::init() {
 	// mCurrentState->init(mStrategyData);
 }
@@ -117,7 +132,10 @@ int main(int argc, char **argv)
 	ros::Subscriber mapper_events_sub = n.subscribe("/amee/map/mapper_events", 2, &StrategyControl::receive_mapper_event, &control);
 	ros::Subscriber move_events_sub = n.subscribe("/amee/movement_events", 2, &StrategyControl::receive_movement_event, &control);
 	
-
+	// create timers
+	ros::Timer timerP1 = n.createTimer(ros::Duration(360), &StrategyControl::receive_timerP1, &control); // 1 min left to get out
+	ros::Timer timerP2 = n.createTimer(ros::Duration(240), &StrategyControl::receive_timerP2, &control); // 
+	
 	// ros::Rate loop_rate(6);
 
 	control.init();
