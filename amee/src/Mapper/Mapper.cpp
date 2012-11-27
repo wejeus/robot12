@@ -35,11 +35,12 @@ void Mapper::receive_distances(const IRDistances::ConstPtr &msg)
 }
 
 void Mapper::receive_tag(const amee::Tag::ConstPtr& msg) {
-	// Map::Point p;
-	// p.x = mPose.x;
-	// p.y = mPose.y;
-	// mTagPositions.push_back(p);
+
 	if (sqrt((mPose.x - mLastTagPose.x) * (mPose.x - mLastTagPose.x) + (mPose.y - mLastTagPose.y) * (mPose.y - mLastTagPose.y)) > 0.04f) {
+		Map::Point p;
+		p.x = mPose.x;
+		p.y = mPose.y;
+		mTagPositions.push_back(p);
 		int type = amee::Graph::NODE_TAG;
 		handleNodeEvent(type, mPose.timestamp);
 		mLastTagPose = mPose;	
