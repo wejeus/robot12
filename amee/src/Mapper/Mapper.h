@@ -37,7 +37,7 @@ class Mapper {
 		void readMap();
 		void setToLocalize();
 
-		enum MappingState {Pause, PauseMapping, Mapping, Localizing};
+		enum MappingState {PauseMapping, Mapping, Localizing};
 		enum MapperEvents {Inititialized, NodeReached, NewNode, UnknownNode};
 
 		static const float IR_BASE_RIGHT = 0.104;
@@ -60,7 +60,6 @@ class Mapper {
 		amee::Pose mLastTagPose;
 
 		bool mRotating;
-		bool mInPhase1;
 
 		std::list<int> mNewNodes;
 		std::list<int> mOldNodes;
@@ -104,7 +103,7 @@ class Mapper {
 		void handleNodeEvent(int type, double timestamp);
 		void checkIfNextToWall();
 		bool sameTheta(float t1, float t2);
-		float dist(const amee::Pose& a, const amee::Pose& b);
+		float euclDist(const amee::Pose& a, const amee::Pose& b);
 	};
 }
 #endif

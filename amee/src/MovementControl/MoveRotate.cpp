@@ -2,12 +2,22 @@
 #include "MoveRotate.h"
 #include <cmath>
 #include "amee/Velocity.h"
+#include "MovementControl.h"
+#include "amee/MovementEvent.h"
 
 using namespace amee;
+
+MoveRotate::MoveRotate(ros::Publisher& pub, ros::Publisher& movement_event_pub) {
+    mSpeedPub = pub;
+    mEventPub = movement_event_pub;
+    mIsRotating = false;
+    mPublishEvents = true;
+}
 
 MoveRotate::MoveRotate(ros::Publisher& pub) {
     mSpeedPub = pub;
     mIsRotating = false;
+    mPublishEvents = false;
 }
 
 MoveRotate::~MoveRotate() {
@@ -33,7 +43,7 @@ bool MoveRotate::isRunning() const {
 
 void MoveRotate::doControl(const SensorData& data) {
     float MAX_ROTATION_SPEED = 0.1;
-    float MIN_ROTATION_SPEED = 0.06;
+    float MIN_ROTATION_SPEED = 0.08;
 
     mCurrentRelativeAngle = data.odometry.angle - mStartingAngle;
     // std::cout << mCurrentRelativeAngle << std::endl;
@@ -61,6 +71,12 @@ void MoveRotate::doControl(const SensorData& data) {
         // Rotation done! Reset current angle movement
         // std::cout << "TARGET ANGLE REACHED" << std::endl;
         mIsRotating = false;
+        if (mPublishEvents) {
+            MovementEvent event;
+            event.type = MovementControl::MOVEMENT_EVENT_TYPE_DONE_ROTATING;
+            mEventPub.publish(event);
+        }
+        
         publishSpeeds(0.0f, 0.0f);
     }
 }

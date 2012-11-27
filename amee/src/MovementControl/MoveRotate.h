@@ -7,6 +7,7 @@
 namespace amee{
 	class MoveRotate : public MovementState {
 	public:
+		MoveRotate(ros::Publisher& pub, ros::Publisher& movement_event_pub);
 		MoveRotate(ros::Publisher& pub);
 		~MoveRotate();
 
@@ -21,10 +22,12 @@ namespace amee{
 	
 	private:
 		ros::Publisher mSpeedPub;
+		ros::Publisher mEventPub;
 		float mTargetAngle;
 		float mIsRotating;
 		float mCurrentRelativeAngle;
 		float mStartingAngle;
+		bool mPublishEvents;
 
 		void publishSpeeds(float left, float right);
 

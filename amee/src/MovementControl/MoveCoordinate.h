@@ -30,8 +30,6 @@ namespace amee{
 		ros::Publisher mPub;
 		ros::Publisher mMovementEventPub;
 
-		amee::SensorData mSensorData;
-
 		// allows us to rotate by calling its doControl after we initialized it as long as we want to rotate
 		amee::MoveRotate *mRotater;
 		// allows us to move straight

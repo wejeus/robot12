@@ -1,4 +1,6 @@
 #include "PublishAmee.h"
+#include "amee/StrategyCommand.h"
+#include "../Mapper/Mapper.h"
 
 using namespace amee;
 using namespace roboard_drivers;
@@ -102,6 +104,27 @@ int main(int argc, char **argv){
         }else if(strcmp(argv[1], "reset") == 0){
 			pub = nodeHandle.advertise<Motor>("/serial/motor_speed", 1);
 			Motor m; m.right = 0.0f; m.left = 0.0f;
+			wait(pub);
+			pub.publish(m);
+		}else if(strcmp(argv[1], "goto") == 0){
+			if (argc < 3) {
+				ROS_INFO("Need a node id to go to");
+				return 0;
+			}
+            pub = nodeHandle.advertise<StrategyCommand>("/StrategyControl/StrategyCommand", 1);
+            StrategyCommand sc;
+            sc.type = 4;
+            sc.nodeId = atoi(argv[2]);
+            wait(pub);
+            pub.publish(sc);
+		}else if(strcmp(argv[1], "edges") == 0){
+			pub = nodeHandle.advertise<MapperCommand>("/amee/map/mapper_commands", 1);
+			MapperCommand m; m.type = 2;
+			wait(pub);
+			pub.publish(m);
+		}else if(strcmp(argv[1], "localize") == 0){
+			pub = nodeHandle.advertise<MapperCommand>("/amee/map/mapper_commands", 1);
+			MapperCommand m; m.type = 3;
 			wait(pub);
 			pub.publish(m);
 		}

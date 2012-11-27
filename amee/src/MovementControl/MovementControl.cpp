@@ -18,11 +18,11 @@ using namespace amee;
 
 
 MovementControl::MovementControl(ros::Publisher& pub, ros::Publisher& statesPub, ros::Publisher& movement_event_pub) {
-	mRotationState = new MoveRotate(pub);
+	mRotationState = new MoveRotate(pub, movement_event_pub);
 	mStraightState = new MoveStraight(pub);
 	mStopState = new MoveStop(pub);
 	mFollowWallState = new MoveFollowWall(pub, statesPub);
-	mAlignWallState = new MoveAlignWall(pub);
+	mAlignWallState = new MoveAlignWall(pub, movement_event_pub);
 	mAlignToFrontWallState = new MoveAlignToFrontWall(pub);
 	mCoordinateState = new MoveCoordinate(pub, movement_event_pub);
 	mCurrentState = mStopState;

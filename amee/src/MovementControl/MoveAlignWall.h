@@ -14,6 +14,7 @@ namespace amee{
 	class MoveAlignWall : public MovementState {
 	public:
 		MoveAlignWall(ros::Publisher& pub);
+		MoveAlignWall(ros::Publisher& pub, ros::Publisher& eventPub);
 		~MoveAlignWall();
 
 		/**
@@ -26,8 +27,10 @@ namespace amee{
 		virtual void doControl(const SensorData& data);
 	private:
 		ros::Publisher mSpeedPub;
+		ros::Publisher mEventPub;
 		int mWallSide;
 		bool mIsRunning;
+		bool mPublishEvents;
 		float mStartingAngle;
 
 		void stop();

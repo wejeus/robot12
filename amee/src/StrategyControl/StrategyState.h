@@ -1,5 +1,9 @@
 #ifndef STRATEGY_STATE_H
 #define STRATEGY_STATE_H
+#include "amee/Pose.h"
+#include "amee/GraphMsg.h"
+#include "amee/MapperEvent.h"
+#include "amee/MovementEvent.h"
 
 
 namespace amee{
@@ -19,9 +23,13 @@ namespace amee{
 		virtual ~StrategyState(){};
 
 
-		virtual void init(const StrategyData& data) = 0;
+		// virtual void init(const StrategyData& data) = 0;
 		virtual bool isRunning() const = 0;
-		virtual void doControl(const StrategyData& data) = 0;
+		// virtual void doControl(const StrategyData& data) = 0;
+		virtual void receive_pose(const amee::Pose::ConstPtr &msg) = 0;
+		virtual void receive_graph(const amee::GraphMsg::ConstPtr &msg) = 0;
+		virtual void receive_mapper_event(const amee::MapperEvent::ConstPtr &msg) = 0;
+		virtual void receive_movement_event(const amee::MovementEvent::ConstPtr &msg) = 0;
 		
 	}; //StrategyState
 

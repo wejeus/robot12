@@ -2,13 +2,24 @@
 #include "MoveAlignWall.h"
 #include <cmath>
 #include "amee/Velocity.h"
+#include "amee/MovementEvent.h"
+#include "MovementControl.h"
 
 using namespace amee;
 
 MoveAlignWall::MoveAlignWall(ros::Publisher& pub) {
     mSpeedPub = pub;
     mIsRunning = false;
+    mPublishEvents = false;
 }
+
+MoveAlignWall::MoveAlignWall(ros::Publisher& pub, ros::Publisher& eventPub) {
+    mSpeedPub = pub;
+    mEventPub = eventPub;
+    mPublishEvents = true;
+    mIsRunning = false;
+}
+
 
 MoveAlignWall::~MoveAlignWall() {
 }
@@ -53,6 +64,11 @@ void MoveAlignWall::doControl(const SensorData& data) {
     if (fabs(mStartingAngle - data.odometry.angle) > 180.0f) { 
         // make sure we don't end up rotating all the time when there is something wrong
         // std::cout << "There seems to be no wall. Stop!" << std::endl;
+        if (mPublishEvents) {
+            MovementEvent event;
+            event.type = MovementControl::MOVEMENT_EVENT_TYPE_FAILED_ALIGNING_WALL;
+            mEventPub.publish(event);
+        }
         stop();
     }
 
@@ -80,6 +96,11 @@ void MoveAlignWall::doControl(const SensorData& data) {
     } else {
         // Aligning done!
         // std::cout << "TARGET ANGLE REACHED" << std::endl;
+        if (mPublishEvents) {
+            MovementEvent event;
+            event.type = MovementControl::MOVEMENT_EVENT_TYPE_DONE_ALIGNING_WALL;
+            mEventPub.publish(event);
+        }
         stop();
     }
 }
