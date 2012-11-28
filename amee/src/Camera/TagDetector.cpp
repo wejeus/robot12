@@ -74,8 +74,8 @@ int GAUSSIAN_KERNEL_SIZE = 7;
 int GAUSSIAN_SIGMA = 1.5;
 double TAG_MIN_PIXEL_AREA = 1500.0;
 int TAG_SIZE = 50;
-int NEEDED_PIXELS_RED_BORDER = 100;
-int NEEDED_PIXELS_RED_THRESHOLD = 200;
+int NEEDED_PIXELS_RED_BORDER = 80;
+int NEEDED_PIXELS_RED_THRESHOLD = 150;
 char TAG_FILES[] = "tags/files.txt";
 
 void render(Mat &frame, ros::Time timestamp);
@@ -254,8 +254,9 @@ void render(Mat &frame, ros::Time timestamp) {
         // imout(frame, "fail_");
     } else {
         log("[%d.%d] Found: %s with color: %s\n", timestamp.sec, timestamp.nsec, class2name(tag.type).c_str(), color2string(tag.color).c_str());
-        tagHistory.push_front(tag);
-        analyse(timestamp);
+        // tagHistory.push_front(tag);
+        // analyse(timestamp);
+        publishMap(timestamp, tag.type, tag.color); 
         setNextTagTimout();
     }
 
@@ -599,7 +600,7 @@ TAG_CLASS classifyTagUsingTemplate(Mat &ROI) {
     }
 
     // log("bestMatch: %f (error: %f)\n", bestMatch, error);
-    if (bestMatch > 0.5f) {
+    if (bestMatch > 0.7f) {
         return UNKNOWN;
     }
 

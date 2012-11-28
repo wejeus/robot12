@@ -15,7 +15,7 @@ Mapper::Mapper() {
 	mMappingState = PauseMapping;
 	mNodeId = 0;
 	mLastNodeId = -1;
-	mExploringGrid = new ExploringGrid(110,0.10f);
+	// mExploringGrid = new ExploringGrid(110,0.10f);
 }
 
 Mapper::~Mapper() {
@@ -408,7 +408,7 @@ void Mapper::visualize() {
 			//mVis.tags.push_back(p);
 		}
 
-		mVis.gridVis = mExploringGrid->getVisualization();
+		// mVis.gridVis = mExploringGrid->getVisualization();
 
 		vis_pub.publish(mVis);
 
@@ -480,7 +480,7 @@ void Mapper::mapping() {
 		mset.leftFront = mMeasurements[LEFT_FRONT];
 		mset.rightBack = mMeasurements[RIGHT_BACK];
 		mset.rightFront = mMeasurements[RIGHT_FRONT];
-		mExploringGrid->discover(mset, mPose.theta);
+		// mExploringGrid->discover(mset, mPose.theta);
 	}
 
 	int leftType = 0;
@@ -569,14 +569,14 @@ void Mapper::receive_MapperCommand(const amee::MapperCommand::ConstPtr &msg) {
 		case FindEdgesToUnexploredCommand: {
 			Pose unexploredPose;
 			unsigned int id;
-			bool foundPosition = mExploringGrid->getNextUnexploredPose(mMap, mGraph, unexploredPose, id);
-			if (foundPosition) {
-				MapperEvent me;
-				me.type = UnexploredCell;
-				me.nodeID = id;
-				me.pose = unexploredPose;
-				node_pub.publish(me);
-			}
+			// bool foundPosition = mExploringGrid->getNextUnexploredPose(mMap, mGraph, unexploredPose, id);
+			// if (foundPosition) {
+			// 	MapperEvent me;
+			// 	me.type = UnexploredCell;
+			// 	me.nodeID = id;
+			// 	me.pose = unexploredPose;
+			// 	node_pub.publish(me);
+			// }
 			}
 			break;
 		default:
