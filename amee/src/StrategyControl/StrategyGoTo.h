@@ -26,13 +26,13 @@ namespace amee{
 		virtual void receive_mapper_event(const amee::MapperEvent::ConstPtr &msg);
 		virtual void receive_movement_event(const amee::MovementEvent::ConstPtr &msg);
 
-		static const float EUCLIDEAN_POSITION_DISTANCE = 0.035f;
+		static const float NODE_REACHED_DISTANCE = 0.07f;
 
 	private:
 		bool mRunning;
 
 		enum GoToState {
-			MoveCoordinate, Rotate, Align, FollowWall, FinalRotate
+			MoveCoordinate, Rotate, Align, FollowWall, FinalRotate, CollisionRecovery
 		};
 
 		GoToState mState;
@@ -45,15 +45,19 @@ namespace amee{
 		amee::Graph mGraph;
 		std::queue<amee::NodeMsg> mPath;
 		amee::Pose mPose;
+		unsigned int mTargetId;
+		int mUnknownNodeCounter;
 
 		StrategyData mStrategyData;
 
 		void moveToNextWaypoint();
+		void handleCollision();
 		void startFollowWall();
 		void startMoveCoordinate(Pose& pose);
 		void stop();
+		void reinit();
 		float getAngleChange(float from, float to);
-		inline float EuclidDist(const Pose& p, const float& x, const float& y) const;
+		inline float EuclidDist(const Pose& p1, const Pose& p2) const;
 
 	}; //StrategyGoTo class
 
