@@ -42,7 +42,7 @@ rosbuild_add_executable(IRSensorReader src/IRSensor/IRSensorReader.cpp src/Amee.
 
 #rosbuild_add_executable(SonarNode src/SonarControl/SonarControl.cpp)
 rosbuild_add_executable(StrategyControl src/StrategyControl/StrategyControl.cpp src/StrategyControl/StrategyGoTo.cpp src/Graph/Graph.cpp src/Graph/PathFinderAlgo.cpp)
-rosbuild_add_executable(MovementControl src/MovementControl/MovementControl.cpp src/MovementControl/MoveRotate.cpp src/MovementControl/MoveStraight.cpp src/MovementControl/MoveStop.cpp src/MovementControl/MoveFollowWall.cpp src/MovementControl/MoveAlignWall.cpp src/MovementControl/MoveCoordinate.cpp src/MovementControl/MoveAlignToFrontWall.cpp src/Amee.cpp)
+rosbuild_add_executable(MovementControl src/MovementControl/MovementControl.cpp src/MovementControl/MoveRotate.cpp src/MovementControl/MoveStraight.cpp src/MovementControl/MoveStop.cpp src/MovementControl/MoveFollowWall.cpp src/MovementControl/MoveAlignWall.cpp src/MovementControl/MoveCoordinate.cpp src/MovementControl/MoveAlignToFrontWall.cpp src/MovementControl/MoveCollisionRecovery.cpp src/Amee.cpp)
 #rosbuild_add_executable(MeasureAmee src/MeasureAmee/MeasureAmee.cpp src/Amee.cpp)
 #rosbuild_add_executable(KeyHandler src/KeyHandler/key_handler.cpp)
 #rosbuild_add_executable(KeyHandlerTester src/KeyHandler/key_handler_listener.cpp)

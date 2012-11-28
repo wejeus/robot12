@@ -101,6 +101,12 @@ int main(int argc, char **argv){
             mc.type = 7;
             wait(pub);
             pub.publish(mc);
+        }else if(strcmp(argv[1], "collision") == 0){
+            pub = nodeHandle.advertise<MovementCommand>("/MovementControl/MovementCommand", 1);
+            MovementCommand mc;
+            mc.type = 8;
+            wait(pub);
+            pub.publish(mc);
         }else if(strcmp(argv[1], "reset") == 0){
 			pub = nodeHandle.advertise<Motor>("/serial/motor_speed", 1);
 			Motor m; m.right = 0.0f; m.left = 0.0f;
