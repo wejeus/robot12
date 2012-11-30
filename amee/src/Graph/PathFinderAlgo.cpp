@@ -173,8 +173,10 @@ bool PathFinderAlgo::Dijkstra(Graph& g, const int& source,  const int endId, flo
 			// float penalty = (((*it) < curID) || ((*it) - curID != 1)) ? NODE_DISTANCE_PENALTY : 0.0f;
 			float alt = pathD[curID] + EuclidDist(g.getNode(curID)->pose, g.getNode(*it)->pose);// + penalty;
 
-			// only take edges in direction of wall following
-			alt = ((*it) < curID && (*it) != 0) ? mBIG_FLOAT : alt;
+			// penalizes edges that do not allow wall following
+			int nId = (*it);
+			alt = (nId - curID) > 1 ? 1.5f * alt : alt;
+			// alt = ((*it) < curID && (*it) != 0) ? mBIG_FLOAT : alt;
 
 			if(alt < pathD[(*it)]){
 				pathD[(*it)] = alt;

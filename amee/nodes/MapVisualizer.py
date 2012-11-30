@@ -141,6 +141,7 @@ def onNodeMsgUpdate(msg):
 
 def onPathUpdate(msg):
   global path
+  path = []
   path = msg.nodeIDs
 
 def drawExplorationGrid(grid):

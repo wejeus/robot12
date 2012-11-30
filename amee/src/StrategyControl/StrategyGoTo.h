@@ -32,7 +32,7 @@ namespace amee{
 		bool mRunning;
 
 		enum GoToState {
-			MoveCoordinate, Rotate, Align, FollowWall, FinalRotate, CollisionRecovery
+			Start, MoveCoordinate, Rotate, Align, FollowWall, FinalRotate, CollisionRecovery
 		};
 
 		GoToState mState;

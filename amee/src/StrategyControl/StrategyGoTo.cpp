@@ -30,7 +30,7 @@ void StrategyGoTo::init(const amee::Pose &pose, const amee::GraphMsg::ConstPtr& 
 }
 
 void StrategyGoTo::reinit() {
-	mState = MoveCoordinate;
+	mState = Start;
 	mUnknownNodeCounter = 0;
 	int currentNodeId = mGraph.getIDFromPose(mPose.x, mPose.y, mPose.theta);
 
@@ -55,15 +55,31 @@ void StrategyGoTo::reinit() {
 	int i = 0;
 	std::cout << "Path: " << std::endl;
 	NodeMsg startNode = *(mGraph.getNode(currentNodeId));
-	mPath.push(startNode); // push the start node twice on the queue, that way we will move there first
+	// mPath.push(startNode); // push the start node twice on the queue, that way we will move there first
 	pathMsg.nodeIDs.clear();
+	int lastId = startNode.nodeID;
 	for(std::vector<NodeMsg>::iterator it = v.begin(); it != v.end(); ++it) {
+		// int curId = (*it).nodeID;
+		// if (curId - lastId != 1) {
+		
 		mPath.push(*it);
 		std::cout << i << ": " << (*it).pose.x << " " << (*it).pose.y << " id: " << (*it).nodeID << std::endl;
+		
+			
+		// } else {
+			// std::cout << i << ": continue follow wall." << std::endl;
+		// }
+		pathMsg.nodeIDs.push_back((*it).nodeID);	
+		// lastId = curId;
 		++i;
-		pathMsg.nodeIDs.push_back((*it).nodeID);
 	}
+	// NodeMsg last = v[v.size() - 1];
+	// if (mPath.back().nodeID != last.nodeID) {
+		// mPath.push(last);
+		// pathMsg.nodeIDs.push_back(last.nodeID);	
+	// }
 
+	mPath.pop(); // we assume we are already at the start position
 	mPathPub.publish(pathMsg);
 	mRunning = true;
 	moveToNextWaypoint();
@@ -75,18 +91,21 @@ bool StrategyGoTo::isRunning() const {
 
 void StrategyGoTo::moveToNextWaypoint() {
 	switch (mState) {
+		case Start:
+			startFollowWall();
+			break;
 		case Rotate:
 			std::cout << "Rotate Done" << std::endl;
-			if (mPath.front().type == Graph::NODE_NEXT_TO_WALL) {
-				std::cout << "We can align, so align!" << std::endl;
-				MovementCommand mc;
-				mc.type = MovementControl::TYPE_ALIGN_TO_WALL;
-				mCommandPub.publish(mc);
-				mState = Align;
-			} else {
-				std::cout << "Can't align, so start followWall" << std::endl;
+			// if (mPath.front().type == Graph::NODE_NEXT_TO_WALL) {
+			// 	std::cout << "We can align, so align!" << std::endl;
+			// 	MovementCommand mc;
+			// 	mc.type = MovementControl::TYPE_ALIGN_TO_WALL;
+			// 	mCommandPub.publish(mc);
+			// 	mState = Align;
+			// } else {
+			// 	std::cout << "Can't align, so start followWall" << std::endl;
 				startFollowWall();
-			}
+			// }
 			break;
 		case Align:
 			std::cout << "Align done" << std::endl;
@@ -158,15 +177,15 @@ void StrategyGoTo::moveToNextWaypoint() {
 
 void StrategyGoTo::handleCollision() {
 	NodeMsg waypointToReach =  mPath.front();
-	if (EuclidDist(mPose, waypointToReach.pose) <= NODE_REACHED_DISTANCE) {
+	// if (EuclidDist(mPose, waypointToReach.pose) <= NODE_REACHED_DISTANCE) {
 		mState = CollisionRecovery;
 		MovementCommand mc;
 		mc.type = MovementControl::TYPE_COLLISION_RECOVERY;
 		mCommandPub.publish(mc);
-	} else {
+	// } else {
 		// Path execution failed!
-		std::cout << "Collision, but we are not close to next waypoint, path execution faild." << std::endl;
-	}
+		// std::cout << "Collision, but we are not close to next waypoint, path execution faild." << std::endl;
+	// }
 
 }
 
@@ -233,29 +252,29 @@ void StrategyGoTo::receive_mapper_event(const amee::MapperEvent::ConstPtr &msg){
 	if (isRunning()) {
 		if (msg->type == Mapper::NodeReached) {
 			mUnknownNodeCounter = 0;
-			std::cout << "Node reached" << std::endl;
+			std::cout << "Node " << msg->nodeID << " reached" << std::endl;
 			if (mPath.front().nodeID == msg->nodeID) {
 				moveToNextWaypoint();	
 			} else  {
-				std::cout << "The node has id" << msg->nodeID << " but we want to reach node " << mPath.front().nodeID << std::endl;
-				int currentNode = msg->nodeID;
-				int waypoint = mPath.front().nodeID;
-				if (abs(currentNode - waypoint) >= 2) {
-					std::cout << "We are somewhere where we don't want to be, replan the path" << std::endl;
-					reinit();
-				}
+				// std::cout << "The node has id" << msg->nodeID << " but we want to reach node " << mPath.front().nodeID << std::endl;
+				// int currentNode = msg->nodeID;
+				// int waypoint = mPath.front().nodeID;
+				// if (abs(currentNode - waypoint) >= 2) {
+				// 	std::cout << "We are somewhere where we don't want to be, replan the path" << std::endl;
+				// 	reinit();
+				// }
 			}
 			
 			
 		} else if (msg->type == Mapper::UnknownNode) {
-			
-			if (mUnknownNodeCounter >= 3) {
-				std::cout << "Third UnknownNode, replan the path" << std::endl;
-				stop();
-				reinit();	
-			} else {
-				++mUnknownNodeCounter;	
-			}			
+			std::cout << "Unknown node" << std::endl;			
+			// if (mUnknownNodeCounter >= 3) {
+			// 	std::cout << "Third UnknownNode, replan the path" << std::endl;
+			// 	stop();
+			// 	reinit();	
+			// } else {
+			// 	++mUnknownNodeCounter;	
+			// }			
 		}
 	}
 }
