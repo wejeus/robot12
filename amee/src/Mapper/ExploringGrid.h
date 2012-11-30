@@ -11,32 +11,29 @@
 
 namespace amee {
 
-	static const int BLOB_POS_VISITED = 1;
-	static const int BLOB_GLOBAL_POS_VISITED = 2;
-
 class ExploringGrid {
 
 	public:
 
 		struct BlobPoint{
-			int r, c;
+			uint r, c;
 		};
 
 		struct Blob {
-			std::vector< std::vector<int> > region;
-			int size;
+			std::vector< std::vector<bool> > region;
+			uint size;
 
 			Blob(uint size) {
 				region.resize(size);
 				for(uint i=0; i < size; ++i) {
-					region[i].resize(size);
-					fill(region[i].begin(), region[i].end(), BLOB_GLOBAL_POS_VISITED);
+					region[i].resize(size, false);
+					// fill(region[i].begin(), region[i].end(), BLOB_GLOBAL_POS_VISITED);
 				}
 
 				this->size = 0;
 			}
-			void set(int r, int c, int value) {
-				region[r][c] = value;
+			void add(uint r, uint c) {
+				region[r][c] = true;
 				size++;
 			}
 		};
@@ -55,6 +52,14 @@ class ExploringGrid {
 		bool getNextUnexploredPose(Map& map, Graph& graph, Pose& out_pose, unsigned int& id);
 		ExploringGridVis& getVisualization();
 
+		//functions for testing the grid
+		void unexploredTester(int startRow, int endRow, int startCol, int endCol);
+		void findBlobsTester();
+		void printMGrid() ;
+		void printGrid(std::vector< std::vector<bool> > &ref, const char * symbol) const;
+
+		
+
 	private:
 		std::vector< std::vector<bool> > mGrid;
 		ExploringGridVis mVis;
@@ -67,7 +72,7 @@ class ExploringGrid {
 		float euclidDist(float x0, float y0, float x1, float y1);
 
 		int findBlobs(std::vector<Blob>& blobs) const;
-		void blobExtender(Blob& b, int r, int c) const;
+		void blobExtender(Blob& b, uint r, uint c, std::vector<std::vector<bool> >& visited) const;
 	};
 }
 #endif

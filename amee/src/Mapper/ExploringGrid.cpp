@@ -145,8 +145,9 @@ using namespace amee;
 
 		//TODO: look for the closest pose in the blob and go there
 		//out_pose = the newly founded pose
-		
-		std::vector< std::vector<int> > &b = blobs[blobIdx].region;
+
+		Map::Point start(start_pose);
+		std::vector< std::vector<bool> > &b = blobs[blobIdx].region;
 		uint size = b.size();
 
 		for(uint x=0; x<size; ++x){
@@ -164,7 +165,6 @@ using namespace amee;
 					}	
 					}
 				}
-				
 			}
 		}
 
@@ -174,14 +174,22 @@ using namespace amee;
 
 	int ExploringGrid::findBlobs(std::vector<Blob>& blobs) const {
 		std::cout << "Looking for blobs..." << std::endl;
+
 		uint rowSize = mGrid.size();
 		uint colSize = mGrid[0].size();
 
-		for (int r = 0; r < rowSize; ++r) {
-			for (int c = 0; c < colSize; ++c) {
-				if(!mGrid[r][c]) {
+		std::vector<std::vector<bool> > visited(rowSize);
+		for(uint i=0; i < rowSize; ++i) {
+			visited[i].resize(colSize, false);
+		}
+
+		for (uint r = 0; r < rowSize; ++r) {
+			for (uint c = 0; c < colSize; ++c) {
+				if(!mGrid[r][c] && !visited[r][c]) {
 					Blob newBlob( (rowSize > colSize) ? rowSize : colSize);
-					blobExtender(newBlob, r, c);
+
+					visited[r][c] = true;
+					blobExtender(newBlob, r, c, visited);
 					blobs.push_back(newBlob);
 				}
 			}
@@ -211,86 +219,83 @@ using namespace amee;
 		return sndLargestIdx;
 	}
 
-	void ExploringGrid::blobExtender(Blob& b, int r, int c) const {
-		b.set(r,c, BLOB_POS_VISITED);
+	void ExploringGrid::blobExtender(Blob& b, uint r, uint c, std::vector<std::vector<bool> >& visited) const {
+		b.add(r,c);
 
 		//calculate indices - prevet out of boundary access
-		int ur = r+1 < mGrid.size() ? r+1 : r; //upper row
-		int lr = r-1 > 0 ? r-1 : r; //lower row
-		int lc = c-1 > 0 ? c-1 : c; //left column
-		int rc = c+1 < mGrid[0].size() ? c+1: c; //right col
+		uint ur = r+1 < mGrid.size() ? r+1 : r; //upper row
+		uint lr = r == 0 ? r : r-1; //lower row
+		uint lc = c == 0 ? c : c-1; //left column
+		uint rc = c+1 < mGrid[0].size() ? c+1: c; //right col
 
 		//all the surounding pixles
 		BlobPoint p[8] = {{ur,lc},{ur,c},{ur,rc},{r,lc},{r,rc},{lr,lc},{lr,c},{lr,rc}};
 
-		for(int i=0; i<8; ++i){
+		for(uint i=0; i<8; ++i){
 
-			if(!(b.region[p[i].r][p[i].c] & BLOB_POS_VISITED)){
+			if(!visited[p[i].r][p[i].c]){
+				visited[p[i].r][p[i].c] = true;
+
 				if(!mGrid[p[i].r][p[i].c])
-					blobExtender(b, p[i].r, p[i].c);
-				else
-					b.set(p[i].r, p[i].c, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
+					blobExtender(b, p[i].r, p[i].c, visited);
 			}
 		}
-
-		// PIXLES ABOVE
-		// if(!(b.region[ur][lc] & BLOB_POS_VISITED)){
-		// 	if(!mGrid[ur][lc])
-		// 		blobExtender(b, ur, lc);
-		// 	else
-		// 		b.set(ur,lc, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
-		// }
-
-		// if(!(b.region[ur][c] & BLOB_POS_VISITED)){
-		// 	if(!mGrid[ur][c])
-		// 		blobExtender(b, ur, c);
-		// 	else
-		// 		b.set(ur,c, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
-		// }
-
-		// if(!(b.region[ur][rc] & BLOB_POS_VISITED)){
-		// 	if(!mGrid[ur][rc])
-		// 		blobExtender(b, ur, rc);
-		// 	else
-		// 		b.set(ur,rc, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
-		// }
-
-		// //LEFT AND RIGHT
-		// if(!(b.region[r][lc] & BLOB_POS_VISITED)){
-		// 	if(!mGrid[r][lc])
-		// 		blobExtender(b, r, lc);
-		// 	else
-		// 		b.set(r,lc, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
-		// }
-		// if(!(b.region[r][rc] & BLOB_POS_VISITED)){
-		// 	if(!mGrid[r][rc])
-		// 		blobExtender(b, r, rc);
-		// 	else
-		// 		b.set(r,rc, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
-		// }
-
-		// //PIXELS BENEATH
-		// if(!(b.region[lr][lc] & BLOB_POS_VISITED)){
-		// 	if(!mGrid[lr][lc])
-		// 		blobExtender(b, lr, lc);
-		// 	else
-		// 		b.set(lr,lc, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
-		// }
-		// if(!(b.region[lr][c] & BLOB_POS_VISITED)){
-		// 	if(!mGrid[lr][c])
-		// 		blobExtender(b, lr, c);
-		// 	else
-		// 		b.set(lr,c, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
-		// }
-		// if(!(b.region[lr][rc] & BLOB_POS_VISITED)){
-		// 	if(!mGrid[lr][rc])
-		// 		blobExtender(b, lr, rc);
-		// 	else
-		// 		b.set(lr,rc, BLOB_POS_VISITED & BLOB_GLOBAL_POS_VISITED);
-		// }
 	}
 
 
-float ExploringGrid::euclidDist(float x0, float y0, float x1, float y1){
-	return sqrt((x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1));
-}
+	float ExploringGrid::euclidDist(float x0, float y0, float x1, float y1){
+		return sqrt((x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1));
+	}
+
+
+
+
+// ###########################################################
+//These functions are for testing purpose only
+	void ExploringGrid::unexploredTester(int startRow, int endRow, int startCol, int endCol){
+		for(int i=startRow; i <= endRow; ++i){
+			for(int j=startCol; j <= endCol; ++j){
+				mGrid[i][j] = true;
+			}
+		}
+	}
+
+	void ExploringGrid::findBlobsTester(){
+		std::vector<Blob> blobs;
+		int blobIdx = findBlobs(blobs);
+
+		std::cout << "Blob found: " << (char)blobIdx << std::endl;
+		// const char * symbol = (char*)&blobIdx;
+		printGrid(blobs[blobIdx].region, "B ");
+	}
+
+	void ExploringGrid::printMGrid() {
+		printGrid(mGrid, "# ");
+	}
+
+	void ExploringGrid::printGrid(std::vector< std::vector<bool> > & g, const char * symbol) const {
+		uint rSize = g.size();
+		uint cSize = g[0].size();
+
+		std::cout << "################ start of print ############### " << std::endl;
+
+		for(uint c =0; c< cSize; ++c) std::cout << "__";
+		std::cout << std::endl;
+
+		for(uint r = 0; r < rSize; ++r){
+			cSize = g[r].size();
+			std::cout << "|";
+			for(uint c = 0; c < cSize; ++c){
+				std::cout << (g[r][c] ? symbol : "  ");
+			}
+
+			std::cout << "|" << std::endl;
+		}
+
+		for(uint c =0; c< cSize; ++c) std::cout << "__";
+		std::cout << std::endl;
+
+		std::cout << "################ end of print #################" << std::endl;
+	}
+	
+// ###########################################################
