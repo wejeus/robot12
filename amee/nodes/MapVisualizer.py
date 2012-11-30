@@ -69,12 +69,12 @@ def refresh(msg):
     pygame.draw.line(window, (0,200,0), start, end)
     #drawNode(x, y, theta)
 
-  if len(path) > 1: # add an edge from the last to first
-    (x, y, theta, nodeID, edges) = nodes[path[len(path)-1]]
-    start = transform(x, y)
-    end = transform(nodes[path[0]][0], nodes[path[0]][1])
+  # if len(path) > 1: # add an edge from the last to first
+  #   (x, y, theta, nodeID, edges) = nodes[path[len(path)-1]]
+  #   start = transform(x, y)
+  #   end = transform(nodes[path[0]][0], nodes[path[0]][1])
 
-    pygame.draw.line(window, (0,100,0), start, end)
+  #   pygame.draw.line(window, (0,100,0), start, end)
     #drawNode(x, y, theta)
 
 

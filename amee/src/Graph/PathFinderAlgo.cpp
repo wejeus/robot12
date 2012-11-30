@@ -36,15 +36,18 @@ typedef priority_queue<int, vector<int>, CompareNode> NodePQ;
  * This gives you a shortest path of from a starting node ID to an end ID in a graph.
  * The return value is a vector of NodeMsg in ordered way.
  */
-std::vector<amee::NodeMsg> PathFinderAlgo::findShortestPath(Graph& g, const int startId, const int endId){
+bool PathFinderAlgo::findShortestPath(Graph& g,std::vector<amee::NodeMsg>& v, const int startId, const int endId){
 	size_t size = g.size();
 	float pathD[size];
 	int path[size];
 
-	Dijkstra(g, startId, pathD, path);
+	bool pathFound = Dijkstra(g, startId, endId, pathD, path);
+
+	if (!pathFound) {
+		return false;
+	}
 
 	int curDest = endId;
-	vector<NodeMsg> v;
 
 	while(curDest != startId){
 		// cout << "from " << path[curDest] << " to " << curDest << endl;
@@ -56,44 +59,44 @@ std::vector<amee::NodeMsg> PathFinderAlgo::findShortestPath(Graph& g, const int 
 
 	reverse(v.begin(), v.end());
 
-	return v;
+	return pathFound;
 }
 
-std::vector<amee::NodeMsg> PathFinderAlgo::findShortestPath(Graph& g, const float x, const float y, const int endId) {
-	std::vector<amee::NodeMsg> v;
+// std::vector<amee::NodeMsg> PathFinderAlgo::findShortestPath(Graph& g, const float x, const float y, const int endId) {
+// 	std::vector<amee::NodeMsg> v;
 
-	int curID = getIDfromPose(g, x, y);
-	if(curID == -1){
-		std::cout << "couldn't find curID in findShortestPath(Graph, float, float, int)" << std::endl;
-		return v;
-	}
+// 	int curID = getIDfromPose(g, x, y);
+// 	if(curID == -1){
+// 		std::cout << "couldn't find curID in findShortestPath(Graph, float, float, int)" << std::endl;
+// 		return v;
+// 	}
 
-	return findShortestPath(g, curID, endId);
-}
+// 	return findShortestPath(g, curID, endId);
+// }
 
-std::vector<amee::NodeMsg> PathFinderAlgo::findShortestPath(Graph& g, const float x0, const float y0, const float x1, const float y1) {
-	std::vector<amee::NodeMsg> v;
+// std::vector<amee::NodeMsg> PathFinderAlgo::findShortestPath(Graph& g, const float x0, const float y0, const float x1, const float y1) {
+// 	std::vector<amee::NodeMsg> v;
 
-	int startID = getIDfromPose(g, x0, y0);
-	if(startID == -1) {
-		std::cout << "couldn't find the startID in findShortestPath!" << std::endl;
-		return v;
-	}
+// 	int startID = getIDfromPose(g, x0, y0);
+// 	if(startID == -1) {
+// 		std::cout << "couldn't find the startID in findShortestPath!" << std::endl;
+// 		return v;
+// 	}
 
-	int endID = getIDfromPose(g, x1, y1);
-	if(endID == -1) {
-		std::cout << "couldn't find the endID in findShortestPath!" << std::endl;
-		return v;	
-	}
+// 	int endID = getIDfromPose(g, x1, y1);
+// 	if(endID == -1) {
+// 		std::cout << "couldn't find the endID in findShortestPath!" << std::endl;
+// 		return v;	
+// 	}
 
-	return findShortestPath(g, startID, endID);
-}
+// 	return findShortestPath(g, startID, endID);
+// }
 
 
 /**
  * Calculates the distances from a source to all nodes in the graph.
  */
-void PathFinderAlgo::Dijkstra(Graph& g, const int& source, float * pathD, int * path) {
+bool PathFinderAlgo::Dijkstra(Graph& g, const int& source,  const int endId, float * pathD, int * path) {
 	size_t size = g.size();
 	bool visited[size];
 	size_t i;
@@ -109,7 +112,7 @@ void PathFinderAlgo::Dijkstra(Graph& g, const int& source, float * pathD, int * 
 	}
 
 	pathD[source] = 0.0f;
-	path[source] = 0;
+	path[source] = source;
 
 
 
@@ -146,10 +149,12 @@ void PathFinderAlgo::Dijkstra(Graph& g, const int& source, float * pathD, int * 
 
 	const std::vector<NodeMsg*> gNodes = g.getNodes();
 	
-	std::vector<NodeMsg*>::const_iterator n_it;
-	for(n_it=gNodes.begin(); n_it != gNodes.end(); ++n_it){
-		pq.push((*n_it)->nodeID);
-	}
+	// std::vector<NodeMsg*>::const_iterator n_it;
+	// for(n_it=gNodes.begin(); n_it != gNodes.end(); ++n_it){
+	// 	pq.push((*n_it)->nodeID);
+	// }
+
+	pq.push(source);
 
 	int curID;
 
@@ -165,7 +170,7 @@ void PathFinderAlgo::Dijkstra(Graph& g, const int& source, float * pathD, int * 
 		
 		v = &(g.getNode(curID)->edges);
 		for(it = v->begin(); it != v->end(); ++it){
-			float penalty = ((*it) - curID != 1) ? NODE_DISTANCE_PENALTY : 0.0f;
+			float penalty = (((*it) < curID) || ((*it) - curID != 1)) ? NODE_DISTANCE_PENALTY : 0.0f;
 			float alt = pathD[curID] + EuclidDist(g.getNode(curID)->pose, g.getNode(*it)->pose) + penalty;
 
 			if(alt < pathD[(*it)]){
@@ -175,6 +180,7 @@ void PathFinderAlgo::Dijkstra(Graph& g, const int& source, float * pathD, int * 
 			}
 		}
 	}
+	return visited[endId];
 }
 
 int PathFinderAlgo::getIDfromPose(Graph& g, const float x, const float y) const {

@@ -30,8 +30,15 @@ namespace amee{
 
 	private:
 		bool mRunning;
+
+		enum GoToState {
+			MoveCoordinate, Rotate, Align, FollowWall, FinalRotate
+		};
+
+		GoToState mState;
+		
 		// bool mRestartFollowingWall;
-		bool mFollowingWall;
+		// bool mFollowingWall;
 		ros::Publisher mCommandPub;
 		ros::Publisher mPhaseInfo;
 		ros::Publisher mPathPub;
@@ -42,7 +49,10 @@ namespace amee{
 		StrategyData mStrategyData;
 
 		void moveToNextWaypoint();
+		void startFollowWall();
+		void startMoveCoordinate(Pose& pose);
 		void stop();
+		float getAngleChange(float from, float to);
 		inline float EuclidDist(const Pose& p, const float& x, const float& y) const;
 
 	}; //StrategyGoTo class

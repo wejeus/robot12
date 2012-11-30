@@ -195,7 +195,7 @@ void Mapper::findEdges() {
 		for (std::list<int>::const_iterator j = mNewNodes.begin(), end = mNewNodes.end(); j != end; j++) {
 			NodeMsg* endNode = mGraph.getNode(*j);
 			Map::Point end(endNode->pose);
-			if ((euclDist(startNode->pose, endNode->pose) <= 0.5f) && mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
+			if ((euclDist(startNode->pose, endNode->pose) <= 0.25f) && mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
 				mGraph.addEdges(*i,*j);
 			}
 		}
@@ -208,7 +208,7 @@ void Mapper::findEdges() {
 		for (std::list<int>::const_iterator j = i, end = mNewNodes.end(); j != end; j++) {
 			NodeMsg* endNode = mGraph.getNode(*j);
 			Map::Point end(endNode->pose);
-			if ((euclDist(startNode->pose, endNode->pose) <= 0.5f) && mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
+			if ((euclDist(startNode->pose, endNode->pose) <= 0.25f) && mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
 				mGraph.addEdges(*i,*j);
 			}
 		}
