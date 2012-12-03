@@ -242,6 +242,12 @@ inline float StrategyGoTo::EuclidDist(const Pose& p1, const Pose& p2) const {
 
 void StrategyGoTo::receive_pose(const amee::Pose::ConstPtr &msg){ 
 	mPose = (*msg);
+	// there are no events for tag nodes, so we check here based on our pose if we reached it
+	if (isRunning() && !mPath.empty() && (mPath.front().type == Graph::NODE_TAG)) { 
+		if (EuclidDist(mPose, mPath.front().pose) <= 0.08f) {
+			moveToNextWaypoint();
+		}
+	}
 }
 
 void StrategyGoTo::receive_graph(const amee::GraphMsg::ConstPtr &msg){
