@@ -30,6 +30,7 @@ void MoveRotate::init(const SensorData& data) {
     mIsRotating = true;
     mTargetAngle = 90.0f;
     publishSpeeds(0.0f, 0.0f);
+    mStartedRotation = false;
 }
 
 void MoveRotate::init(const SensorData& data, const float& degrees) {
@@ -42,8 +43,9 @@ bool MoveRotate::isRunning() const {
 }
 
 void MoveRotate::doControl(const SensorData& data) {
-    float MAX_ROTATION_SPEED = 0.1;
-    float MIN_ROTATION_SPEED = 0.08;
+    float MAX_ROTATION_SPEED = 0.2;
+    float MIN_ROTATION_SPEED = 0.06;
+    const float ACC_PHASE = 20.0f;
 
     mCurrentRelativeAngle = data.odometry.angle - mStartingAngle;
     // std::cout << mCurrentRelativeAngle << std::endl;
@@ -56,6 +58,14 @@ void MoveRotate::doControl(const SensorData& data) {
         // lower speed as we come closer to "degreesToTravel"
         float rotationSpeed = K_p * angleError;
         float speedSign = rotationSpeed > 0.0f ? 1.0 : -1.0f;
+
+          if ((fabs(mCurrentRelativeAngle) < ACC_PHASE) && !mStartedRotation) {
+            rotationSpeed = speedSign * fabs(mCurrentRelativeAngle + speedSign*1.0f) / ACC_PHASE; // make a smooth acceleration
+            // std::cout << "ACC LIMITER" << std::endl;
+        } else {
+            // std::cout << "NO ACC LIMITER" << std::endl;
+            mStartedRotation = true;
+        }
 
         if (fabs(rotationSpeed) > MAX_ROTATION_SPEED) {
             // saturate speed to ROTATION_SPEED if too high

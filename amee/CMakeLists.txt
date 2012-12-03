@@ -42,7 +42,7 @@ rosbuild_add_executable(IRSensorReader src/IRSensor/IRSensorReader.cpp src/Amee.
 
 #rosbuild_add_executable(SonarNode src/SonarControl/SonarControl.cpp)
 rosbuild_add_executable(StrategyControl src/StrategyControl/StrategyControl.cpp src/StrategyControl/StrategyGoTo.cpp src/Graph/Graph.cpp src/Graph/PathFinderAlgo.cpp)
-rosbuild_add_executable(MovementControl src/MovementControl/MovementControl.cpp src/MovementControl/MoveRotate.cpp src/MovementControl/MoveStraight.cpp src/MovementControl/MoveStop.cpp src/MovementControl/MoveFollowWall.cpp src/MovementControl/MoveAlignWall.cpp src/MovementControl/MoveCoordinate.cpp src/MovementControl/MoveAlignToFrontWall.cpp src/Amee.cpp)
+rosbuild_add_executable(MovementControl src/MovementControl/MovementControl.cpp src/MovementControl/MoveRotate.cpp src/MovementControl/MoveStraight.cpp src/MovementControl/MoveStop.cpp src/MovementControl/MoveFollowWall.cpp src/MovementControl/MoveAlignWall.cpp src/MovementControl/MoveCoordinate.cpp src/MovementControl/MoveAlignToFrontWall.cpp src/MovementControl/MoveCollisionRecovery.cpp src/Amee.cpp)
 #rosbuild_add_executable(MeasureAmee src/MeasureAmee/MeasureAmee.cpp src/Amee.cpp)
 #rosbuild_add_executable(KeyHandler src/KeyHandler/key_handler.cpp)
 #rosbuild_add_executable(KeyHandlerTester src/KeyHandler/key_handler_listener.cpp)
@@ -56,11 +56,11 @@ rosbuild_add_executable(IMUReader src/IMUSensor/IMUReader.cpp src/Amee.cpp)
 
 rosbuild_add_executable(Mapper src/Mapper/Mapper.cpp src/Mapper/Map.cpp src/Mapper/HorizontalWallSegment.cpp src/Mapper/VerticalWallSegment.cpp src/Graph/Graph.cpp src/Mapper/ExploringGrid.cpp src/Amee.cpp)
 
+rosbuild_add_executable(TestUnexploredGrid src/Mapper/TestUnexploredGrid src/Mapper/ExploringGrid.cpp src/Graph/Graph.cpp src/Mapper/Map.cpp src/Mapper/HorizontalWallSegment.cpp src/Mapper/VerticalWallSegment.cpp)
 #rosbuild_add_executable(TestGraph src/Graph/TestGraphAlgo.cpp src/Graph/Graph.cpp src/Graph/PathFinderAlgo.cpp) #This is for debugging the Graph and PathFinderAlgo
-#rosbuild_add_executable(TagDetector src/Camera/TagDetector.cpp)
-#target_link_libraries(TagDetector opencv_core opencv_highgui opencv_imgproc opencv_video opencv_nonfree opencv_objdetect opencv_ml opencv_contrib)
-#rosbuild_add_executable(Recorder src/Camera/Recorder.cpp)
-#target_link_libraries(Recorder opencv_core opencv_highgui opencv_imgproc opencv_video opencv_nonfree opencv_objdetect opencv_ml opencv_contrib)
+rosbuild_add_executable(TagDetector src/Camera/TagDetector.cpp src/Camera/CameraHack.cpp)
+target_link_libraries(TagDetector opencv_core opencv_highgui opencv_imgproc opencv_video opencv_nonfree opencv_objdetect opencv_ml opencv_contrib)
+
 
 #rosbuild_add_executable(SensorSync src/SensorSync/SensorSync.cpp)
 

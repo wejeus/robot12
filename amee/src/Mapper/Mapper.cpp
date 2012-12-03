@@ -16,6 +16,7 @@ Mapper::Mapper() {
 	mNodeId = 0;
 	mLastNodeId = -1;
 	// mExploringGrid = new ExploringGrid(60,0.10f);
+
 }
 
 Mapper::~Mapper() {
@@ -35,11 +36,12 @@ void Mapper::receive_distances(const IRDistances::ConstPtr &msg)
 }
 
 void Mapper::receive_tag(const amee::Tag::ConstPtr& msg) {
-	// Map::Point p;
-	// p.x = mPose.x;
-	// p.y = mPose.y;
-	// mTagPositions.push_back(p);
-	if (sqrt((mPose.x - mLastTagPose.x) * (mPose.x - mLastTagPose.x) + (mPose.y - mLastTagPose.y) * (mPose.y - mLastTagPose.y)) > 0.04f) {
+
+	if (sqrt((mPose.x - mLastTagPose.x) * (mPose.x - mLastTagPose.x) + (mPose.y - mLastTagPose.y) * (mPose.y - mLastTagPose.y)) > 0.08f) {
+		Map::Point p;
+		p.x = mPose.x;
+		p.y = mPose.y;
+		mTagPositions.push_back(p);
 		int type = amee::Graph::NODE_TAG;
 		handleNodeEvent(type, mPose.timestamp);
 		mLastTagPose = mPose;	
@@ -94,12 +96,12 @@ void Mapper::receive_FollowWallState(const amee::FollowWallStates::ConstPtr &msg
 			if (mMappingState == PauseMapping) {
 				mMappingState = Mapping;
 			}
-			type = amee::Graph::NODE_NEXT_TO_WALL;
-			handleNodeEvent(type, msg->timestamp);
+			// type = amee::Graph::NODE_NEXT_TO_WALL;
+			// handleNodeEvent(type, msg->timestamp);
 			mRotating = false;
 			break;
 		case amee::MoveFollowWall::FOLLOW_WALL_OUT:
-			if(mInitialized) handleNodeEvent(amee::Graph::NODE_NEXT_TO_WALL, msg->timestamp);	
+			// if(mInitialized) handleNodeEvent(amee::Graph::NODE_NEXT_TO_WALL, msg->timestamp);	
 			break;
 		case amee::MoveFollowWall::ROTATE_LEFT_IN:
 			type = amee::Graph::NODE_ROTATE_LEFT;
@@ -141,6 +143,7 @@ void Mapper::handleNodeEvent(int type, double timestamp) {
 	MapperEvent event;
 	
 	if (existingNodeId != -1) { // we found a close node
+		// std::cout << "found a close existing node ";
 		NodeMsg* node = mGraph.getNode(existingNodeId);
 		float dist = euclDist(mPose, node->pose);
 		nodeRevisited = (dist <= Graph::MAX_DISTANCE_TO_NODE) && sameTheta(mPose.theta, node->pose.theta);
@@ -148,8 +151,9 @@ void Mapper::handleNodeEvent(int type, double timestamp) {
 
 		// TODO: We could adapt our Pose here, but not sure if it is a good idea or not
 		if (nodeRevisited) {
+			// std::cout << " it's a revisiting. -> no new node" << std::endl;
 			if ((mLastNodeId != -1) && (mMappingState == PauseMapping || mMappingState == Mapping)) {
-				mGraph.addEdges(mNodeId, mLastNodeId);
+				mGraph.addEdges(mLastNodeId, mNodeId);
 			}
 			mLastNodeId = mNodeId;
 			event.type = NodeReached;
@@ -158,10 +162,11 @@ void Mapper::handleNodeEvent(int type, double timestamp) {
 	
 	if (!nodeRevisited) {
 		if (mMappingState == PauseMapping || mMappingState == Mapping) {	
+			// std::cout << " it's NOT a revisiting. -> new node" << std::endl;
 			mNodeId = mGraph.addNode(mPose, type);
 			
 			if (mLastNodeId != -1) {
-				mGraph.addEdges(mNodeId, mLastNodeId);
+				mGraph.addEdges(mLastNodeId, mNodeId);
 			} 
 			mLastNodeId = mNodeId;
 			mNewNodes.push_back(mNodeId);
@@ -195,7 +200,9 @@ void Mapper::findEdges() {
 		for (std::list<int>::const_iterator j = mNewNodes.begin(), end = mNewNodes.end(); j != end; j++) {
 			NodeMsg* endNode = mGraph.getNode(*j);
 			Map::Point end(endNode->pose);
-			if ((euclDist(startNode->pose, endNode->pose) <= 0.25f) && mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
+			if ((euclDist(startNode->pose, endNode->pose) <= 0.5f) 
+				&& (startNode->nodeID < endNode->nodeID)
+				&& mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
 				mGraph.addEdges(*i,*j);
 			}
 		}
@@ -208,7 +215,9 @@ void Mapper::findEdges() {
 		for (std::list<int>::const_iterator j = i, end = mNewNodes.end(); j != end; j++) {
 			NodeMsg* endNode = mGraph.getNode(*j);
 			Map::Point end(endNode->pose);
-			if ((euclDist(startNode->pose, endNode->pose) <= 0.25f) && mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
+			if ((euclDist(startNode->pose, endNode->pose) <= 0.5f) 
+				&& (startNode->nodeID < endNode->nodeID)
+				&& mMap.isPathCollisionFree(start,end,0.02f,0.12f)) {
 				mGraph.addEdges(*i,*j);
 			}
 		}
@@ -565,8 +574,18 @@ void Mapper::receive_MapperCommand(const amee::MapperCommand::ConstPtr &msg) {
 		case LocalizeCommand:
 			mMappingState = Localizing;
 			break;
-		case FindEdgesToUnexploredCommand:
-			//TODO
+		case FindEdgesToUnexploredCommand: {
+			Pose unexploredPose;
+			// unsigned int id;
+			// bool foundPosition = mExploringGrid->getNextUnexploredPose(mMap, mGraph, unexploredPose, id);
+			// if (foundPosition) {
+			// 	MapperEvent me;
+			// 	me.type = UnexploredCell;
+			// 	me.nodeID = id;
+			// 	me.pose = unexploredPose;
+			// 	node_pub.publish(me);
+			// }
+			}
 			break;
 		default:
 			std::cout << "Unknown mapper command received." << std::endl;

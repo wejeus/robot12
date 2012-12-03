@@ -123,3 +123,162 @@ using namespace amee;
 		cell.second = floor(ty / mCellSize);
 		return cell;
 	}
+
+	Map::Point ExploringGrid::getPoint(uint x, uint y){
+		Map::Point p;
+		p.x = (float)x * mCellSize - mOffset;
+		p.y = (float)y * mCellSize - mOffset;
+
+		return p;
+	}
+
+	bool ExploringGrid::getNextUnexploredPose(Map &map, const Pose& start_pose, Pose& out_pose) {
+		std::cout << "ExploringGrid looking for a new unexplored position..." << std::endl;
+		std::vector<Blob> blobs;
+		int blobIdx = findBlobs(blobs);
+
+		if(blobIdx == -1){
+			std::cout << "Could not find any blobs..." << std::endl;
+			return false;
+		}
+
+		//TODO: look for the closest pose in the blob and go there
+		//out_pose = the newly founded pose
+		Map::Point start(start_pose);
+		std::vector< std::vector<bool> > &b = blobs[blobIdx].region;
+		uint size = b.size();
+		for(uint x=0; x<size; ++x){
+			for(uint y=0; y<size; ++y){
+				Map::Point end = getPoint(x, y);
+				if(euclidDist(start.x, start.y, end.x, end.y) < 0.5f && map.isPathCollisionFree(start, end, 0.02f, 0.12f)) {
+					out_pose.x = end.x;
+					out_pose.y = end.y;
+					return true;
+				}
+
+
+			}
+		}
+
+		std::cout << "Couldn't find close enough pose in the blob" << std::endl;
+		return false;
+	}
+
+	int ExploringGrid::findBlobs(std::vector<Blob>& blobs) const {
+		std::cout << "Looking for blobs..." << std::endl;
+
+		uint rowSize = mGrid.size();
+		uint colSize = mGrid[0].size();
+
+		std::vector<std::vector<bool> > visited(rowSize);
+		for(uint i=0; i < rowSize; ++i) {
+			visited[i].resize(colSize, false);
+		}
+
+		for (uint r = 0; r < rowSize; ++r) {
+			for (uint c = 0; c < colSize; ++c) {
+				if(!mGrid[r][c] && !visited[r][c]) {
+					Blob newBlob( (rowSize > colSize) ? rowSize : colSize);
+
+					visited[r][c] = true;
+					blobExtender(newBlob, r, c, visited);
+					blobs.push_back(newBlob);
+				}
+			}
+		}
+
+		uint largest = 0;
+		int largestBlobIdx = -1;
+		for(uint i=0; i<blobs.size(); ++i){
+			if(blobs[i].size > largest){
+				largest = blobs[i].size;
+				largestBlobIdx = i;
+			}
+		}
+
+		if(largestBlobIdx != -1)
+			std::cout << "Found " << blobs.size() << " blobs, with the largest being: " << largest << std::endl;
+
+		return largestBlobIdx;
+	}
+
+	void ExploringGrid::blobExtender(Blob& b, uint r, uint c, std::vector<std::vector<bool> >& visited) const {
+		b.add(r,c);
+
+		//calculate indices - prevet out of boundary access
+		uint ur = r+1 < mGrid.size() ? r+1 : r; //upper row
+		uint lr = r == 0 ? r : r-1; //lower row
+		uint lc = c == 0 ? c : c-1; //left column
+		uint rc = c+1 < mGrid[0].size() ? c+1: c; //right col
+
+		//all the surounding pixles
+		BlobPoint p[8] = {{ur,lc},{ur,c},{ur,rc},{r,lc},{r,rc},{lr,lc},{lr,c},{lr,rc}};
+
+		for(uint i=0; i<8; ++i){
+
+			if(!visited[p[i].r][p[i].c]){
+				visited[p[i].r][p[i].c] = true;
+
+				if(!mGrid[p[i].r][p[i].c])
+					blobExtender(b, p[i].r, p[i].c, visited);
+			}
+		}
+	}
+
+
+	float ExploringGrid::euclidDist(float x0, float y0, float x1, float y1){
+		return sqrt((x0 - x1) * (x0 - x1) + (y0 - y1) * (y0 - y1));
+	}
+
+
+
+
+// ###########################################################
+//These functions are for testing purpose only
+	void ExploringGrid::unexploredTester(int startRow, int endRow, int startCol, int endCol){
+		for(int i=startRow; i <= endRow; ++i){
+			for(int j=startCol; j <= endCol; ++j){
+				mGrid[i][j] = true;
+			}
+		}
+	}
+
+	void ExploringGrid::findBlobsTester(){
+		std::vector<Blob> blobs;
+		int blobIdx = findBlobs(blobs);
+
+		std::cout << "Blob found: " << (char)blobIdx << std::endl;
+		// const char * symbol = (char*)&blobIdx;
+		printGrid(blobs[blobIdx].region, "B ");
+	}
+
+	void ExploringGrid::printMGrid() {
+		printGrid(mGrid, "# ");
+	}
+
+	void ExploringGrid::printGrid(std::vector< std::vector<bool> > & g, const char * symbol) const {
+		uint rSize = g.size();
+		uint cSize = g[0].size();
+
+		std::cout << "################ start of print ############### " << std::endl;
+
+		for(uint c =0; c< cSize; ++c) std::cout << "__";
+		std::cout << std::endl;
+
+		for(uint r = 0; r < rSize; ++r){
+			cSize = g[r].size();
+			std::cout << "|";
+			for(uint c = 0; c < cSize; ++c){
+				std::cout << (g[r][c] ? symbol : "  ");
+			}
+
+			std::cout << "|" << std::endl;
+		}
+
+		for(uint c =0; c< cSize; ++c) std::cout << "__";
+		std::cout << std::endl;
+
+		std::cout << "################ end of print #################" << std::endl;
+	}
+	
+// ###########################################################

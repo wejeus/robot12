@@ -31,4 +31,8 @@ int main(int agrc, char** argv) {
 	theta1 = 0.05f; 
 	theta2 = 6.1f;
 	std::cout << "same theta: " << theta1 << " " << theta2 << " " << sameTheta(theta1, theta2) << std::endl;
+
+	theta1 = 0.00476806983352;
+	theta2 = 6.26118707657;
+	std::cout << "same theta: " << theta1 << " " << theta2 << " " << sameTheta(theta1, theta2) << std::endl;
 }

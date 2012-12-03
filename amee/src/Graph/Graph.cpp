@@ -206,11 +206,11 @@ void Graph::addEdges(int id1, int id2){
 		mNodes[id1]->edges.push_back(id2);
 
 
-	//add id1 to node with id2
-	if(std::find(mNodes[id2]->edges.begin(), mNodes[id2]->edges.end(), id1) != mNodes[id2]->edges.end()){
-		//it already contians this id
-	}else
-		mNodes[id2]->edges.push_back(id1);
+	// //add id1 to node with id2
+	// if(std::find(mNodes[id2]->edges.begin(), mNodes[id2]->edges.end(), id1) != mNodes[id2]->edges.end()){
+	// 	//it already contians this id
+	// }else
+	// 	mNodes[id2]->edges.push_back(id1);
 }
 
 amee::NodeMsg * Graph::getNode(int id){
