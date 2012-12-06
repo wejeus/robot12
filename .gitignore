@@ -10,4 +10,8 @@ amee/CMakeCache.txt
 amee/CMakeFiles/
 amee/cmake_install.cmake
 amee/Makefile
-*.swp
+/docs/final report/*.swp
+/docs/final report/*.aux
+/docs/final report/*.log
+/docs/final report/*.toc
+/docs/final report/main.pdf
