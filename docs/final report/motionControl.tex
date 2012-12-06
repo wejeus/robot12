@@ -34,6 +34,8 @@ Wall following moves the robot along a wall and makes it turn so that most situa
     \textbf{Condition} & \textbf{Description} \\ \hline
     rF & Right front IR sensor sees a wall \\ \hline
     rL & Right left IR sensor sees a wall \\ \hline
+    ES & Distance to wall error is below threshold \\ \hline
+    EB & Distance to wall error is above threshold \\ \hline
     WF & Wall in front detected \\
     %\hline
   \end{tabular}
@@ -43,8 +45,8 @@ Wall following moves the robot along a wall and makes it turn so that most situa
 
 \begin{figure}[h]
     \begin{centering}
-   	 \includegraphics[scale=0.15]{figures/followWallStates.jpg}
-   	 \caption{followWallStates, TODO: nice image.}\label{fig:followWallStates}
+   	 \includegraphics[scale=0.75]{figures/followWallStates_nice.pdf}
+   	 \caption{Blockdiagram showing the state transitions}\label{fig:followWallStates}
     \end{centering}
 \end{figure}
 
