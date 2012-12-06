@@ -34,7 +34,7 @@ The respective coordinate can be reset based on the measured distance to the wal
 
 For path planning a roadmap defined as directed visibility graph on the map is used. The graph's nodes are placed where one of the following events occurred while mapping: the wall follower aligned to a wall, rotated left or rotated right or a tag was detected. 
 
-The camera node described in section \ref{ComputerVision} notifies the mapper node about any tag detection. To prevent multiple tag entries into the map at the same position due to multiple detections of the same tag, a tag node is only added if it is at least $0.08m$ away from the last detection. 
+The camera node described in section \ref{sect:computerVision} notifies the mapper node about any tag detection. To prevent multiple tag entries into the map at the same position due to multiple detections of the same tag, a tag node is only added if it is at least $0.08m$ away from the last detection. 
 The first node added to the graph denotes the entry/exit of the maze.
 Each node has an id which uniquely identifies it. The ids are increased every time a new node is added and thus represent the order in which the nodes are added.
 

@@ -1,4 +1,4 @@
-This section describes the software that we used, a class diagram of our implementation and a flow chart of how the robot interacts with its environment.
+This section describes the software that we used and a flow chart of how the robot interacts with its environment.
 
 \subsection{Software used}
 The robot needs to execute multiple tasks and react on many inputs at once. Therefore we were recomended to use Robot Operating System (ROS) which is a software framework that can be run on other *nix-like operating systems like GNU/Linux and Mac OS X. ROS basically works as a intermediate ``talker'' between the different processes that we run on our robot. The advantage of using ROS instead of explicitally create threads that can comunicate with each other is that we can rather simple separate each functionality and test them seperately. It also unsure that we don't need to handle deadlocks and shared objects. The drawbacks are the time it takes to get a good grep of how ROS works, and that it has a slight overhead compared to pthread library.
