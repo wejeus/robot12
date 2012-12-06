@@ -1,10 +1,10 @@
 In this section high level strategies are presented. These high level strategies include a strategy for path planning and execution, a strategy of
 how to explore a maze and one of how to collect tags that have been previously mapped. The different strategies and their functionality are summarized in table \ref{table:strategies}.
 
-\begin{table}
-\label{table:conditions}
+\begin{table}[h]
+\label{table:strategies}
 \center
-  \begin{tabular}{l|l}
+  \begin{tabular}{l|p{10cm}}
     % \hline
     \textbf{Strategy} & \textbf{Description} \\ \hline
     StrategyGoto & Plans a path from the current position to a given node and executes it.  \\ \hline
@@ -20,13 +20,50 @@ The idea was that all higher level strategies are executed by a node called Stra
 The states for exploration and tag collection require the functionality provided by StrategyGoto. Therefore each state is encapsulated in an object which allows to reuse the functionality of StrategyGoto inside of StrategyExploration and StrategyCollection. It is basically the same design pattern as used for MovementControl.
 
 \subsection{StrategyGoto}
-StrategyGoto plans a path on the graph provided by the Mapper node from the current position to given node that is identified by its id.
+StrategyGoto plans a path on the graph provided by the Mapper node from the current position to a given node that is identified by its id.
 \subsubsection{Path planning}
 \label{pathplanning}
+The path planning is completely done on the graph provided by the Mapper node. Each edge in the graph describes a linear collision free path between the nodes it is connecting. Although each edge $(n_1,n_2)$ could be bidirectional they are set to be unidirectional so that $n_1 < n_2$. The reason for that lies within a weakness of the path execution and is explained in more detail in \ref{subsubsec:pathExec}. 
+
+To find a shortest path on the graph a modified Dijkstra algorithm is used. The modification lies within the calculation of the distance between two nodes $n_1, n_2$ that are connected by an edge $n_1, n_2$:
+
+\begin{equation}
+ 	d_{n_1,n_2} = 
+		\begin{cases}
+			\sqrt{(x_{n_1} - x_{n_2})^2 + (y_{n_1} - y_{n_2})^2} & \text{if } n_2 - n_1 = 1 \\
+			1.5 * \sqrt{(x_{n_1} - x_{n_2})^2 + (y_{n_1} - y_{n_2})^2} & \text{else }
+		\end{cases}
+\end{equation}  
+
+This modification results in a non optimal path. However, it prevents the path to contain a lot of shortcuts. A shortcut is an edge that requires the robot to move freely without following a wall. While such edges are the only way the found path can differ from simple wall following, they also bear a higher risk of getting lost or colliding with the environment.
 
 \subsubsection{Path execution}
+\label{subsubsec:pathExec}
+The path execution is done by using two basic movements: following a wall and moving freely to a certain position. Both functionalities are provided by the MovementControl node. Following a wall has significant advantages against moving freely. The wall follower reacts on all kinds of sensor input to follow a wall without any collisions. Further the localization based on odometry can only be improved by the Mapper node if the robot moves close to a wall. If the robot moves freely far from any wall the pose estimation is purely based on odometry. This can result in severe drift in the pose estimation which makes it hard to navigate further. 
+
+Therefore it is preferable to follow the wall as often as possible and taking as few and as short shortcuts as possible even if this means that the path is by far not the shortest. 
+A segment of a path along each edge $(n_1, n_2)$ for that $n_2 - n_1 = 1$ is true can be executed by following a wall. 
+Any segment of a path along an edge $(n_1, n_2)$ with $n_2 > n_1 + 1$ is a shortcut. 
+
+Since the wall follower can only follow a wall on the right side of the robot, edges $(n_1, n_2)$ with $n_2 < n_1$ are forbidden and not part of the graph. A shortcut is taken by moving the robot freely from the first node to the second. To reduce the risk of getting lost while taking such a shortcut the maximal length of shortcuts is set to $0.50m$.   
+
+The result of the path planning is a sequence of nodes the robot has to move to to get to its final destination.
+Depending whether the next node can be reached by following a wall or taking a shortcut the respective command is sent to MovementControl.
+If the next node can only be reached by moving there freely, the direction and the distance from the current pose to the node's pose is calculated. The robot then rotates first and then moves straight for the calculated distance. 
+
+If the next node can be reached by following a wall, the wall follower is executed until the Mapper signals that the desired node has been reached.
+
+If the next node is a tag, the current pose is compared with the nodes' pose.
+
+Once the next node is reached, a new command is issued to get to the next node in the sequence. This is repeated until the final node has been reached.
+
+The path execution worked in some cases, but also failed in many other cases. Due to navigational errors by moving freely it often happened that the wall following was started at a different position then where the node actually was. In case of a tight maze this could result in a different sequence of wall following events. This could result in never reaching a node just because the wall follower didn't have the same state transition at this position as stored in the node. Setting a node to be reached because the robot has reached its pose as it is done for tag nodes might have been a better solution. It was expected that the pose estimate is a less reliable localization than the wall following events which turned out to be wrong.    
+
 
 \subsection{Concepts for Phases}
 \label{subsec:conceptsStrategies}
 \subsubsection{Exploration}
+In exploration strategy our robot follows a wall until it has come to an ealier position with the same angular direction. If so, that means that the robot is moving in circles. It then stops and looks for other positions in the graph where it has not yet been, and looks for a collision free path from any node in the graph to that position. That position is chosen by first finding all non visited blocks (called ''blobs'') and then choose the next biggest one (because probably the biggest one is outside the maze).
+In our current implementation this functionality is not fully integrated.
+
 \subsubsection{Collection}
