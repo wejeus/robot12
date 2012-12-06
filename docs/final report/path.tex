@@ -63,7 +63,9 @@ The path execution worked in some cases, but also failed in many other cases. Du
 \subsection{Concepts for Phases}
 \label{subsec:conceptsStrategies}
 \subsubsection{Exploration}
-In exploration strategy our robot follows a wall until it has come to an ealier position with the same angular direction. If so, that means that the robot is moving in circles. It then stops and looks for other positions in the graph where it has not yet been, and looks for a collision free path from any node in the graph to that position. That position is chosen by first finding all non visited blocks (called ''blobs'') and then choose the next biggest one (because probably the biggest one is outside the maze).
-In our current implementation this functionality is not fully integrated.
+The exploration strategy is exploring one wall after another. For this the robot follows a wall until it has reached the same position with the same angular direction again. This means that the robot has completed a circle and has fully explored a sequence of connected wall segments. To find an unexplored region in the maze the exploration grid of the Mapper is used. 
+First all clusters of unexplored cells are searched. As the biggest cluster is most probably outside of the maze, the second biggest cluster of unexplored cells is selected. One position (e.g. center of one cell) that lies within this cluster is chosen and for each node it is checked if this position can be reached from this node. If the position is not reachable from any node the cell that contains it is set to be explored and another position is selected. If the position is reachable, StrategyGoto is used to move to the node from where the position is reachable. Once arrived at this node, the robot heads towards the unexplored position. As soon as it hits a wall it starts wall following again. Once there are no unexplored clusters anymore (except for the biggest one outside of the maze), the maze is fully explored and the robot leaves the maze. 
+In the final implementation this functionality is not fully integrated. Only the functionality for finding the clusters and the nodes that can reach it exists. 
 
 \subsubsection{Collection}
+The collection strategy was not implemented. The idea was to collect the tags greedily by going to the closest tag as long as there is enough time.
