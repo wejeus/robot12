@@ -13,7 +13,9 @@ For convenience it is defined that the start point has the lower $x$($y$)-coordi
 \subsection{Mapping}
 The mapping is done while wall following. Since the angles of the walls are strictly defined to be either $0$ or $\frac{\pi}{2}$ the mapping can only be started once the robot is aligned parallel to a wall. As described in section \ref{subsec:wallFollowing} the wall follower has $11$ different states. Every time it changes its state it publishes a message that is received by the Mapper. The first time the wall follower leaves the state \textit{AlignToWall} the Mapper starts mapping. The pose the robot has when this event occurs is defined to be $(0,0,0)$. From there on the pose is first updated based on odometry and then corrected by the Mapper as described in section \ref{subsec:Localization}.
 
-Amee has four short range IR sensors, two on each side. Each sensor is handled separately. Based on the current pose the measured distance is used to calculate the position of where the IR beam is reflected. The approach described in section \ref{subsec:dataAssoc} for data association is then used to associate this measurement with a previously mapped wall. If no wall fits a new wall segment is added to the map at this position. The orientation of this new wall segment depends on the current orientation of the robot.
+Amee has four short range IR sensors, two on each side. Each sensor is handled separately. Based on the current pose the measured distance is used to calculate the position of where the IR beam is reflected. The approach described in section \ref{subsec:dataAssoc} for data association is then used to associate this measurement with a previously mapped wall. The associated wall is extended so that it contains the new measurement. For horizontal walls the $y$-coordinate and for vertical walls the $x$-coordinate is the average of all the respective measurements' coordinates. 
+
+If no wall fits, a new wall segment is added to the map at this position. The orientation of this new wall segment depends on the current orientation of the robot.
 
 The map stores each type of wall segments in its own list. The list of horizontal walls is ordered by increasing $y$-coordinates and the list of vertical walls by increasing $x$-coordinates. This allows walls that have almost the same $x$(or $y$)-coordinate and overlap or are close to each other to be merged. This compensates drift in the pose estimation and is necessary to merge two wall segments of which one is mapped by the front sensor and the other by the back sensor on one side. 
 
@@ -26,7 +28,7 @@ The data association is done by ray tracing. Each wall is represented by a line 
 If the data association for both the front and the back sensor on one side is succesful it is possible to correct two components of the pose. The angle relative to the wall can be calculated as $\theta_{rel} = \arctan(\frac{d_{f} - d_{b}}{b})$, where $b$ is the distance between the front and the back sensor, $d_f$ and $d_b$ the measured distances at the front and at the back. Depending on the type and the side of the wall the robot is on, the absolute angle of the wall is either $0$, $\frac{\pi}{2}$,$\pi$ or $\frac{3 \pi}{2}$. With these it is possible to calculate the absolute angle of the robot $\theta$.
 
 If the robot is next to a horizontal wall it is further possible to adapt the robot's $y$-position. In case of a vertical wall it's the $x$-position.
-The respective coordinate can be reset based on the measured distance to the wall and the coordinates of this wall. Due to ray tracing it is possible to correct the pose in both cases if it's estimated too close and too far from the wall.
+The respective coordinate can be reset based on the measured distance to the wall and the coordinates of this wall. Due to ray tracing it is possible to correct the pose in both cases if it's estimated too close and too far from the wall. 
 
 \subsection{Graph}
 
@@ -35,6 +37,11 @@ For path planning a roadmap defined as directed visibility graph on the map is u
 The camera node described in section \ref{ComputerVision} notifies the mapper node about any tag detection. To prevent multiple tag entries into the map at the same position due to multiple detections of the same tag, a tag node is only added if it is at least $0.08m$ away from the last detection. 
 The first node added to the graph denotes the entry/exit of the maze.
 Each node has an id which uniquely identifies it. The ids are increased every time a new node is added and thus represent the order in which the nodes are added.
+
+Apart from the pose the Mapper provides an additional way of localizing inside of the graph. Every time the wall follower publishes a state change that would result in adding a new node, the distances to all existing nodes of the same type (e.g. rotating right, rotating left, etc..) are checked.
+If a previously mapped node of the same type is closer than $0.10m$ and the robot's driving direction is the same, it is assumed that the robot is at the same position as it has been before. This allows to detect whether the robot is moving in a cycle even if the pose estimation drifted a bit. 
+
+Every time a node in the graph is reached a message is published. These messages are later used for path execution as described in \ref{subsubsec:pathExec}.
 
 \subsection{Edges}
 
@@ -82,7 +89,17 @@ The exploring grid, however, as simple implementation of a grid map adds a lot o
 
 If the robot is next to a wall, it is only possible to correct two out of three components of the pose. While $\theta$ can always be corrected $x$ can only be corrected if the robot is next to a vertical wall and $y$ can only be corrected if it is next to a horizontal wall. Thus if the robot drives parallel to the same wall for a long time, the not corrected component of the pose drifts as it is purely based on odometry.
 
-As one can see in image \ref{TODO: image of map} the mapper does not map corners. This is due to the way data association is done. When the robot is rotating in a corner for the first time only one of both walls exist in the map. After the robot rotated approximately $45^{\circ}$ the IR measurements that belong to the new wall are still associated to the existing wall. This would result in As the mapper tries to correct the robot’s orientation based on the 
-no corners mapped 
+As one can see in image \ref{TODO: image of map} the mapper does not map corners. This is due to a false data association that occurs while rotating in a corner. When the robot is rotating in a corner for the first time only one of both walls exist in the map. After the robot rotated approximately $45^{\circ}$ the IR measurements that belong to the new not yet mapped wall are still associated to the existing wall. The result would be that the existing wall would be extended to far. The resulting gaps in the map, however, are too small for the robot to fit through. Thus no edges are added to the graph that connect two nodes through such a hole.
+
+For the same reason the localization inside of a corner can only be based on odometry and not on the IR measurements.
 
 \subsection{Possible improvements}
+
+The biggest problem of the localization is the drift of the pose if the robot moves in the same direction for a long time. As explained earlier it is not possible to corrected any pose changes parallel to the followed wall. By using a Kalman filter for the pose estimation this drift could be reduced.
+
+A special modification of the data association while rotating in corners could be introduced to allow corners to be fully mapped.
+
+The exploration grid could be replaced by a quadtree. A good implementation would need less memory and would allow arbitrary maze sizes.
+
+
+
