@@ -14,12 +14,13 @@ how to explore a maze and one of how to collect tags that have been previously m
   \end{tabular}
 \end{table}
 
-Although these strategies are required to fully solve the task, they have not been successfully implemented. The in subsection \ref{subsec:goto} presented StrategyGoto is the only one that was implemented. In subsection \ref{subsec:conceptsStrategies} the concepts for the strategies for exploring and collecting tags are shortly presented.
+Although these strategies are required to fully solve the task, they have not been successfully implemented. In the subsection \ref{subsec:goto} presented StrategyGoto is the only one that was implemented. In subsection \ref{subsec:conceptsStrategies} the concepts for the strategies for exploring and collecting tags are shortly presented.
 
 The idea was that all higher level strategies are executed by a node called StrategyControl. Each strategy is one state of StrategyControl. 
 The states for exploration and tag collection require the functionality provided by StrategyGoto. Therefore each state is encapsulated in an object which allows to reuse the functionality of StrategyGoto inside of StrategyExploration and StrategyCollection. It is basically the same design pattern as used for MovementControl.
 
 \subsection{StrategyGoto}
+\label{subsec:goto}
 StrategyGoto plans a path on the graph provided by the Mapper node from the current position to a given node that is identified by its id.
 \subsubsection{Path planning}
 \label{pathplanning}
