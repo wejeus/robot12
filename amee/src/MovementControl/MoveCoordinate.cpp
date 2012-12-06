@@ -72,22 +72,22 @@ void MoveCoordinate::doControl(const SensorData& data) {
 		}
 
 		if(mRotationDone){//rotation done, go straight to the point
-			if(wallInFront(data)){
-				//publish the movementEvent type
-				MovementEvent me;
-				me.type = MovementControl::MOVEMENT_EVENT_TYPE_OBSTICLE_IN_FRONT;
-				mMovementEventPub.publish(me);
+			// if(wallInFront(data)){
+			// 	//publish the movementEvent type
+			// 	MovementEvent me;
+			// 	me.type = MovementControl::MOVEMENT_EVENT_TYPE_OBSTICLE_IN_FRONT;
+			// 	mMovementEventPub.publish(me);
 
-				mRunning = false;
-				std::cout << "In MoveCoordinate, wall-In-Front, stopping!" << std::endl;
+			// 	mRunning = false;
+			// 	std::cout << "In MoveCoordinate, wall-In-Front, stopping!" << std::endl;
 
-				//publish stop
-				Velocity vel;
-				vel.left = vel.right = 0.0f; 
-				mPub.publish(vel);
+			// 	//publish stop
+			// 	Velocity vel;
+			// 	vel.left = vel.right = 0.0f; 
+			// 	mPub.publish(vel);
 
-				return;
-			}
+			// 	return;
+			// }
 			if(mStraightMove->isRunning()){
 				mStraightMove->doControl(data);
 			}else{

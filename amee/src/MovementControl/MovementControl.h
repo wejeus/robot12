@@ -15,6 +15,7 @@ class MoveFollowWall;
 class MoveAlignWall;
 class MoveAlignToFrontWall;
 class MoveCoordinate;
+class MoveCollisionRecovery;
 
 class MovementControl {
 
@@ -43,12 +44,14 @@ class MovementControl {
 		static const int TYPE_STOP = 5;
 		static const int TYPE_ALIGN_TO_WALL = 6;
 		static const int TYPE_ALIGN_TO_FRONT_WALL = 7;
+		static const int TYPE_COLLISION_RECOVERY = 8;
 
 		static const unsigned int MOVEMENT_EVENT_TYPE_OBSTICLE_IN_FRONT = 1;
 		static const unsigned int MOVEMENT_EVENT_TYPE_DONE_MOVING_COORDINATE = 2;
 		static const unsigned int MOVEMENT_EVENT_TYPE_DONE_ROTATING = 3;
 		static const unsigned int MOVEMENT_EVENT_TYPE_DONE_ALIGNING_WALL = 4;
 		static const unsigned int MOVEMENT_EVENT_TYPE_FAILED_ALIGNING_WALL = 5;
+		static const unsigned int MOVEMENT_EVENT_TYPE_RECOVERY_DONE = 6;
 
 	private:
 
@@ -65,6 +68,7 @@ class MovementControl {
 		amee::MoveFollowWall* mFollowWallState;
 		amee::MoveAlignWall* mAlignWallState;
 		amee::MoveAlignToFrontWall* mAlignToFrontWallState;
+		amee::MoveCollisionRecovery* mCollisionRevoveryState;
 		//TODO add other states here
 
 };

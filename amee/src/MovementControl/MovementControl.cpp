@@ -10,6 +10,7 @@
 #include "MoveAlignWall.h"
 #include "MoveAlignToFrontWall.h"
 #include "MoveCoordinate.h"
+#include "MoveCollisionRecovery.h"
 #include "amee/FollowWallStates.h"
 #include "amee/MovementEvent.h"
 #include <std_msgs/Int32.h>
@@ -25,6 +26,7 @@ MovementControl::MovementControl(ros::Publisher& pub, ros::Publisher& statesPub,
 	mAlignWallState = new MoveAlignWall(pub, movement_event_pub);
 	mAlignToFrontWallState = new MoveAlignToFrontWall(pub);
 	mCoordinateState = new MoveCoordinate(pub, movement_event_pub);
+	mCollisionRevoveryState = new MoveCollisionRecovery(pub, movement_event_pub);
 	mCurrentState = mStopState;
 }
 
@@ -36,6 +38,7 @@ MovementControl::~MovementControl() {
 	delete mAlignWallState;
 	delete mAlignToFrontWallState;
 	delete mCoordinateState;
+	delete mCollisionRevoveryState;
 }
 
 void MovementControl::setSpeedPublisher(ros::Publisher& pub) {
@@ -115,6 +118,10 @@ void MovementControl::receive_command(const amee::MovementCommand::ConstPtr &msg
 		case TYPE_ALIGN_TO_FRONT_WALL:
 			mAlignToFrontWallState->init(mSensorData);
 			mCurrentState = mAlignToFrontWallState;
+		break;
+		case TYPE_COLLISION_RECOVERY:
+			mCollisionRevoveryState->init(mSensorData);
+			mCurrentState = mCollisionRevoveryState;
 		break;
 		// default: std::cout << "GAY COMMAND RECEIVED" << std::endl;
 	}
