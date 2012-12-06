@@ -63,4 +63,7 @@ The path execution worked in some cases, but also failed in many other cases. Du
 \subsection{Concepts for Phases}
 \label{subsec:conceptsStrategies}
 \subsubsection{Exploration}
+In exploration strategy our robot follows a wall until it has come to an ealier position with the same angular direction. If so, that means that the robot is moving in circles. It then stops and looks for other positions in the graph where it has not yet been, and looks for a collision free path from any node in the graph to that position. That position is chosen by first finding all non visited blocks (called ''blobs'') and then choose the next biggest one (because probably the biggest one is outside the maze).
+In our current implementation this functionality is not fully integrated.
+
 \subsubsection{Collection}
