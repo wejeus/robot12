@@ -21,7 +21,7 @@ The map stores each type of wall segments in its own list. The list of horizonta
 
 \subsection{Data association}
 \label{subsec:dataAssoc}
-The data association is done by ray tracing. Each wall is represented by a line from its start point to its end point. The IR-measurement defines together with the position of the sensor another line, the IR beam. To associate a measurement to a wall it is checked for each wall if the beam and the wall intersect. In case of an incorrect pose estimation the beam might intersect with multiple walls. In that case the measurement is associated to the closest wall to the sensor's position. To allow the wall to grow and to deal with the fact that the mapped wall descibes the real wall's center both the beam and the wall are artificially extended for a couple of $cm$ for this calculation. TODO: image?    
+The data association is done by ray tracing. Each wall is represented by a line from its start point to its end point. The IR-measurement defines together with the position of the sensor another line, the IR beam. To associate a measurement to a wall it is checked for each wall if the beam and the wall intersect. In case of an incorrect pose estimation the beam might intersect with multiple walls. In that case the measurement is associated to the closest wall to the sensor's position. To allow the wall to grow and to deal with the fact that the mapped wall descibes the real wall's center both the beam and the wall are artificially extended for a couple of $cm$ for this calculation.
 
 \subsection{Localization}
 \label{subsec:Localization}
@@ -55,7 +55,12 @@ By default the nodes of the graph are connected in the order they were added. Th
 The reasons for the first two constraints are explained in section \ref{pathplanning}. 
 
 The collision checks are executed on the map. For this the line connecting $n_1$ and $n_2$ is sampled. On each sample point the shortest distance to any wall is calculated. This distance is the radius of a collision free circle around the sample point. If it is bigger than the robot's radius plus a small margin, this point can be part of a collision free path, if not it can not and there is no path. This is done for a limited number of sample points until either the complete path is guaranteed to be collision free or a collision was detected.
-TODO: provide image: on the left graph before calculation, on the right graph after calculation
+
+\begin{figure}
+\includegraphics[width=0.5\textwidth]{figures/map_no_edges.png}
+\includegraphics[width=0.5\textwidth]{figures/map_edges.png}
+\caption{Map before and after adding of additional edges}
+\end{figure}
 
 \subsection{Exploring grid}
 The map does only store where walls have been measured, but not where the robot 
@@ -73,8 +78,7 @@ While mapping a cell is set to be explored if one of the following conditions is
 \item it contains a measured wall on the right side of the robot
 \end{itemize}
 
-TODO: maybe image showing these cells
-
+The cells containing any wall measured on the left side of the robot are not set to be explored. The reason is that the camera is mounted to the right and thus any tag on the left hasn't been detected.
 
 
 \subsection{Evaluation}
@@ -89,7 +93,14 @@ The exploring grid, however, as simple implementation of a grid map adds a lot o
 
 If the robot is next to a wall, it is only possible to correct two out of three components of the pose. While $\theta$ can always be corrected $x$ can only be corrected if the robot is next to a vertical wall and $y$ can only be corrected if it is next to a horizontal wall. Thus if the robot drives parallel to the same wall for a long time, the not corrected component of the pose drifts as it is purely based on odometry.
 
-As one can see in image \ref{TODO: image of map} the mapper does not map corners. This is due to a false data association that occurs while rotating in a corner. When the robot is rotating in a corner for the first time only one of both walls exist in the map. After the robot rotated approximately $45^{\circ}$ the IR measurements that belong to the new not yet mapped wall are still associated to the existing wall. The result would be that the existing wall would be extended to far. The resulting gaps in the map, however, are too small for the robot to fit through. Thus no edges are added to the graph that connect two nodes through such a hole.
+\begin{figure}
+\center
+\includegraphics[width=0.5\textwidth]{figures/map_corners.png}
+\caption{Map: Gaps in the corners.}
+\label{fig:mapGaps}
+\end{figure}
+
+As one can see in figure \ref{fig:mapGaps} the mapper does not map corners. This is due to a false data association that occurs while rotating in a corner. When the robot is rotating in a corner for the first time only one of both walls exist in the map. After the robot rotated approximately $45^{\circ}$ the IR measurements that belong to the new not yet mapped wall are still associated to the existing wall. The result would be that the existing wall would be extended to far. The resulting gaps in the map, however, are too small for the robot to fit through. Thus no edges are added to the graph that connect two nodes through such a hole.
 
 For the same reason the localization inside of a corner can only be based on odometry and not on the IR measurements.
 
