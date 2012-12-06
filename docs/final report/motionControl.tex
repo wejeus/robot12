@@ -24,7 +24,7 @@ The straight movement is based on the same idea but instead of sending a positiv
 
 Wall following moves the robot along a wall and makes it turn so that most situations can be handled. The wall following node is using the previously mentioned functionalities, linear movement and angular movement, to be able to follow the wall. In addition to the encoder measurements it now uses the IR sensors to determine the distance and an angle to the wall. These measurements have the benefit of having a absolute error compared to the encoder measurements that drifts over time and the error integrates and eventually becomes very large.
 	The sensor input is sent to a P-controller that controls the angle to the wall, so that the robot drives parallel to the wall, this makes the robot move in a fairly straight line while doing wall following. The distance to the wall is only controlled in case the robot exceeds a threshold of being too close or too far from the wall. This makes the robot behave smoother and do less corrections to keep the right distance and will also improve the odometry since the robot will turn less.
-	The wall following functionality is based on a state machine that changes state when the wall cannot be followed any more without further actions. The state machine is shown in figure  \ref{fig:followWallStates} and the states are designed to handle most tricky situations that can appear in the environment. Conditions used in the state machine are explained in table \ref{tab:conditions}.
+	The wall following functionality is based on a state machine that changes state when the wall cannot be followed any more without further actions. The state machine is shown in figure  \ref{fig:followWallStates} and the states are designed to handle most tricky situations that can appear in the environment. Conditions used in the state machine are explained in table \ref{tab:conditions}. The states are briefly explained in table \ref{tab:followWallStates} and the following states handles most situations that could appear in the environment.
 
 \begin{table}[h!]
 \caption{Conditions for state transitions}
@@ -36,7 +36,8 @@ Wall following moves the robot along a wall and makes it turn so that most situa
     rL & Right left IR sensor sees a wall \\ \hline
     ES & Distance to wall error is below threshold \\ \hline
     EB & Distance to wall error is above threshold \\ \hline
-    WF & Wall in front detected \\
+    WF & Wall in front detected \\ \hline
+    NW & Robot is next to wall \\
     %\hline
   \end{tabular}
   \label{tab:conditions}
@@ -50,8 +51,7 @@ Wall following moves the robot along a wall and makes it turn so that most situa
     \end{centering}
 \end{figure}
 
-The states are briefly explained in table \ref{tab:followWallStates}. 
-\begin{table}[h]
+\begin{table}[h!]
 \centering
   \caption{Descriptions of follow wall states}
   \begin{tabular}{l|p{10cm}}
@@ -74,12 +74,8 @@ The states are briefly explained in table \ref{tab:followWallStates}.
 \label{tab:followWallStates}
 \end{table}
 
-The following states handles most situations that could appear in the environment.
-
 \subsection{Move to coordinate}
-
 Sometimes it is necessary to move away from the wall in order to explore the whole environment. Move coordinate is used to do this, it’s based on the same basic functions as the wall following function is based on, namely the linear movement and the angular movement. As the name tells it moves to a specified coordinate by first rotating and then move straight to that point.
 
 \subsection{Movement control}
-
 Movement control uses all the functionality previously described here in section \ref{sect:motionControl} to be able to make any movement that is required, follow wall and move to coordinate, to explore the whole environment.
