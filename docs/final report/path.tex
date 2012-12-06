@@ -1,1 +1,32 @@
-...
+In this section high level strategies are presented. These high level strategies include a strategy for path planning and execution, a strategy of
+how to explore a maze and one of how to collect tags that have been previously mapped. The different strategies and their functionality are summarized in table \ref{table:strategies}.
+
+\begin{table}
+\label{table:conditions}
+\center
+  \begin{tabular}{l|l}
+    % \hline
+    \textbf{Strategy} & \textbf{Description} \\ \hline
+    StrategyGoto & Plans a path from the current position to a given node and executes it.  \\ \hline
+    StrategyExplore & Explores a maze by doing wall following and moving to unexplored regions once the robot fully explored one wall. \\ \hline
+    StrategyCollect & Collects tags that are stored in the graph. \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Although these strategies are required to fully solve the task, they have not been successfully implemented. The in subsection \ref{subsec:goto} presented StrategyGoto is the only one that was implemented. In subsection \ref{subsec:conceptsStrategies} the concepts for the strategies for exploring and collecting tags are shortly presented.
+
+The idea was that all higher level strategies are executed by a node called StrategyControl. Each strategy is one state of StrategyControl. 
+The states for exploration and tag collection require the functionality provided by StrategyGoto. Therefore each state is encapsulated in an object which allows to reuse the functionality of StrategyGoto inside of StrategyExploration and StrategyCollection. It is basically the same design pattern as used for MovementControl.
+
+\subsection{StrategyGoto}
+StrategyGoto plans a path on the graph provided by the Mapper node from the current position to given node that is identified by its id.
+\subsubsection{Path planning}
+\label{pathplanning}
+
+\subsubsection{Path execution}
+
+\subsection{Concepts for Phases}
+\label{subsec:conceptsStrategies}
+\subsubsection{Exploration}
+\subsubsection{Collection}
