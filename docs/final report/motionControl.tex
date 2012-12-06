@@ -20,6 +20,7 @@ The two basic movements that are needed to explore the whole environment are rot
 The straight movement is based on the same idea but instead of sending a positive speed on one wheel and a negative on the other, both speeds have the same sign to either move the robot backwards or forward. 
 
 \subsection{Wall following}
+\label{subsec:wallFollowing}
 
 Wall following moves the robot along a wall and makes it turn so that most situations can be handled. The wall following node is using the previously mentioned functionalities, linear movement and angular movement, to be able to follow the wall. In addition to the encoder measurements it now uses the IR sensors to determine the distance and an angle to the wall. These measurements have the benefit of having a absolute error compared to the encoder measurements that drifts over time and the error integrates and eventually becomes very large.
 	The sensor input is sent to a P-controller that controls the angle to the wall, so that the robot drives parallel to the wall, this makes the robot move in a fairly straight line while doing wall following. The distance to the wall is only controlled in case the robot exceeds a threshold of being too close or too far from the wall. This makes the robot behave smoother and do less corrections to keep the right distance and will also improve the odometry since the robot will turn less.
